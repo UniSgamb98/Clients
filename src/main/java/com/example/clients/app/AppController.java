@@ -1,6 +1,9 @@
 package com.example.clients.app;
 
 import com.example.clients.core.ui.AppHeader;
+import com.example.clients.feature.dashboard.controller.DashboardController;
+import com.example.clients.feature.dashboard.service.DashboardService;
+import com.example.clients.feature.dashboard.view.DashboardView;
 
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -17,7 +20,7 @@ public class AppController implements Navigator{
         this.app = new AppContainer();
         this.cssPath = Objects.requireNonNull(getClass().getResource("/css/global.css")).toExternalForm();
 
-        showHome();
+        showDashboard();
         stage.setOnCloseRequest(e -> shutdown());
         stage.show();
     }
@@ -30,12 +33,13 @@ public class AppController implements Navigator{
      */
 
     @Override
-    public void showHome() {
-        HomeView view = new HomeView();
+    public void showDashboard() {
+        DashboardView view = new DashboardView();
         configureHeader(view.getHeader());
+        new DashboardController(view, this, new DashboardService());
 
         stage.setScene(createSceneWithCSS(view));
-        stage.setTitle("TON - Home");
+        stage.setTitle("TON - Dashboard");
     }
 
     @Override
@@ -65,7 +69,7 @@ public class AppController implements Navigator{
     }
 
     private void configureHeader(AppHeader header) {
-        header.getHomeButton().setOnAction(e -> showHome());
+        header.getHomeButton().setOnAction(e -> showDashboard());
         header.getLaboratoryButton().setOnAction(e -> showLaboratory());
     }
 
