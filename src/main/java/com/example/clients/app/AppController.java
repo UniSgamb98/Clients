@@ -3,6 +3,9 @@ package com.example.clients.app;
 import com.example.clients.app.navigators.DashboardNav;
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
+import com.example.clients.feature.clienti.controller.ClientiController;
+import com.example.clients.feature.clienti.service.ClientiService;
+import com.example.clients.feature.clienti.view.ClientiView;
 import com.example.clients.feature.dashboard.controller.DashboardController;
 import com.example.clients.feature.dashboard.service.DashboardService;
 import com.example.clients.feature.dashboard.view.DashboardView;
@@ -46,6 +49,17 @@ public class AppController implements DashboardNav {
     }
 
     @Override
+    public void showClienti() {
+        ClientiView view = new ClientiView();
+        configureHeader(view.getHeader());
+        configureSidebar(view.getSidebar());
+        new ClientiController(view, this, new ClientiService());
+
+        stage.setScene(createSceneWithCSS(view));
+        stage.setTitle("Clients - Clienti");
+    }
+
+    @Override
     public void showLaboratory() {
         /*
         LaboratoryView view = new LaboratoryView();
@@ -78,6 +92,7 @@ public class AppController implements DashboardNav {
 
     private void configureSidebar(AppSidebar sidebar) {
         sidebar.getDashboardButton().setOnAction(e -> showDashboard());
+        sidebar.getClientsButton().setOnAction(e -> showClienti());
     }
 
     public void shutdown() {
