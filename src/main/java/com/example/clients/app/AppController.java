@@ -1,6 +1,8 @@
 package com.example.clients.app;
 
+import com.example.clients.app.navigators.DashboardNav;
 import com.example.clients.core.ui.AppHeader;
+import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.dashboard.controller.DashboardController;
 import com.example.clients.feature.dashboard.service.DashboardService;
 import com.example.clients.feature.dashboard.view.DashboardView;
@@ -10,7 +12,7 @@ import javafx.stage.Stage;
 
 import java.util.Objects;
 
-public class AppController implements Navigator{
+public class AppController implements DashboardNav {
     private final Stage stage;
     private final AppContainer app;
     private final String cssPath;
@@ -36,10 +38,11 @@ public class AppController implements Navigator{
     public void showDashboard() {
         DashboardView view = new DashboardView();
         configureHeader(view.getHeader());
+        configureSidebar(view.getSidebar());
         new DashboardController(view, this, new DashboardService());
 
         stage.setScene(createSceneWithCSS(view));
-        stage.setTitle("TON - Dashboard");
+        stage.setTitle("Clients - Dashboard");
     }
 
     @Override
@@ -50,7 +53,7 @@ public class AppController implements Navigator{
         new LaboratoryController(view, this);
 
         stage.setScene(createSceneWithCSS(view));
-        stage.setTitle("TON - Laboratorio");*/
+        stage.setTitle("Clients - Laboratorio");*/
     }
 
     // Creando le Scenes con questo metodo vengono collegate al CSS globale e ai eventuali css specifici per pagina.
@@ -71,6 +74,10 @@ public class AppController implements Navigator{
     private void configureHeader(AppHeader header) {
         header.getHomeButton().setOnAction(e -> showDashboard());
         header.getLaboratoryButton().setOnAction(e -> showLaboratory());
+    }
+
+    private void configureSidebar(AppSidebar sidebar) {
+        sidebar.getDashboardButton().setOnAction(e -> showDashboard());
     }
 
     public void shutdown() {
