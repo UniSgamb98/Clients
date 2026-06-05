@@ -1,16 +1,18 @@
 package com.example.clients.core.database;
 
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-public class DiscoveryClient {
-
-    private static final String DISCOVER_MESSAGE = "CLIZR_DISCOVER";
-    private static final String HOST_RESPONSE_PREFIX = "CLIZR_HOST";
+public final class DiscoveryClient {
 
     private final int discoveryPort;
     private final int timeoutMs;
@@ -25,27 +27,17 @@ public class DiscoveryClient {
             socket.setBroadcast(true);
             socket.setSoTimeout(timeoutMs);
 
-            byte[] requestBytes = DISCOVER_MESSAGE.getBytes(StandardCharsets.UTF_8);
+            byte[] request = DiscoveryServer.DISCOVER_MESSAGE.getBytes(StandardCharsets.UTF_8);
+            sendBroadcasts(socket, request);
 
-            sendBroadcastRequests(socket, requestBytes);
-
-            byte[] buffer = new byte[512];
-            DatagramPacket response = new DatagramPacket(buffer, buffer.length);
-
+            DatagramPacket response = new DatagramPacket(new byte[512], 512);
             socket.receive(response);
 
-            String message = new String(
-                    response.getData(),
-                    0,
-                    response.getLength(),
-                    StandardCharsets.UTF_8
-            );
+            String message = new String(response.getData(), 0, response.getLength(), StandardCharsets.UTF_8);
 
-            if (message.startsWith(HOST_RESPONSE_PREFIX)) {
-                int dbPort = parsePort(message);
-                return Optional.of(new HostInfo(response.getAddress(), dbPort));
+            if (message.startsWith(DiscoveryServer.HOST_RESPONSE_PREFIX)) {
+                return Optional.of(new HostInfo(response.getAddress(), parsePort(message)));
             }
-
         } catch (SocketTimeoutException e) {
             return Optional.empty();
         } catch (Exception e) {
@@ -55,10 +47,9 @@ public class DiscoveryClient {
         return Optional.empty();
     }
 
-    private void sendBroadcastRequests(DatagramSocket socket, byte[] requestBytes) throws Exception {
-        Set<String> alreadySent = new HashSet<>();
-
-        sendToBroadcastAddress(socket, requestBytes, InetAddress.getByName("255.255.255.255"), alreadySent);
+    private void sendBroadcasts(DatagramSocket socket, byte[] request) throws Exception {
+        Set<String> sentAddresses = new HashSet<>();
+        send(socket, request, InetAddress.getByName("255.255.255.255"), sentAddresses);
 
         for (NetworkInterface networkInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
             if (!networkInterface.isUp() || networkInterface.isLoopback()) {
@@ -68,41 +59,23 @@ public class DiscoveryClient {
             for (InterfaceAddress interfaceAddress : networkInterface.getInterfaceAddresses()) {
                 InetAddress broadcast = interfaceAddress.getBroadcast();
 
-                if (broadcast == null) {
-                    continue;
+                if (broadcast != null) {
+                    send(socket, request, broadcast, sentAddresses);
                 }
-
-                sendToBroadcastAddress(socket, requestBytes, broadcast, alreadySent);
             }
         }
     }
 
-    private void sendToBroadcastAddress(
-            DatagramSocket socket,
-            byte[] requestBytes,
-            InetAddress broadcastAddress,
-            Set<String> alreadySent
-    ) throws Exception {
-        String ip = broadcastAddress.getHostAddress();
-
-        if (!alreadySent.add(ip)) {
+    private void send(DatagramSocket socket, byte[] request, InetAddress address, Set<String> sentAddresses) throws Exception {
+        if (!sentAddresses.add(address.getHostAddress())) {
             return;
         }
 
-        DatagramPacket packet = new DatagramPacket(
-                requestBytes,
-                requestBytes.length,
-                broadcastAddress,
-                discoveryPort
-        );
-
-        socket.send(packet);
+        socket.send(new DatagramPacket(request, request.length, address, discoveryPort));
     }
 
     private int parsePort(String message) {
-        String[] parts = message.split(";");
-
-        for (String part : parts) {
+        for (String part : message.split(";")) {
             if (part.startsWith("port=")) {
                 return Integer.parseInt(part.substring("port=".length()));
             }

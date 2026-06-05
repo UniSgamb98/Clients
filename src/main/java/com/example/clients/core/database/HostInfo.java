@@ -2,7 +2,7 @@ package com.example.clients.core.database;
 
 import java.net.InetAddress;
 
-public class HostInfo {
+public final class HostInfo {
 
     private final InetAddress address;
     private final int dbPort;

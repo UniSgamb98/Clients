@@ -3,25 +3,26 @@ package com.example.clients.core.database;
 import org.apache.derby.drda.NetworkServerControl;
 
 import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Optional;
 
-public class Database {
+public final class Database {
 
     private static final String DB_NAME = "Clients";
     private static final String DB_USER = "APP";
     private static final String DB_PASSWORD = "pw";
-    private static final String DERBY_SYSTEM_HOME = "I:\\CliZr\\Tommaso\\";
+    private static final String DERBY_SYSTEM_HOME = Path.of(System.getProperty("user.home"), ".clizr", "derby").toString();
 
     private static final int DERBY_PORT = 1527;
     private static final int DISCOVERY_PORT = 45678;
+    private static final int DISCOVERY_TIMEOUT_MS = 1500;
 
     private String jdbcUrl;
-
     private DatabaseMode mode = DatabaseMode.NOT_STARTED;
-
     private NetworkServerControl derbyServer;
     private DiscoveryServer discoveryServer;
 
@@ -31,34 +32,35 @@ public class Database {
         CLIENT
     }
 
-    public void start() {
-        System.setProperty("derby.system.home", DERBY_SYSTEM_HOME);
+    public synchronized void start() {
+        if (jdbcUrl != null) {
+            return;
+        }
 
-        Optional<HostInfo> existingHost = findExistingHost(1200);
+        configureDerbyHome();
 
-        if (existingHost.isPresent()) {
-            startAsClient(existingHost.get());
+        Optional<HostInfo> host = findExistingHost();
+
+        if (host.isPresent()) {
+            startAsClient(host.get());
             return;
         }
 
         try {
             startAsHost();
-            return;
-        } catch (Exception hostStartException) {
-            System.out.println("Impossibile avviare come HOST. Cerco un server già attivo...");
-
-            Optional<HostInfo> hostAfterFailure = findExistingHost(3000);
+        } catch (Exception e) {
+            Optional<HostInfo> hostAfterFailure = findExistingHost();
 
             if (hostAfterFailure.isPresent()) {
                 startAsClient(hostAfterFailure.get());
                 return;
             }
 
-            throw new RuntimeException("Impossibile avviare il database e nessun host trovato in LAN.", hostStartException);
+            throw new RuntimeException("Impossibile avviare il database e nessun host trovato in LAN.", e);
         }
     }
 
-    public Connection getConnection() {
+    public synchronized Connection getConnection() {
         if (jdbcUrl == null) {
             start();
         }
@@ -70,31 +72,21 @@ public class Database {
         }
     }
 
-    private Optional<HostInfo> findExistingHost(int timeoutMs) {
-        DiscoveryClient discoveryClient = new DiscoveryClient(DISCOVERY_PORT, timeoutMs);
-        return discoveryClient.findHost();
+    private Optional<HostInfo> findExistingHost() {
+        return new DiscoveryClient(DISCOVERY_PORT, DISCOVERY_TIMEOUT_MS).findHost();
     }
 
     private void startAsHost() throws Exception {
         System.out.println("Avvio database in modalità HOST...");
 
-        System.setProperty("derby.drda.host", "0.0.0.0");
-        System.setProperty("derby.drda.portNumber", String.valueOf(DERBY_PORT));
-
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-
-        derbyServer = new NetworkServerControl(
-                InetAddress.getByName("0.0.0.0"),
-                DERBY_PORT
-        );
-
-        derbyServer.start(null);
-
-        waitForDerbyServerStart();
-
         Class.forName("org.apache.derby.jdbc.ClientDriver");
 
-        jdbcUrl = buildJdbcUrl("localhost", true);
+        derbyServer = new NetworkServerControl(InetAddress.getByName("0.0.0.0"), DERBY_PORT);
+        derbyServer.start(null);
+        waitForDerbyServer();
+
+        jdbcUrl = buildJdbcUrl("localhost", DERBY_PORT, true);
 
         try (Connection ignored = DriverManager.getConnection(jdbcUrl)) {
             // Crea il database se non esiste.
@@ -111,56 +103,42 @@ public class Database {
         System.out.println("JDBC URL: " + jdbcUrl);
     }
 
-    private void startAsClient(HostInfo hostInfo) {
+    private void startAsClient(HostInfo host) {
         try {
             System.out.println("Avvio database in modalità CLIENT...");
-            System.out.println("Host trovato: " + hostInfo.getIp());
+            System.out.println("Host trovato: " + host.getIp() + ":" + host.getDbPort());
 
             Class.forName("org.apache.derby.jdbc.ClientDriver");
 
-            jdbcUrl = buildJdbcUrl(hostInfo.getIp(), false);
+            jdbcUrl = buildJdbcUrl(host.getIp(), host.getDbPort(), false);
 
             try (Connection ignored = DriverManager.getConnection(jdbcUrl)) {
-                // Test connessione.
+                // Verifica la connessione al server remoto.
             }
 
             mode = DatabaseMode.CLIENT;
 
             System.out.println("Connesso al database remoto.");
             System.out.println("JDBC URL: " + jdbcUrl);
-
         } catch (Exception e) {
             throw new RuntimeException("Errore connessione al database remoto.", e);
         }
     }
 
-    private String buildJdbcUrl(String host, boolean create) {
-        StringBuilder builder = new StringBuilder();
-
-        builder.append("jdbc:derby://")
-                .append(host)
-                .append(":")
-                .append(DERBY_PORT)
-                .append("/")
-                .append(DB_NAME)
-                .append(";user=")
-                .append(DB_USER)
-                .append(";password=")
-                .append(DB_PASSWORD);
+    private String buildJdbcUrl(String host, int port, boolean create) {
+        String url = "jdbc:derby://" + host + ":" + port + "/" + DB_NAME
+                + ";user=" + DB_USER
+                + ";password=" + DB_PASSWORD;
 
         if (create) {
-            builder.append(";create=true");
+            url += ";create=true";
         }
 
-        return builder.toString();
+        return url;
     }
 
-    private void waitForDerbyServerStart() throws Exception {
-        NetworkServerControl control = new NetworkServerControl(
-                InetAddress.getByName("localhost"),
-                DERBY_PORT
-        );
-
+    private void waitForDerbyServer() throws Exception {
+        NetworkServerControl control = new NetworkServerControl(InetAddress.getByName("localhost"), DERBY_PORT);
         Exception lastException = null;
 
         for (int i = 0; i < 10; i++) {
@@ -176,9 +154,10 @@ public class Database {
         throw lastException;
     }
 
-    public void stop() {
+    public synchronized void stop() {
         if (discoveryServer != null) {
             discoveryServer.close();
+            discoveryServer = null;
         }
 
         if (mode == DatabaseMode.HOST && derbyServer != null) {
@@ -186,20 +165,29 @@ public class Database {
                 derbyServer.shutdown();
                 System.out.println("Derby Network Server chiuso.");
             } catch (Exception e) {
-                System.out.println("Errore durante la chiusura del Derby Network Server.");
                 e.printStackTrace();
             }
         }
 
-        mode = DatabaseMode.NOT_STARTED;
+        derbyServer = null;
         jdbcUrl = null;
+        mode = DatabaseMode.NOT_STARTED;
     }
 
-    public DatabaseMode getMode() {
+    public synchronized DatabaseMode getMode() {
         return mode;
     }
 
-    public String getJdbcUrl() {
+    public synchronized String getJdbcUrl() {
         return jdbcUrl;
+    }
+
+    private void configureDerbyHome() {
+        try {
+            Files.createDirectories(Path.of(DERBY_SYSTEM_HOME));
+            System.setProperty("derby.system.home", DERBY_SYSTEM_HOME);
+        } catch (Exception e) {
+            throw new RuntimeException("Impossibile configurare Derby home: " + DERBY_SYSTEM_HOME, e);
+        }
     }
 }

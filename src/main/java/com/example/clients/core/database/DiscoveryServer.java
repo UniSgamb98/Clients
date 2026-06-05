@@ -1,16 +1,17 @@
 package com.example.clients.core.database;
 
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 
-public class DiscoveryServer implements Runnable, AutoCloseable {
+public final class DiscoveryServer implements Runnable, AutoCloseable {
 
-    private static final String DISCOVER_MESSAGE = "CLIZR_DISCOVER";
-    private static final String HOST_RESPONSE_PREFIX = "CLIZR_HOST";
+    static final String DISCOVER_MESSAGE = "CLIZR_DISCOVER";
+    static final String HOST_RESPONSE_PREFIX = "CLIZR_HOST";
 
     private final int discoveryPort;
     private final int dbPort;
-
     private volatile boolean running = true;
     private DatagramSocket socket;
 
@@ -22,45 +23,35 @@ public class DiscoveryServer implements Runnable, AutoCloseable {
     @Override
     public void run() {
         try (DatagramSocket datagramSocket = new DatagramSocket(discoveryPort, InetAddress.getByName("0.0.0.0"))) {
-            this.socket = datagramSocket;
-
+            socket = datagramSocket;
             byte[] buffer = new byte[512];
 
             while (running) {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                datagramSocket.receive(packet);
+                DatagramPacket request = new DatagramPacket(buffer, buffer.length);
+                datagramSocket.receive(request);
 
-                String message = new String(
-                        packet.getData(),
-                        0,
-                        packet.getLength(),
-                        StandardCharsets.UTF_8
-                );
+                String message = new String(request.getData(), 0, request.getLength(), StandardCharsets.UTF_8);
 
                 if (DISCOVER_MESSAGE.equals(message)) {
-                    String response = HOST_RESPONSE_PREFIX + ";port=" + dbPort;
-                    byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-
-                    DatagramPacket responsePacket = new DatagramPacket(
-                            responseBytes,
-                            responseBytes.length,
-                            packet.getAddress(),
-                            packet.getPort()
-                    );
-
-                    datagramSocket.send(responsePacket);
+                    sendResponse(datagramSocket, request);
                 }
-            }
-
-        } catch (SocketException e) {
-            if (running) {
-                e.printStackTrace();
             }
         } catch (Exception e) {
             if (running) {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void sendResponse(DatagramSocket datagramSocket, DatagramPacket request) throws Exception {
+        byte[] response = (HOST_RESPONSE_PREFIX + ";port=" + dbPort).getBytes(StandardCharsets.UTF_8);
+        DatagramPacket responsePacket = new DatagramPacket(
+                response,
+                response.length,
+                request.getAddress(),
+                request.getPort()
+        );
+        datagramSocket.send(responsePacket);
     }
 
     @Override
