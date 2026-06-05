@@ -104,3 +104,17 @@
 .new-client-actions {
     -fx-alignment: center-left;
 }
+
+.clients-table-header-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #d6d6d6;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-alignment: center-left;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.clients-table-header-button:hover {
+    -fx-text-fill: #ffffff;
+}

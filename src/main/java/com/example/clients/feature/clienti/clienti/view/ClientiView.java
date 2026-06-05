@@ -21,7 +21,14 @@ public class ClientiView extends BorderPane {
     private final Button activeFilterButton;
     private final Button prospectFilterButton;
     private final Button inactiveFilterButton;
+    private final Button nameHeaderButton;
+    private final Button typeHeaderButton;
+    private final Button contactHeaderButton;
+    private final Button phoneHeaderButton;
+    private final Button emailHeaderButton;
+    private final Button statusHeaderButton;
     private final VBox table;
+    private final VBox tableRows;
     private final HBox emptyRow;
     private final ScrollPane tableScrollPane;
 
@@ -41,10 +48,18 @@ public class ClientiView extends BorderPane {
         prospectFilterButton = createFilterButton("Prospect");
         inactiveFilterButton = createFilterButton("Inattivi");
 
+        nameHeaderButton = createHeaderButton("Nome");
+        typeHeaderButton = createHeaderButton("Tipo");
+        contactHeaderButton = createHeaderButton("Referente");
+        phoneHeaderButton = createHeaderButton("Telefono");
+        emailHeaderButton = createHeaderButton("Email");
+        statusHeaderButton = createHeaderButton("Stato");
+
         table = new VBox();
         table.getStyleClass().add("clients-table");
+        tableRows = new VBox();
         emptyRow = createEmptyRow();
-        tableScrollPane = new ScrollPane(table);
+        tableScrollPane = new ScrollPane(tableRows);
         tableScrollPane.setFitToWidth(true);
         tableScrollPane.getStyleClass().add("clients-table-scroll");
 
@@ -83,16 +98,32 @@ public class ClientiView extends BorderPane {
         filters.getChildren().addAll(allFilterButton, activeFilterButton, prospectFilterButton, inactiveFilterButton);
 
         initializeTable();
+        VBox.setVgrow(table, javafx.scene.layout.Priority.ALWAYS);
         VBox.setVgrow(tableScrollPane, javafx.scene.layout.Priority.ALWAYS);
 
-        content.getChildren().addAll(titleBar, toolbar, filters, tableScrollPane);
+        content.getChildren().addAll(titleBar, toolbar, filters, table);
         return content;
     }
 
     private void initializeTable() {
-        HBox headerRow = createTableRow("Nome", "Tipo", "Referente", "Telefono", "Email", "Stato");
-        headerRow.getStyleClass().add("clients-table-header");
-        table.getChildren().addAll(headerRow, emptyRow);
+        HBox headerRow = createHeaderRow();
+        tableRows.getChildren().add(emptyRow);
+        table.getChildren().addAll(headerRow, tableScrollPane);
+    }
+
+    private HBox createHeaderRow() {
+        HBox row = new HBox();
+        row.getStyleClass().add("clients-table-row");
+        row.getStyleClass().add("clients-table-header");
+        row.getChildren().addAll(
+                nameHeaderButton,
+                typeHeaderButton,
+                contactHeaderButton,
+                phoneHeaderButton,
+                emailHeaderButton,
+                statusHeaderButton
+        );
+        return row;
     }
 
     private HBox createEmptyRow() {
@@ -105,18 +136,16 @@ public class ClientiView extends BorderPane {
     }
 
     public void clearClientRows() {
-        while (table.getChildren().size() > 1) {
-            table.getChildren().remove(1);
-        }
-
-        table.getChildren().add(emptyRow);
+        tableRows.getChildren().clear();
+        tableRows.getChildren().add(emptyRow);
+        tableScrollPane.setVvalue(0);
     }
 
     public void addClientRow(String name, String type, String contact, String phone, String email, String status) {
-        table.getChildren().remove(emptyRow);
+        tableRows.getChildren().remove(emptyRow);
         HBox row = createTableRow(name, type, contact, phone, email, status);
         row.getStyleClass().add("clients-data-row");
-        table.getChildren().add(row);
+        tableRows.getChildren().add(row);
     }
 
     private HBox createTableRow(String name, String type, String contact, String phone, String email, String status) {
@@ -144,6 +173,14 @@ public class ClientiView extends BorderPane {
     private Button createFilterButton(String text) {
         Button button = new Button(text);
         button.getStyleClass().add("clients-filter-button");
+        return button;
+    }
+
+    private Button createHeaderButton(String text) {
+        Button button = new Button(text);
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.getStyleClass().add("clients-table-header-button");
+        HBox.setHgrow(button, javafx.scene.layout.Priority.ALWAYS);
         return button;
     }
 
@@ -177,5 +214,29 @@ public class ClientiView extends BorderPane {
 
     public Button getInactiveFilterButton() {
         return inactiveFilterButton;
+    }
+
+    public Button getNameHeaderButton() {
+        return nameHeaderButton;
+    }
+
+    public Button getTypeHeaderButton() {
+        return typeHeaderButton;
+    }
+
+    public Button getContactHeaderButton() {
+        return contactHeaderButton;
+    }
+
+    public Button getPhoneHeaderButton() {
+        return phoneHeaderButton;
+    }
+
+    public Button getEmailHeaderButton() {
+        return emailHeaderButton;
+    }
+
+    public Button getStatusHeaderButton() {
+        return statusHeaderButton;
     }
 }

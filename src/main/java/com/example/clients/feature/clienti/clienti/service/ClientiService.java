@@ -1,10 +1,42 @@
 package com.example.clients.feature.clienti.clienti.service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 
 public class ClientiService {
 
+    private SortColumn lastSortColumn;
+    private boolean ascending = true;
+
     public List<ClientePreview> getClientiPreview() {
+        return new ArrayList<>(getMockClienti());
+    }
+
+    public List<ClientePreview> sortClientiBy(SortColumn sortColumn) {
+        if (sortColumn == lastSortColumn) {
+            ascending = !ascending;
+        } else {
+            lastSortColumn = sortColumn;
+            ascending = true;
+        }
+
+        Comparator<ClientePreview> comparator = Comparator.comparing(
+                sortColumn.getValueExtractor(),
+                String.CASE_INSENSITIVE_ORDER
+        );
+
+        if (!ascending) {
+            comparator = comparator.reversed();
+        }
+
+        return getMockClienti().stream()
+                .sorted(comparator)
+                .toList();
+    }
+
+    private List<ClientePreview> getMockClienti() {
         return List.of(
                 new ClientePreview("Rossi S.r.l.", "Azienda", "Mario Rossi", "02 123456", "info@rossi.it", "Attivo"),
                 new ClientePreview("Bianchi Studio", "Studio", "Laura Bianchi", "011 987654", "laura@bianchi.it", "Prospect"),
@@ -31,6 +63,25 @@ public class ClientiService {
                 new ClientePreview("Sole Viaggi", "Azienda", "Noemi Longo", "070 998811", "noemi@soleviaggi.it", "Prospect"),
                 new ClientePreview("Tekno Point", "Partner", "Alessandro Rizzi", "02 119900", "alessandro@teknopoint.it", "Attivo")
         );
+    }
+
+    public enum SortColumn {
+        NAME(ClientePreview::name),
+        TYPE(ClientePreview::type),
+        CONTACT(ClientePreview::contact),
+        PHONE(ClientePreview::phone),
+        EMAIL(ClientePreview::email),
+        STATUS(ClientePreview::status);
+
+        private final Function<ClientePreview, String> valueExtractor;
+
+        SortColumn(Function<ClientePreview, String> valueExtractor) {
+            this.valueExtractor = valueExtractor;
+        }
+
+        private Function<ClientePreview, String> getValueExtractor() {
+            return valueExtractor;
+        }
     }
 
     public record ClientePreview(
