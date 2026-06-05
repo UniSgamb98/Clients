@@ -1,6 +1,6 @@
 package com.example.clients.feature.dashboard.controller;
 
-import com.example.clients.app.navigators.DashboardNav;
+import com.example.clients.feature.dashboard.navigator.DashboardNav;
 import com.example.clients.feature.dashboard.service.DashboardService;
 import com.example.clients.feature.dashboard.view.DashboardView;
 

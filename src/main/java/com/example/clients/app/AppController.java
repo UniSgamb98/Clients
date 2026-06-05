@@ -1,6 +1,5 @@
 package com.example.clients.app;
 
-import com.example.clients.app.navigators.DashboardNav;
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.controller.ClientiController;
@@ -9,7 +8,9 @@ import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.nuovocliente.controller.NuovoClienteController;
 import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService;
 import com.example.clients.feature.clienti.nuovocliente.view.NuovoClienteView;
+import com.example.clients.feature.clienti.navigator.ClientiNav;
 import com.example.clients.feature.dashboard.controller.DashboardController;
+import com.example.clients.feature.dashboard.navigator.DashboardNav;
 import com.example.clients.feature.dashboard.service.DashboardService;
 import com.example.clients.feature.dashboard.view.DashboardView;
 
@@ -18,7 +19,7 @@ import javafx.stage.Stage;
 
 import java.util.Objects;
 
-public class AppController implements DashboardNav {
+public class AppController implements DashboardNav, ClientiNav {
     private final Stage stage;
     private final AppContainer app;
     private final String cssPath;
@@ -73,7 +74,6 @@ public class AppController implements DashboardNav {
         stage.setTitle("Clients - Nuovo cliente");
     }
 
-    @Override
     public void showLaboratory() {
         /*
         LaboratoryView view = new LaboratoryView();

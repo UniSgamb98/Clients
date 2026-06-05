@@ -1,32 +1,32 @@
 package com.example.clients.feature.clienti.nuovocliente.controller;
 
-import com.example.clients.app.navigators.DashboardNav;
+import com.example.clients.feature.clienti.navigator.ClientiNav;
 import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService;
 import com.example.clients.feature.clienti.nuovocliente.view.NuovoClienteView;
 
 public class NuovoClienteController {
 
     private final NuovoClienteView view;
-    private final DashboardNav dashboardNav;
+    private final ClientiNav clientiNav;
     private final NuovoClienteService service;
 
-    public NuovoClienteController(NuovoClienteView view, DashboardNav dashboardNav, NuovoClienteService service) {
+    public NuovoClienteController(NuovoClienteView view, ClientiNav clientiNav, NuovoClienteService service) {
         this.view = view;
-        this.dashboardNav = dashboardNav;
+        this.clientiNav = clientiNav;
         this.service = service;
         configureActions();
     }
 
     private void configureActions() {
-        view.getCancelButton().setOnAction(event -> dashboardNav.showClienti());
+        view.getCancelButton().setOnAction(event -> clientiNav.showClienti());
     }
 
     public NuovoClienteView getView() {
         return view;
     }
 
-    public DashboardNav getDashboardNav() {
-        return dashboardNav;
+    public ClientiNav getClientiNav() {
+        return clientiNav;
     }
 
     public NuovoClienteService getService() {

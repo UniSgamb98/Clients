@@ -1,6 +1,6 @@
 package com.example.clients.feature.clienti.clienti.controller;
 
-import com.example.clients.app.navigators.DashboardNav;
+import com.example.clients.feature.clienti.navigator.ClientiNav;
 import com.example.clients.feature.clienti.clienti.service.ClientiService;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.ClientePreview;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
@@ -8,19 +8,19 @@ import com.example.clients.feature.clienti.clienti.view.ClientiView;
 public class ClientiController {
 
     private final ClientiView view;
-    private final DashboardNav dashboardNav;
+    private final ClientiNav clientiNav;
     private final ClientiService service;
 
-    public ClientiController(ClientiView view, DashboardNav dashboardNav, ClientiService service) {
+    public ClientiController(ClientiView view, ClientiNav clientiNav, ClientiService service) {
         this.view = view;
-        this.dashboardNav = dashboardNav;
+        this.clientiNav = clientiNav;
         this.service = service;
         configureActions();
         loadPreviewClients();
     }
 
     private void configureActions() {
-        view.getNewClientButton().setOnAction(event -> dashboardNav.showNuovoCliente());
+        view.getNewClientButton().setOnAction(event -> clientiNav.showNuovoCliente());
     }
 
     private void loadPreviewClients() {
@@ -42,8 +42,8 @@ public class ClientiController {
         return view;
     }
 
-    public DashboardNav getDashboardNav() {
-        return dashboardNav;
+    public ClientiNav getClientiNav() {
+        return clientiNav;
     }
 
     public ClientiService getService() {
