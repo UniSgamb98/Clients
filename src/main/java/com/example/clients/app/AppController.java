@@ -3,9 +3,12 @@ package com.example.clients.app;
 import com.example.clients.app.navigators.DashboardNav;
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
-import com.example.clients.feature.clienti.controller.ClientiController;
-import com.example.clients.feature.clienti.service.ClientiService;
-import com.example.clients.feature.clienti.view.ClientiView;
+import com.example.clients.feature.clienti.clienti.controller.ClientiController;
+import com.example.clients.feature.clienti.clienti.service.ClientiService;
+import com.example.clients.feature.clienti.clienti.view.ClientiView;
+import com.example.clients.feature.clienti.nuovocliente.controller.NuovoClienteController;
+import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService;
+import com.example.clients.feature.clienti.nuovocliente.view.NuovoClienteView;
 import com.example.clients.feature.dashboard.controller.DashboardController;
 import com.example.clients.feature.dashboard.service.DashboardService;
 import com.example.clients.feature.dashboard.view.DashboardView;
@@ -57,6 +60,17 @@ public class AppController implements DashboardNav {
 
         stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Clienti");
+    }
+
+    @Override
+    public void showNuovoCliente() {
+        NuovoClienteView view = new NuovoClienteView();
+        configureHeader(view.getHeader());
+        configureSidebar(view.getSidebar());
+        new NuovoClienteController(view, this, new NuovoClienteService());
+
+        stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
+        stage.setTitle("Clients - Nuovo cliente");
     }
 
     @Override

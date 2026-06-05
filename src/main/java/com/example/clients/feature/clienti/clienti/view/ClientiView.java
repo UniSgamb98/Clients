@@ -1,10 +1,11 @@
-package com.example.clients.feature.clienti.view;
+package com.example.clients.feature.clienti.clienti.view;
 
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -22,6 +23,7 @@ public class ClientiView extends BorderPane {
     private final Button inactiveFilterButton;
     private final VBox table;
     private final HBox emptyRow;
+    private final ScrollPane tableScrollPane;
 
     public ClientiView() {
         header = new AppHeader("Clienti");
@@ -42,6 +44,9 @@ public class ClientiView extends BorderPane {
         table = new VBox();
         table.getStyleClass().add("clients-table");
         emptyRow = createEmptyRow();
+        tableScrollPane = new ScrollPane(table);
+        tableScrollPane.setFitToWidth(true);
+        tableScrollPane.getStyleClass().add("clients-table-scroll");
 
         setTop(header);
         setLeft(sidebar);
@@ -78,8 +83,9 @@ public class ClientiView extends BorderPane {
         filters.getChildren().addAll(allFilterButton, activeFilterButton, prospectFilterButton, inactiveFilterButton);
 
         initializeTable();
+        VBox.setVgrow(tableScrollPane, javafx.scene.layout.Priority.ALWAYS);
 
-        content.getChildren().addAll(titleBar, toolbar, filters, table);
+        content.getChildren().addAll(titleBar, toolbar, filters, tableScrollPane);
         return content;
     }
 

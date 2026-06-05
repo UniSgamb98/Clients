@@ -79,3 +79,28 @@
 .clients-data-row:hover {
     -fx-background-color: #303033;
 }
+
+.clients-table-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.new-client-form {
+    -fx-background-color: #252526;
+    -fx-background-radius: 10;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 18;
+    -fx-max-width: 560;
+}
+
+.new-client-field-label {
+    -fx-text-fill: #d6d6d6;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.new-client-actions {
+    -fx-alignment: center-left;
+}
