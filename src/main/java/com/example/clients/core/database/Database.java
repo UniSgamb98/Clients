@@ -2,12 +2,18 @@ package com.example.clients.core.database;
 
 import org.apache.derby.drda.NetworkServerControl;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Optional;
 
 public final class Database {
@@ -15,7 +21,7 @@ public final class Database {
     private static final String DB_NAME = "Clients";
     private static final String DB_USER = "APP";
     private static final String DB_PASSWORD = "pw";
-    private static final String DERBY_SYSTEM_HOME = Path.of(System.getProperty("user.home"), ".clizr", "derby").toString();
+    private static final String DERBY_SYSTEM_HOME = "I:/CliZr/Tommaso";
 
     private static final int DERBY_PORT = 1527;
     private static final int DISCOVERY_PORT = 45678;
@@ -25,6 +31,8 @@ public final class Database {
     private DatabaseMode mode = DatabaseMode.NOT_STARTED;
     private NetworkServerControl derbyServer;
     private DiscoveryServer discoveryServer;
+    private Connection currentConnection;
+    private Connection sharedConnection;
 
     public enum DatabaseMode {
         NOT_STARTED,
@@ -61,15 +69,12 @@ public final class Database {
     }
 
     public synchronized Connection getConnection() {
-        if (jdbcUrl == null) {
-            start();
+        if (sharedConnection == null) {
+            sharedConnection = createResilientConnection();
         }
 
-        try {
-            return DriverManager.getConnection(jdbcUrl);
-        } catch (SQLException e) {
-            throw new RuntimeException("Errore connessione DB: " + jdbcUrl, e);
-        }
+        ensurePhysicalConnection();
+        return sharedConnection;
     }
 
     private Optional<HostInfo> findExistingHost() {
@@ -89,7 +94,7 @@ public final class Database {
         jdbcUrl = buildJdbcUrl("localhost", DERBY_PORT, true);
 
         try (Connection ignored = DriverManager.getConnection(jdbcUrl)) {
-            // Crea il database se non esiste.
+            // Apre il database condiviso su DERBY_SYSTEM_HOME e lo crea se non esiste.
         }
 
         discoveryServer = new DiscoveryServer(DISCOVERY_PORT, DERBY_PORT);
@@ -155,6 +160,8 @@ public final class Database {
     }
 
     public synchronized void stop() {
+        closeCurrentConnection();
+
         if (discoveryServer != null) {
             discoveryServer.close();
             discoveryServer = null;
@@ -188,6 +195,176 @@ public final class Database {
             System.setProperty("derby.system.home", DERBY_SYSTEM_HOME);
         } catch (Exception e) {
             throw new RuntimeException("Impossibile configurare Derby home: " + DERBY_SYSTEM_HOME, e);
+        }
+    }
+
+    private void ensurePhysicalConnection() {
+        try {
+            if (jdbcUrl == null) {
+                start();
+            }
+
+            if (currentConnection == null || currentConnection.isClosed()) {
+                currentConnection = DriverManager.getConnection(jdbcUrl);
+            }
+        } catch (SQLException e) {
+            recoverAfterConnectionLoss(e);
+        }
+    }
+
+    private synchronized void recoverAfterConnectionLoss(SQLException cause) {
+        if (!isConnectionFailure(cause)) {
+            throw new RuntimeException("Errore connessione DB: " + jdbcUrl, cause);
+        }
+
+        System.out.println("Connessione al database persa. Cerco un nuovo host o provo a diventare HOST...");
+
+        try {
+            stop();
+            start();
+            currentConnection = DriverManager.getConnection(jdbcUrl);
+        } catch (Exception e) {
+            throw new RuntimeException("Impossibile ripristinare la connessione al database.", e);
+        }
+    }
+
+    private void closeCurrentConnection() {
+        if (currentConnection == null) {
+            return;
+        }
+
+        try {
+            currentConnection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            currentConnection = null;
+        }
+    }
+
+    private Connection createResilientConnection() {
+        return (Connection) Proxy.newProxyInstance(
+                Connection.class.getClassLoader(),
+                new Class<?>[]{Connection.class},
+                new ConnectionHandler()
+        );
+    }
+
+    private Object invokeOnCurrentConnection(Method method, Object[] args) throws Throwable {
+        ensurePhysicalConnection();
+
+        try {
+            Object result = method.invoke(currentConnection, args);
+
+            if (result instanceof Statement statement) {
+                return createResilientStatement(statement);
+            }
+
+            return result;
+        } catch (Throwable throwable) {
+            SQLException sqlException = extractSqlException(throwable);
+
+            if (sqlException != null && isConnectionFailure(sqlException)) {
+                recoverAfterConnectionLoss(sqlException);
+            }
+
+            throw unwrap(throwable);
+        }
+    }
+
+    private Statement createResilientStatement(Statement statement) {
+        Class<?> statementInterface = Statement.class;
+
+        if (statement instanceof CallableStatement) {
+            statementInterface = CallableStatement.class;
+        } else if (statement instanceof PreparedStatement) {
+            statementInterface = PreparedStatement.class;
+        }
+
+        return (Statement) Proxy.newProxyInstance(
+                statementInterface.getClassLoader(),
+                new Class<?>[]{statementInterface},
+                new StatementHandler(statement)
+        );
+    }
+
+    private boolean isConnectionFailure(SQLException exception) {
+        SQLException current = exception;
+
+        while (current != null) {
+            String sqlState = current.getSQLState();
+
+            if (sqlState != null && sqlState.startsWith("08")) {
+                return true;
+            }
+
+            current = current.getNextException();
+        }
+
+        return false;
+    }
+
+    private SQLException extractSqlException(Throwable throwable) {
+        Throwable current = throwable;
+
+        while (current != null) {
+            if (current instanceof SQLException sqlException) {
+                return sqlException;
+            }
+
+            current = current.getCause();
+        }
+
+        return null;
+    }
+
+    private Throwable unwrap(Throwable throwable) {
+        return throwable.getCause() == null ? throwable : throwable.getCause();
+    }
+
+    private final class ConnectionHandler implements InvocationHandler {
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            String methodName = method.getName();
+
+            if ("close".equals(methodName)) {
+                closeCurrentConnection();
+                return null;
+            }
+
+            if ("isClosed".equals(methodName)) {
+                return currentConnection == null || currentConnection.isClosed();
+            }
+
+            if ("toString".equals(methodName)) {
+                return "ResilientConnection[" + jdbcUrl + "]";
+            }
+
+            return invokeOnCurrentConnection(method, args);
+        }
+    }
+
+    private final class StatementHandler implements InvocationHandler {
+
+        private final Statement statement;
+
+        private StatementHandler(Statement statement) {
+            this.statement = statement;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            try {
+                return method.invoke(statement, args);
+            } catch (Throwable throwable) {
+                SQLException sqlException = extractSqlException(throwable);
+
+                if (sqlException != null && isConnectionFailure(sqlException)) {
+                    recoverAfterConnectionLoss(sqlException);
+                }
+
+                throw unwrap(throwable);
+            }
         }
     }
 }
