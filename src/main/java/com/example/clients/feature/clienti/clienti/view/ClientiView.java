@@ -9,9 +9,17 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 public class ClientiView extends BorderPane {
+
+    private static final double NAME_COLUMN_WIDTH = 115;
+    private static final double TYPE_COLUMN_WIDTH = 75;
+    private static final double CONTACT_COLUMN_WIDTH = 115;
+    private static final double PHONE_COLUMN_WIDTH = 90;
+    private static final double EMAIL_COLUMN_WIDTH = 175;
+    private static final double STATUS_COLUMN_WIDTH = 75;
 
     private final AppHeader header;
     private final AppSidebar sidebar;
@@ -48,12 +56,12 @@ public class ClientiView extends BorderPane {
         prospectFilterButton = createFilterButton("Prospect");
         inactiveFilterButton = createFilterButton("Inattivi");
 
-        nameHeaderButton = createHeaderButton("Nome");
-        typeHeaderButton = createHeaderButton("Tipo");
-        contactHeaderButton = createHeaderButton("Referente");
-        phoneHeaderButton = createHeaderButton("Telefono");
-        emailHeaderButton = createHeaderButton("Email");
-        statusHeaderButton = createHeaderButton("Stato");
+        nameHeaderButton = createHeaderButton("Nome", NAME_COLUMN_WIDTH);
+        typeHeaderButton = createHeaderButton("Tipo", TYPE_COLUMN_WIDTH);
+        contactHeaderButton = createHeaderButton("Referente", CONTACT_COLUMN_WIDTH);
+        phoneHeaderButton = createHeaderButton("Telefono", PHONE_COLUMN_WIDTH);
+        emailHeaderButton = createHeaderButton("Email", EMAIL_COLUMN_WIDTH);
+        statusHeaderButton = createHeaderButton("Stato", STATUS_COLUMN_WIDTH);
 
         table = new VBox();
         table.getStyleClass().add("clients-table");
@@ -152,21 +160,20 @@ public class ClientiView extends BorderPane {
         HBox row = new HBox();
         row.getStyleClass().add("clients-table-row");
         row.getChildren().addAll(
-                createCell(name),
-                createCell(type),
-                createCell(contact),
-                createCell(phone),
-                createCell(email),
-                createCell(status)
+                createCell(name, NAME_COLUMN_WIDTH),
+                createCell(type, TYPE_COLUMN_WIDTH),
+                createCell(contact, CONTACT_COLUMN_WIDTH),
+                createCell(phone, PHONE_COLUMN_WIDTH),
+                createCell(email, EMAIL_COLUMN_WIDTH),
+                createCell(status, STATUS_COLUMN_WIDTH)
         );
         return row;
     }
 
-    private Label createCell(String text) {
+    private Label createCell(String text, double width) {
         Label label = new Label(text);
         label.getStyleClass().add("clients-table-cell");
-        label.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(label, javafx.scene.layout.Priority.ALWAYS);
+        setColumnWidth(label, width);
         return label;
     }
 
@@ -176,12 +183,17 @@ public class ClientiView extends BorderPane {
         return button;
     }
 
-    private Button createHeaderButton(String text) {
+    private Button createHeaderButton(String text, double width) {
         Button button = new Button(text);
-        button.setMaxWidth(Double.MAX_VALUE);
         button.getStyleClass().add("clients-table-header-button");
-        HBox.setHgrow(button, javafx.scene.layout.Priority.ALWAYS);
+        setColumnWidth(button, width);
         return button;
+    }
+
+    private void setColumnWidth(Region region, double width) {
+        region.setMinWidth(width);
+        region.setPrefWidth(width);
+        region.setMaxWidth(width);
     }
 
     public AppHeader getHeader() {
