@@ -20,6 +20,8 @@ public class ClientiView extends BorderPane {
     private final Button activeFilterButton;
     private final Button prospectFilterButton;
     private final Button inactiveFilterButton;
+    private final VBox table;
+    private final HBox emptyRow;
 
     public ClientiView() {
         header = new AppHeader("Clienti");
@@ -36,6 +38,10 @@ public class ClientiView extends BorderPane {
         activeFilterButton = createFilterButton("Attivi");
         prospectFilterButton = createFilterButton("Prospect");
         inactiveFilterButton = createFilterButton("Inattivi");
+
+        table = new VBox();
+        table.getStyleClass().add("clients-table");
+        emptyRow = createEmptyRow();
 
         setTop(header);
         setLeft(sidebar);
@@ -71,27 +77,40 @@ public class ClientiView extends BorderPane {
         filters.getStyleClass().add("clients-filter-bar");
         filters.getChildren().addAll(allFilterButton, activeFilterButton, prospectFilterButton, inactiveFilterButton);
 
-        VBox tablePreview = createTablePreview();
+        initializeTable();
 
-        content.getChildren().addAll(titleBar, toolbar, filters, tablePreview);
+        content.getChildren().addAll(titleBar, toolbar, filters, table);
         return content;
     }
 
-    private VBox createTablePreview() {
-        VBox table = new VBox();
-        table.getStyleClass().add("clients-table");
-
+    private void initializeTable() {
         HBox headerRow = createTableRow("Nome", "Tipo", "Referente", "Telefono", "Email", "Stato");
         headerRow.getStyleClass().add("clients-table-header");
+        table.getChildren().addAll(headerRow, emptyRow);
+    }
 
-        HBox emptyRow = new HBox();
-        emptyRow.getStyleClass().add("clients-empty-row");
+    private HBox createEmptyRow() {
+        HBox row = new HBox();
+        row.getStyleClass().add("clients-empty-row");
         Label emptyLabel = new Label("Nessun cliente caricato. Usa \"+ Nuovo cliente\" per iniziare.");
         emptyLabel.getStyleClass().add("clients-empty-label");
-        emptyRow.getChildren().add(emptyLabel);
+        row.getChildren().add(emptyLabel);
+        return row;
+    }
 
-        table.getChildren().addAll(headerRow, emptyRow);
-        return table;
+    public void clearClientRows() {
+        while (table.getChildren().size() > 1) {
+            table.getChildren().remove(1);
+        }
+
+        table.getChildren().add(emptyRow);
+    }
+
+    public void addClientRow(String name, String type, String contact, String phone, String email, String status) {
+        table.getChildren().remove(emptyRow);
+        HBox row = createTableRow(name, type, contact, phone, email, status);
+        row.getStyleClass().add("clients-data-row");
+        table.getChildren().add(row);
     }
 
     private HBox createTableRow(String name, String type, String contact, String phone, String email, String status) {

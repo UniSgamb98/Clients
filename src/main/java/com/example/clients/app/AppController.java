@@ -55,7 +55,7 @@ public class AppController implements DashboardNav {
         configureSidebar(view.getSidebar());
         new ClientiController(view, this, new ClientiService());
 
-        stage.setScene(createSceneWithCSS(view));
+        stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Clienti");
     }
 
