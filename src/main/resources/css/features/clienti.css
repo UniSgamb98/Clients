@@ -118,3 +118,79 @@
 .clients-table-header-button:hover {
     -fx-text-fill: #ffffff;
 }
+
+.new-client-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.new-client-form-grid {
+    -fx-padding: 2 2 10 2;
+}
+
+.new-client-form-column {
+    -fx-min-width: 320;
+    -fx-pref-width: 420;
+}
+
+.new-client-section {
+    -fx-background-color: #252526;
+    -fx-background-radius: 10;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+}
+
+.new-client-section-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+}
+
+.new-client-section-subtitle,
+.new-client-card-hint {
+    -fx-text-fill: #9a9a9a;
+    -fx-font-size: 11px;
+}
+
+.new-client-repeatable-row {
+    -fx-alignment: center-left;
+}
+
+.new-client-add-button {
+    -fx-background-color: #3f3f46;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-min-width: 38;
+    -fx-pref-width: 38;
+    -fx-padding: 6 0;
+}
+
+.new-client-contact-card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 8;
+    -fx-border-color: #d7d7d7;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+}
+
+.new-client-contact-card .new-client-field-label {
+    -fx-text-fill: #2b2b2b;
+}
+
+.new-client-linked-combo {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d0d0d0;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.new-client-linked-combo .text-field {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #202020;
+    -fx-prompt-text-fill: #777777;
+}
