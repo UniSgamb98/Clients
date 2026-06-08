@@ -1,0 +1,25 @@
+package com.example.clients.feature.clienti.model;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+public record Cliente(
+        UUID id,
+        String ragioneSociale,
+        String tipoCliente,
+        String interessamento,
+        String partitaIva,
+        String codiceFiscale,
+        String sitoWeb,
+        double coinvolgimento,
+        int checkpoint,
+        LocalDate acquisizione,
+        int volteContattati,
+        LocalDate ultimaChiamata,
+        LocalDate prossimaChiamata,
+        UUID operatoreId,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
+) {
+}

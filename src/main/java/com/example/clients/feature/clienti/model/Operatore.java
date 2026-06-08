@@ -1,0 +1,15 @@
+package com.example.clients.feature.clienti.model;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+public record Operatore(
+        UUID id,
+        String nome,
+        String cognome,
+        String username,
+        boolean attivo,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
+) {
+}
