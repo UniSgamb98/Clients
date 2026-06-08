@@ -1,21 +1,10 @@
 package com.example.clients.feature.clienti.model;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record ContattoCliente(
         UUID id,
         UUID clienteId,
-        String nome,
-        String cognome,
-        String ruolo,
-        boolean principale,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        String descrizione
 ) {
-    public String nomeCompleto() {
-        String safeNome = nome == null ? "" : nome.trim();
-        String safeCognome = cognome == null ? "" : cognome.trim();
-        return (safeCognome + " " + safeNome).trim();
-    }
 }

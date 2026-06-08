@@ -41,13 +41,9 @@ public interface ClientiRepository {
 
     List<TelefonoCliente> findTelefoniByClienteId(UUID clienteId) throws SQLException;
 
-    List<TelefonoCliente> findTelefoniByContattoId(UUID contattoId) throws SQLException;
-
     void saveEmail(EmailCliente email) throws SQLException;
 
     List<EmailCliente> findEmailByClienteId(UUID clienteId) throws SQLException;
-
-    List<EmailCliente> findEmailByContattoId(UUID contattoId) throws SQLException;
 
     void saveSitoWeb(SitoWebCliente sitoWeb) throws SQLException;
 

@@ -142,25 +142,21 @@ public class DerbyClientiRepository implements ClientiRepository {
     public void saveContatto(ContattoCliente contatto) throws SQLException {
         String sql = """
                 INSERT INTO CONTATTI_CLIENTE (
-                    ID, CLIENTE_ID, NOME, COGNOME, RUOLO, PRINCIPALE, UPDATED_AT
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ID, CLIENTE_ID, DESCRIZIONE
+                ) VALUES (?, ?, ?)
                 """;
 
         try (PreparedStatement statement = connection().prepareStatement(sql)) {
             setUuid(statement, 1, contatto.id());
             setUuid(statement, 2, contatto.clienteId());
-            statement.setString(3, contatto.nome());
-            statement.setString(4, contatto.cognome());
-            statement.setString(5, contatto.ruolo());
-            statement.setInt(6, toSmallInt(contatto.principale()));
-            setTimestamp(statement, 7, contatto.updatedAt());
+            statement.setString(3, contatto.descrizione());
             statement.executeUpdate();
         }
     }
 
     @Override
     public List<ContattoCliente> findContattiByClienteId(UUID clienteId) throws SQLException {
-        String sql = "SELECT * FROM CONTATTI_CLIENTE WHERE CLIENTE_ID = ? ORDER BY PRINCIPALE DESC, COGNOME, NOME";
+        String sql = "SELECT * FROM CONTATTI_CLIENTE WHERE CLIENTE_ID = ? ORDER BY DESCRIZIONE";
         List<ContattoCliente> contatti = new ArrayList<>();
 
         try (PreparedStatement statement = connection().prepareStatement(sql)) {
@@ -223,86 +219,89 @@ public class DerbyClientiRepository implements ClientiRepository {
     public void saveTelefono(TelefonoCliente telefono) throws SQLException {
         String sql = """
                 INSERT INTO TELEFONI_CLIENTE (
-                    ID, CLIENTE_ID, CONTATTO_ID, NUMERO, TIPO, PRINCIPALE, DESCRIZIONE, UPDATED_AT
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ID, CLIENTE_ID, DESCRIZIONE
+                ) VALUES (?, ?, ?)
                 """;
 
         try (PreparedStatement statement = connection().prepareStatement(sql)) {
             setUuid(statement, 1, telefono.id());
             setUuid(statement, 2, telefono.clienteId());
-            setUuid(statement, 3, telefono.contattoId());
-            statement.setString(4, telefono.numero());
-            statement.setString(5, telefono.tipo());
-            statement.setInt(6, toSmallInt(telefono.principale()));
-            statement.setString(7, telefono.descrizione());
-            setTimestamp(statement, 8, telefono.updatedAt());
+            statement.setString(3, telefono.descrizione());
             statement.executeUpdate();
         }
     }
 
     @Override
     public List<TelefonoCliente> findTelefoniByClienteId(UUID clienteId) throws SQLException {
-        return findTelefoniByOwner("CLIENTE_ID", clienteId);
-    }
+        String sql = "SELECT * FROM TELEFONI_CLIENTE WHERE CLIENTE_ID = ? ORDER BY DESCRIZIONE";
+        List<TelefonoCliente> telefoni = new ArrayList<>();
 
-    @Override
-    public List<TelefonoCliente> findTelefoniByContattoId(UUID contattoId) throws SQLException {
-        return findTelefoniByOwner("CONTATTO_ID", contattoId);
+        try (PreparedStatement statement = connection().prepareStatement(sql)) {
+            setUuid(statement, 1, clienteId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    telefoni.add(mapTelefono(resultSet));
+                }
+            }
+        }
+
+        return telefoni;
     }
 
     @Override
     public void saveEmail(EmailCliente email) throws SQLException {
         String sql = """
                 INSERT INTO EMAIL_CLIENTE (
-                    ID, CLIENTE_ID, CONTATTO_ID, EMAIL, TIPO, PRINCIPALE, UPDATED_AT
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ID, CLIENTE_ID, DESCRIZIONE
+                ) VALUES (?, ?, ?)
                 """;
 
         try (PreparedStatement statement = connection().prepareStatement(sql)) {
             setUuid(statement, 1, email.id());
             setUuid(statement, 2, email.clienteId());
-            setUuid(statement, 3, email.contattoId());
-            statement.setString(4, email.email());
-            statement.setString(5, email.tipo());
-            statement.setInt(6, toSmallInt(email.principale()));
-            setTimestamp(statement, 7, email.updatedAt());
+            statement.setString(3, email.descrizione());
             statement.executeUpdate();
         }
     }
 
     @Override
     public List<EmailCliente> findEmailByClienteId(UUID clienteId) throws SQLException {
-        return findEmailByOwner("CLIENTE_ID", clienteId);
-    }
+        String sql = "SELECT * FROM EMAIL_CLIENTE WHERE CLIENTE_ID = ? ORDER BY DESCRIZIONE";
+        List<EmailCliente> emails = new ArrayList<>();
 
-    @Override
-    public List<EmailCliente> findEmailByContattoId(UUID contattoId) throws SQLException {
-        return findEmailByOwner("CONTATTO_ID", contattoId);
+        try (PreparedStatement statement = connection().prepareStatement(sql)) {
+            setUuid(statement, 1, clienteId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    emails.add(mapEmail(resultSet));
+                }
+            }
+        }
+
+        return emails;
     }
 
     @Override
     public void saveSitoWeb(SitoWebCliente sitoWeb) throws SQLException {
         String sql = """
                 INSERT INTO SITI_WEB_CLIENTE (
-                    ID, CLIENTE_ID, URL, TIPO, PRINCIPALE, DESCRIZIONE, UPDATED_AT
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ID, CLIENTE_ID, DESCRIZIONE
+                ) VALUES (?, ?, ?)
                 """;
 
         try (PreparedStatement statement = connection().prepareStatement(sql)) {
             setUuid(statement, 1, sitoWeb.id());
             setUuid(statement, 2, sitoWeb.clienteId());
-            statement.setString(3, sitoWeb.url());
-            statement.setString(4, sitoWeb.tipo());
-            statement.setInt(5, toSmallInt(sitoWeb.principale()));
-            statement.setString(6, sitoWeb.descrizione());
-            setTimestamp(statement, 7, sitoWeb.updatedAt());
+            statement.setString(3, sitoWeb.descrizione());
             statement.executeUpdate();
         }
     }
 
     @Override
     public List<SitoWebCliente> findSitiWebByClienteId(UUID clienteId) throws SQLException {
-        String sql = "SELECT * FROM SITI_WEB_CLIENTE WHERE CLIENTE_ID = ? ORDER BY PRINCIPALE DESC, TIPO, URL";
+        String sql = "SELECT * FROM SITI_WEB_CLIENTE WHERE CLIENTE_ID = ? ORDER BY DESCRIZIONE";
         List<SitoWebCliente> sitiWeb = new ArrayList<>();
 
         try (PreparedStatement statement = connection().prepareStatement(sql)) {
@@ -436,40 +435,6 @@ public class DerbyClientiRepository implements ClientiRepository {
         return database.getConnection();
     }
 
-    private List<TelefonoCliente> findTelefoniByOwner(String ownerColumn, UUID ownerId) throws SQLException {
-        String sql = "SELECT * FROM TELEFONI_CLIENTE WHERE " + ownerColumn + " = ? ORDER BY PRINCIPALE DESC, TIPO, NUMERO";
-        List<TelefonoCliente> telefoni = new ArrayList<>();
-
-        try (PreparedStatement statement = connection().prepareStatement(sql)) {
-            setUuid(statement, 1, ownerId);
-
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    telefoni.add(mapTelefono(resultSet));
-                }
-            }
-        }
-
-        return telefoni;
-    }
-
-    private List<EmailCliente> findEmailByOwner(String ownerColumn, UUID ownerId) throws SQLException {
-        String sql = "SELECT * FROM EMAIL_CLIENTE WHERE " + ownerColumn + " = ? ORDER BY PRINCIPALE DESC, TIPO, EMAIL";
-        List<EmailCliente> emails = new ArrayList<>();
-
-        try (PreparedStatement statement = connection().prepareStatement(sql)) {
-            setUuid(statement, 1, ownerId);
-
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    emails.add(mapEmail(resultSet));
-                }
-            }
-        }
-
-        return emails;
-    }
-
     private void setClienteInsertFields(PreparedStatement statement, Cliente cliente) throws SQLException {
         setUuid(statement, 1, cliente.id());
         statement.setString(2, cliente.ragioneSociale());
@@ -505,12 +470,7 @@ public class DerbyClientiRepository implements ClientiRepository {
         return new ContattoCliente(
                 getUuid(resultSet, "ID"),
                 getUuid(resultSet, "CLIENTE_ID"),
-                resultSet.getString("NOME"),
-                resultSet.getString("COGNOME"),
-                resultSet.getString("RUOLO"),
-                resultSet.getInt("PRINCIPALE") == 1,
-                getLocalDateTime(resultSet, "CREATED_AT"),
-                getLocalDateTime(resultSet, "UPDATED_AT")
+                resultSet.getString("DESCRIZIONE")
         );
     }
 
@@ -535,13 +495,7 @@ public class DerbyClientiRepository implements ClientiRepository {
         return new TelefonoCliente(
                 getUuid(resultSet, "ID"),
                 getUuid(resultSet, "CLIENTE_ID"),
-                getUuid(resultSet, "CONTATTO_ID"),
-                resultSet.getString("NUMERO"),
-                resultSet.getString("TIPO"),
-                resultSet.getInt("PRINCIPALE") == 1,
-                resultSet.getString("DESCRIZIONE"),
-                getLocalDateTime(resultSet, "CREATED_AT"),
-                getLocalDateTime(resultSet, "UPDATED_AT")
+                resultSet.getString("DESCRIZIONE")
         );
     }
 
@@ -549,12 +503,7 @@ public class DerbyClientiRepository implements ClientiRepository {
         return new EmailCliente(
                 getUuid(resultSet, "ID"),
                 getUuid(resultSet, "CLIENTE_ID"),
-                getUuid(resultSet, "CONTATTO_ID"),
-                resultSet.getString("EMAIL"),
-                resultSet.getString("TIPO"),
-                resultSet.getInt("PRINCIPALE") == 1,
-                getLocalDateTime(resultSet, "CREATED_AT"),
-                getLocalDateTime(resultSet, "UPDATED_AT")
+                resultSet.getString("DESCRIZIONE")
         );
     }
 
@@ -562,12 +511,7 @@ public class DerbyClientiRepository implements ClientiRepository {
         return new SitoWebCliente(
                 getUuid(resultSet, "ID"),
                 getUuid(resultSet, "CLIENTE_ID"),
-                resultSet.getString("URL"),
-                resultSet.getString("TIPO"),
-                resultSet.getInt("PRINCIPALE") == 1,
-                resultSet.getString("DESCRIZIONE"),
-                getLocalDateTime(resultSet, "CREATED_AT"),
-                getLocalDateTime(resultSet, "UPDATED_AT")
+                resultSet.getString("DESCRIZIONE")
         );
     }
 
