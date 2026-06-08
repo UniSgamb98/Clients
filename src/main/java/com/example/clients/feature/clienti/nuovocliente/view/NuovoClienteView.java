@@ -118,17 +118,14 @@ public class NuovoClienteView extends BorderPane {
         VBox leftColumn = new VBox(14);
         leftColumn.getStyleClass().add("new-client-form-column");
         leftColumn.getChildren().addAll(
-                createSection("Dati cliente", "CLIENTI", createClientFields()),
-                createSection("Siti web", "SITI_WEB_CLIENTE", createRepeatableField("Sito web", websiteField, addWebsiteButton)),
-                createSection("Email cliente", "EMAIL_CLIENTE", createRepeatableField("Email", emailField, addEmailButton)),
-                createSection("Contatti cliente", "CONTATTI_CLIENTE", createContactBlock()),
-                createSection("Telefoni cliente", "TELEFONI_CLIENTE", createRepeatableField("Telefono", phoneField, addPhoneButton))
+                createSection("Dati cliente", createClientFields()),
+                createSection("Contatti cliente", createContactBlock())
         );
 
         VBox rightColumn = new VBox(14);
         rightColumn.getStyleClass().add("new-client-form-column");
         rightColumn.getChildren().add(
-                createSection("Indirizzi cliente", "INDIRIZZI_CLIENTE", createAddressFields())
+                createSection("Indirizzi cliente", createAddressFields())
         );
 
         HBox.setHgrow(leftColumn, Priority.ALWAYS);
@@ -146,7 +143,10 @@ public class NuovoClienteView extends BorderPane {
                 createFieldGroup("Partita IVA", vatField),
                 createFieldGroup("Codice fiscale", fiscalCodeField),
                 createFieldGroup("Acquisizione", acquisitionField),
-                createFieldGroup("Operatore", operatorField)
+                createFieldGroup("Operatore", operatorField),
+                createRepeatableField("Sito web", websiteField, addWebsiteButton),
+                createRepeatableField("Email", emailField, addEmailButton),
+                createRepeatableField("Telefono", phoneField, addPhoneButton)
         );
         return fields;
     }
@@ -183,18 +183,14 @@ public class NuovoClienteView extends BorderPane {
         return block;
     }
 
-    private VBox createSection(String titleText, String tableName, VBox body) {
+    private VBox createSection(String titleText, VBox body) {
         VBox section = new VBox(12);
         section.getStyleClass().add("new-client-section");
 
-        VBox heading = new VBox(2);
         Label title = new Label(titleText);
         title.getStyleClass().add("new-client-section-title");
-        Label subtitle = new Label(tableName);
-        subtitle.getStyleClass().add("new-client-section-subtitle");
-        heading.getChildren().addAll(title, subtitle);
 
-        section.getChildren().addAll(heading, body);
+        section.getChildren().addAll(title, body);
         return section;
     }
 

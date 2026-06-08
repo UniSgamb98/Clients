@@ -148,7 +148,6 @@
     -fx-font-weight: 700;
 }
 
-.new-client-section-subtitle,
 .new-client-card-hint {
     -fx-text-fill: #9a9a9a;
     -fx-font-size: 11px;
