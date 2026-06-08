@@ -11,13 +11,9 @@ public record Cliente(
         String interessamento,
         String partitaIva,
         String codiceFiscale,
-        String sitoWeb,
         double coinvolgimento,
         int checkpoint,
         LocalDate acquisizione,
-        int volteContattati,
-        LocalDate ultimaChiamata,
-        LocalDate prossimaChiamata,
         UUID operatoreId,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

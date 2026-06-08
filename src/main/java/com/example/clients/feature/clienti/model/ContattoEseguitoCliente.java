@@ -4,16 +4,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public record AttivitaCliente(
+public record ContattoEseguitoCliente(
         UUID id,
         UUID clienteId,
         UUID contattoId,
         UUID operatoreId,
+        UUID notaId,
         String tipo,
-        LocalDate dataAttivita,
+        LocalDate dataContatto,
         String esito,
-        LocalDate prossimaAttivita,
-        String note,
+        LocalDate prossimoContatto,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

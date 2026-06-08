@@ -10,7 +10,6 @@ public record ContattoCliente(
         String cognome,
         String ruolo,
         boolean principale,
-        String note,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

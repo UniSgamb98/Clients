@@ -1,12 +1,13 @@
 package com.example.clients.feature.clienti.repository;
 
-import com.example.clients.feature.clienti.model.AttivitaCliente;
 import com.example.clients.feature.clienti.model.Cliente;
 import com.example.clients.feature.clienti.model.ContattoCliente;
+import com.example.clients.feature.clienti.model.ContattoEseguitoCliente;
 import com.example.clients.feature.clienti.model.EmailCliente;
 import com.example.clients.feature.clienti.model.IndirizzoCliente;
 import com.example.clients.feature.clienti.model.NotaCliente;
 import com.example.clients.feature.clienti.model.Operatore;
+import com.example.clients.feature.clienti.model.SitoWebCliente;
 import com.example.clients.feature.clienti.model.TelefonoCliente;
 
 import java.sql.SQLException;
@@ -48,13 +49,17 @@ public interface ClientiRepository {
 
     List<EmailCliente> findEmailByContattoId(UUID contattoId) throws SQLException;
 
-    void saveAttivita(AttivitaCliente attivita) throws SQLException;
+    void saveSitoWeb(SitoWebCliente sitoWeb) throws SQLException;
 
-    List<AttivitaCliente> findAttivitaByClienteId(UUID clienteId) throws SQLException;
+    List<SitoWebCliente> findSitiWebByClienteId(UUID clienteId) throws SQLException;
 
     void saveNota(NotaCliente nota) throws SQLException;
 
     List<NotaCliente> findNoteByClienteId(UUID clienteId) throws SQLException;
+
+    void saveContattoEseguito(ContattoEseguitoCliente contattoEseguito) throws SQLException;
+
+    List<ContattoEseguitoCliente> findContattiEseguitiByClienteId(UUID clienteId) throws SQLException;
 
     void saveOperatore(Operatore operatore) throws SQLException;
 
