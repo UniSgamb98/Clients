@@ -5,6 +5,7 @@ import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteServ
 import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService.ContattoInput;
 import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService.NuovoClienteFormData;
 import com.example.clients.feature.clienti.nuovocliente.view.NuovoClienteView;
+import com.example.clients.feature.clienti.nuovocliente.view.NuovoClienteView.ContactEntryControls;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.control.ComboBox;
@@ -28,10 +29,14 @@ public class NuovoClienteController {
         view.getSaveButton().setOnAction(event -> service.saveCliente(createFormData()));
         view.getAddWebsiteButton().setOnAction(event -> view.addWebsiteField().requestFocus());
         view.getAddAddressButton().setOnAction(event -> view.addAddressField().requestFocus());
-        view.getAddContactButton().setOnAction(event -> view.addContactEntry(
-                nonBlankValues(view.getPhoneFields()),
-                nonBlankValues(view.getEmailFields())
-        ).requestFocus());
+        view.getAddContactButton().setOnAction(event -> {
+            ContactEntryControls controls = view.addContactEntry(
+                    nonBlankValues(view.getPhoneFields()),
+                    nonBlankValues(view.getEmailFields())
+            );
+            configureContactRemoval(controls);
+            controls.contactField().requestFocus();
+        });
         view.getAddEmailButton().setOnAction(event -> {
             TextField field = view.addEmailField();
             configureContactOptionsRefresh(field);
@@ -46,7 +51,12 @@ public class NuovoClienteController {
         });
         view.getEmailFields().forEach(this::configureContactOptionsRefresh);
         view.getPhoneFields().forEach(this::configureContactOptionsRefresh);
+        view.getContactEntries().forEach(this::configureContactRemoval);
         refreshContactOptions();
+    }
+
+    private void configureContactRemoval(ContactEntryControls controls) {
+        controls.removeButton().setOnAction(event -> view.removeContactEntry(controls));
     }
 
     private void configureContactOptionsRefresh(TextField field) {

@@ -168,6 +168,26 @@
     -fx-padding: 6 0;
 }
 
+.new-client-remove-button {
+    -fx-background-color: #5f2727;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-min-width: 38;
+    -fx-pref-width: 38;
+    -fx-padding: 6 0;
+}
+
+.new-client-add-button-placeholder {
+    -fx-min-width: 38;
+    -fx-pref-width: 38;
+}
+
+.new-client-contact-flow {
+    -fx-pref-wrap-length: 760;
+}
+
 .new-client-contact-card {
     -fx-background-color: #202124;
     -fx-background-radius: 8;
@@ -175,6 +195,7 @@
     -fx-border-radius: 8;
     -fx-border-width: 1;
     -fx-padding: 12;
+    -fx-pref-width: 320;
 }
 
 .new-client-linked-combo {
