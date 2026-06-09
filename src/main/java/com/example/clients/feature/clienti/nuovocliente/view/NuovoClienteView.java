@@ -331,10 +331,12 @@ public class NuovoClienteView extends BorderPane {
         return field;
     }
 
-    public TextField addContactEntry() {
+    public TextField addContactEntry(List<String> phoneOptions, List<String> emailOptions) {
         TextField contact = createTextField("Altro referente");
         ComboBox<String> phone = createLinkedComboBox("Telefono referente");
         ComboBox<String> email = createLinkedComboBox("Email referente");
+        phone.getItems().setAll(phoneOptions);
+        email.getItems().setAll(emailOptions);
         contactFields.add(contact);
         contactPhoneFields.add(phone);
         contactEmailFields.add(email);

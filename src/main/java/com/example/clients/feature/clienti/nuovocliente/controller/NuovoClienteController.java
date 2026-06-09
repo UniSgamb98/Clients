@@ -28,10 +28,10 @@ public class NuovoClienteController {
         view.getSaveButton().setOnAction(event -> service.saveCliente(createFormData()));
         view.getAddWebsiteButton().setOnAction(event -> view.addWebsiteField().requestFocus());
         view.getAddAddressButton().setOnAction(event -> view.addAddressField().requestFocus());
-        view.getAddContactButton().setOnAction(event -> {
-            view.addContactEntry().requestFocus();
-            refreshContactOptions();
-        });
+        view.getAddContactButton().setOnAction(event -> view.addContactEntry(
+                nonBlankValues(view.getPhoneFields()),
+                nonBlankValues(view.getEmailFields())
+        ).requestFocus());
         view.getAddEmailButton().setOnAction(event -> {
             TextField field = view.addEmailField();
             configureContactOptionsRefresh(field);
