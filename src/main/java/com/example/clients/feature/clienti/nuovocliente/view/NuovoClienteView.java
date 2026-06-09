@@ -2,6 +2,9 @@ package com.example.clients.feature.clienti.nuovocliente.view;
 
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -44,6 +47,18 @@ public class NuovoClienteView extends BorderPane {
     private final Button addAddressButton;
     private final Button saveButton;
     private final Button cancelButton;
+    private final VBox websiteFieldsContainer;
+    private final VBox emailFieldsContainer;
+    private final VBox phoneFieldsContainer;
+    private final VBox contactFieldsContainer;
+    private final VBox extraAddressFieldsContainer;
+    private final List<TextField> websiteFields;
+    private final List<TextField> emailFields;
+    private final List<TextField> phoneFields;
+    private final List<TextField> contactFields;
+    private final List<ComboBox<String>> contactPhoneFields;
+    private final List<ComboBox<String>> contactEmailFields;
+    private final List<TextField> extraAddressFields;
 
     public NuovoClienteView() {
         header = new AppHeader("Nuovo cliente");
@@ -76,6 +91,28 @@ public class NuovoClienteView extends BorderPane {
         addPhoneButton = createAddButton();
         addAddressButton = createAddButton();
 
+        websiteFieldsContainer = createRepeatableContainer(websiteField, addWebsiteButton);
+        emailFieldsContainer = createRepeatableContainer(emailField, addEmailButton);
+        phoneFieldsContainer = createRepeatableContainer(phoneField, addPhoneButton);
+        contactFieldsContainer = new VBox(10);
+        extraAddressFieldsContainer = createRepeatableContainer(createTextField("Aggiungi altra sede"), addAddressButton);
+
+        websiteFields = new ArrayList<>();
+        emailFields = new ArrayList<>();
+        phoneFields = new ArrayList<>();
+        contactFields = new ArrayList<>();
+        contactPhoneFields = new ArrayList<>();
+        contactEmailFields = new ArrayList<>();
+        extraAddressFields = new ArrayList<>();
+        websiteFields.add(websiteField);
+        emailFields.add(emailField);
+        phoneFields.add(phoneField);
+        contactFields.add(contactField);
+        contactPhoneFields.add(contactPhoneField);
+        contactEmailFields.add(contactEmailField);
+        extraAddressFields.add((TextField) ((HBox) extraAddressFieldsContainer.getChildren().get(0)).getChildren().get(0));
+        contactFieldsContainer.getChildren().add(createContactEntry(contactField, contactPhoneField, contactEmailField, addContactButton));
+
         saveButton = new Button("Salva cliente");
         saveButton.getStyleClass().add("clients-primary-button");
         cancelButton = new Button("Annulla");
@@ -94,7 +131,7 @@ public class NuovoClienteView extends BorderPane {
         VBox titleBox = new VBox(4);
         Label title = new Label("Nuovo cliente");
         title.getStyleClass().add("clients-title");
-        Label subtitle = new Label("Inserisci i dati del cliente, divisi per le stesse aree dello schema database.");
+        Label subtitle = new Label("Inserisci i dati del cliente e i relativi recapiti, contatti e indirizzi.");
         subtitle.getStyleClass().add("clients-subtitle");
         titleBox.getChildren().addAll(title, subtitle);
 
@@ -117,15 +154,13 @@ public class NuovoClienteView extends BorderPane {
 
         VBox leftColumn = new VBox(14);
         leftColumn.getStyleClass().add("new-client-form-column");
-        leftColumn.getChildren().addAll(
-                createSection("Dati cliente", createClientFields()),
-                createSection("Contatti cliente", createContactBlock())
-        );
+        leftColumn.getChildren().add(createSection("Dati cliente", createClientFields()));
 
         VBox rightColumn = new VBox(14);
         rightColumn.getStyleClass().add("new-client-form-column");
-        rightColumn.getChildren().add(
-                createSection("Indirizzi cliente", createAddressFields())
+        rightColumn.getChildren().addAll(
+                createSection("Indirizzi cliente", createAddressFields()),
+                createSection("Contatti cliente", createContactBlock())
         );
 
         HBox.setHgrow(leftColumn, Priority.ALWAYS);
@@ -144,9 +179,9 @@ public class NuovoClienteView extends BorderPane {
                 createFieldGroup("Codice fiscale", fiscalCodeField),
                 createFieldGroup("Acquisizione", acquisitionField),
                 createFieldGroup("Operatore", operatorField),
-                createRepeatableField("Sito web", websiteField, addWebsiteButton),
-                createRepeatableField("Email", emailField, addEmailButton),
-                createRepeatableField("Telefono", phoneField, addPhoneButton)
+                createRepeatableFieldGroup("Sito web", websiteFieldsContainer),
+                createRepeatableFieldGroup("Email", emailFieldsContainer),
+                createRepeatableFieldGroup("Telefono", phoneFieldsContainer)
         );
         return fields;
     }
@@ -161,26 +196,35 @@ public class NuovoClienteView extends BorderPane {
                 createFieldGroup("Indirizzo", addressField),
                 createFieldGroup("Numero civico", streetNumberField),
                 createFieldGroup("CAP", zipField),
-                createRepeatableField("Altro indirizzo", createTextField("Aggiungi altra sede"), addAddressButton)
+                createRepeatableFieldGroup("Altri indirizzi", extraAddressFieldsContainer)
         );
         return fields;
     }
 
     private VBox createContactBlock() {
         VBox block = new VBox(10);
-        block.getChildren().add(createRepeatableField("Referente", contactField, addContactButton));
+        block.getChildren().add(contactFieldsContainer);
+        return block;
+    }
 
-        VBox card = new VBox(10);
-        card.getStyleClass().add("new-client-contact-card");
+    private VBox createContactEntry(
+            TextField contact,
+            ComboBox<String> contactPhone,
+            ComboBox<String> contactEmail,
+            Button addButton
+    ) {
+        VBox entry = new VBox(10);
+        entry.getStyleClass().add("new-client-contact-card");
+        entry.getChildren().add(createRepeatableFieldGroup("Referente", createRepeatableContainer(contact, addButton)));
+
         Label hint = new Label("Collega il referente ai recapiti già inseriti sopra, oppure scrivine uno nuovo.");
         hint.getStyleClass().add("new-client-card-hint");
-        card.getChildren().addAll(
+        entry.getChildren().addAll(
                 hint,
-                createComboGroup("Telefono referente", contactPhoneField),
-                createComboGroup("Email referente", contactEmailField)
+                createComboGroup("Telefono referente", contactPhone),
+                createComboGroup("Email referente", contactEmail)
         );
-        block.getChildren().add(card);
-        return block;
+        return entry;
     }
 
     private VBox createSection(String titleText, VBox body) {
@@ -212,19 +256,30 @@ public class NuovoClienteView extends BorderPane {
         return group;
     }
 
-    private VBox createRepeatableField(String labelText, TextField field, Button addButton) {
+    private VBox createRepeatableFieldGroup(String labelText, VBox fieldsContainer) {
         VBox group = new VBox(6);
         Label label = new Label(labelText);
         label.getStyleClass().add("new-client-field-label");
+        group.getChildren().addAll(label, fieldsContainer);
+        return group;
+    }
 
+    private VBox createRepeatableContainer(TextField field, Button addButton) {
+        VBox fieldsContainer = new VBox(8);
+        fieldsContainer.getChildren().add(createRepeatableRow(field, addButton));
+        return fieldsContainer;
+    }
+
+    private HBox createRepeatableRow(TextField field, Button addButton) {
         HBox row = new HBox(8);
         row.getStyleClass().add("new-client-repeatable-row");
         field.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(field, Priority.ALWAYS);
-        row.getChildren().addAll(field, addButton);
-
-        group.getChildren().addAll(label, row);
-        return group;
+        row.getChildren().add(field);
+        if (addButton != null) {
+            row.getChildren().add(addButton);
+        }
+        return row;
     }
 
     private TextField createTextField(String prompt) {
@@ -248,6 +303,53 @@ public class NuovoClienteView extends BorderPane {
         return button;
     }
 
+    public TextField addWebsiteField() {
+        TextField field = createTextField("Altro sito web");
+        websiteFields.add(field);
+        websiteFieldsContainer.getChildren().add(createRepeatableRow(field, null));
+        return field;
+    }
+
+    public TextField addEmailField() {
+        TextField field = createTextField("Altra email");
+        emailFields.add(field);
+        emailFieldsContainer.getChildren().add(createRepeatableRow(field, null));
+        return field;
+    }
+
+    public TextField addPhoneField() {
+        TextField field = createTextField("Altro telefono");
+        phoneFields.add(field);
+        phoneFieldsContainer.getChildren().add(createRepeatableRow(field, null));
+        return field;
+    }
+
+    public TextField addAddressField() {
+        TextField field = createTextField("Altra sede");
+        extraAddressFields.add(field);
+        extraAddressFieldsContainer.getChildren().add(createRepeatableRow(field, null));
+        return field;
+    }
+
+    public TextField addContactEntry() {
+        TextField contact = createTextField("Altro referente");
+        ComboBox<String> phone = createLinkedComboBox("Telefono referente");
+        ComboBox<String> email = createLinkedComboBox("Email referente");
+        contactFields.add(contact);
+        contactPhoneFields.add(phone);
+        contactEmailFields.add(email);
+        contactFieldsContainer.getChildren().add(createContactEntry(contact, phone, email, null));
+        return contact;
+    }
+
+    public void setContactPhoneOptions(List<String> phones) {
+        contactPhoneFields.forEach(field -> field.getItems().setAll(phones));
+    }
+
+    public void setContactEmailOptions(List<String> emails) {
+        contactEmailFields.forEach(field -> field.getItems().setAll(emails));
+    }
+
     public AppHeader getHeader() {
         return header;
     }
@@ -264,6 +366,54 @@ public class NuovoClienteView extends BorderPane {
         return typeField;
     }
 
+    public TextField getStatusField() {
+        return statusField;
+    }
+
+    public TextField getVatField() {
+        return vatField;
+    }
+
+    public TextField getFiscalCodeField() {
+        return fiscalCodeField;
+    }
+
+    public TextField getAcquisitionField() {
+        return acquisitionField;
+    }
+
+    public TextField getOperatorField() {
+        return operatorField;
+    }
+
+    public TextField getCountryField() {
+        return countryField;
+    }
+
+    public TextField getRegionField() {
+        return regionField;
+    }
+
+    public TextField getProvinceField() {
+        return provinceField;
+    }
+
+    public TextField getCityField() {
+        return cityField;
+    }
+
+    public TextField getAddressField() {
+        return addressField;
+    }
+
+    public TextField getStreetNumberField() {
+        return streetNumberField;
+    }
+
+    public TextField getZipField() {
+        return zipField;
+    }
+
     public TextField getContactField() {
         return contactField;
     }
@@ -274,6 +424,54 @@ public class NuovoClienteView extends BorderPane {
 
     public TextField getEmailField() {
         return emailField;
+    }
+
+    public List<TextField> getWebsiteFields() {
+        return Collections.unmodifiableList(websiteFields);
+    }
+
+    public List<TextField> getEmailFields() {
+        return Collections.unmodifiableList(emailFields);
+    }
+
+    public List<TextField> getPhoneFields() {
+        return Collections.unmodifiableList(phoneFields);
+    }
+
+    public List<TextField> getContactFields() {
+        return Collections.unmodifiableList(contactFields);
+    }
+
+    public List<ComboBox<String>> getContactPhoneFields() {
+        return Collections.unmodifiableList(contactPhoneFields);
+    }
+
+    public List<ComboBox<String>> getContactEmailFields() {
+        return Collections.unmodifiableList(contactEmailFields);
+    }
+
+    public List<TextField> getExtraAddressFields() {
+        return Collections.unmodifiableList(extraAddressFields);
+    }
+
+    public Button getAddWebsiteButton() {
+        return addWebsiteButton;
+    }
+
+    public Button getAddEmailButton() {
+        return addEmailButton;
+    }
+
+    public Button getAddContactButton() {
+        return addContactButton;
+    }
+
+    public Button getAddPhoneButton() {
+        return addPhoneButton;
+    }
+
+    public Button getAddAddressButton() {
+        return addAddressButton;
     }
 
     public Button getSaveButton() {
