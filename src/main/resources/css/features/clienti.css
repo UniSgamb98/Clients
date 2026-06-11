@@ -307,3 +307,29 @@
     -fx-border-radius: 8;
     -fx-background-radius: 8;
 }
+
+.client-profile-edit-row {
+    -fx-alignment: center-left;
+}
+
+.client-profile-edit-label {
+    -fx-text-fill: #d4d4d4;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.client-profile-edit-field {
+    -fx-background-color: #1f1f1f;
+    -fx-text-fill: #ffffff;
+    -fx-prompt-text-fill: #8b8b8b;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.client-profile-edit-section-title {
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-padding: 8 0 0 0;
+}

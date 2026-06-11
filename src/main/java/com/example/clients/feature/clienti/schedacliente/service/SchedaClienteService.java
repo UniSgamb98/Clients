@@ -8,6 +8,7 @@ public class SchedaClienteService {
 
     private final SchedaClientePersistenceService persistenceService;
     private ClienteProfile currentProfile;
+    private EditProfileDraft editingDraft;
     private TimelineFilter currentFilter = TimelineFilter.ALL;
 
     public SchedaClienteService() {
@@ -40,6 +41,7 @@ public class SchedaClienteService {
                                 "Primo contatto telefonico con il referente amministrativo.")
                 ))
         );
+        editingDraft = null;
         currentFilter = TimelineFilter.ALL;
         return filteredProfile();
     }
@@ -54,6 +56,48 @@ public class SchedaClienteService {
         ensureProfileLoaded();
         currentFilter = filter == null ? TimelineFilter.ALL : filter;
         return filteredProfile();
+    }
+
+    public EditProfileDraft startEdit() {
+        ensureProfileLoaded();
+        currentFilter = TimelineFilter.ALL;
+        editingDraft = EditProfileDraft.from(currentProfile);
+        return editingDraft;
+    }
+
+    public ClienteProfile cancelEdit() {
+        ensureProfileLoaded();
+        editingDraft = null;
+        return filteredProfile();
+    }
+
+    public ClienteProfile saveEdit(EditProfileDraft draft) {
+        ensureProfileLoaded();
+        editingDraft = null;
+        currentFilter = TimelineFilter.ALL;
+        currentProfile = new ClienteProfile(
+                normalize(draft.ragioneSociale()),
+                normalize(draft.tipoCliente()),
+                normalize(draft.statoTrattativa()),
+                normalize(draft.partitaIva()),
+                normalize(draft.codiceFiscale()),
+                draft.acquisizione(),
+                currentProfile.favorite(),
+                cleanList(draft.telefoni()),
+                cleanList(draft.email()),
+                cleanList(draft.sitiWeb()),
+                cleanList(draft.indirizzi()),
+                cleanList(draft.contatti()),
+                draft.interazioni().stream()
+                        .map(interaction -> new InteractionPreview(
+                                interaction.data(),
+                                interaction.type(),
+                                interaction.prossimoContatto(),
+                                normalize(interaction.testo())))
+                        .filter(interaction -> !interaction.testo().isBlank())
+                        .toList()
+        );
+        return currentProfile;
     }
 
     public ClienteProfile addNota(String testo) {
@@ -93,6 +137,17 @@ public class SchedaClienteService {
         if (currentProfile == null) {
             loadProfile(null);
         }
+    }
+
+    private List<String> cleanList(List<String> values) {
+        return values.stream()
+                .map(this::normalize)
+                .filter(value -> !value.isBlank())
+                .toList();
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.trim();
     }
 
     public enum TimelineFilter {
@@ -154,6 +209,55 @@ public class SchedaClienteService {
         private ClienteProfile withInterazioni(List<InteractionPreview> interazioni) {
             return new ClienteProfile(ragioneSociale, tipoCliente, statoTrattativa, partitaIva, codiceFiscale, acquisizione,
                     favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
+        }
+    }
+
+    public record EditProfileDraft(
+            String ragioneSociale,
+            String tipoCliente,
+            String statoTrattativa,
+            String partitaIva,
+            String codiceFiscale,
+            LocalDate acquisizione,
+            List<String> telefoni,
+            List<String> email,
+            List<String> sitiWeb,
+            List<String> indirizzi,
+            List<String> contatti,
+            List<InteractionEditInput> interazioni
+    ) {
+        public EditProfileDraft {
+            telefoni = List.copyOf(telefoni);
+            email = List.copyOf(email);
+            sitiWeb = List.copyOf(sitiWeb);
+            indirizzi = List.copyOf(indirizzi);
+            contatti = List.copyOf(contatti);
+            interazioni = List.copyOf(interazioni);
+        }
+
+        private static EditProfileDraft from(ClienteProfile profile) {
+            return new EditProfileDraft(
+                    profile.ragioneSociale(),
+                    profile.tipoCliente(),
+                    profile.statoTrattativa(),
+                    profile.partitaIva(),
+                    profile.codiceFiscale(),
+                    profile.acquisizione(),
+                    profile.telefoni(),
+                    profile.email(),
+                    profile.sitiWeb(),
+                    profile.indirizzi(),
+                    profile.contatti(),
+                    profile.interazioni().stream()
+                            .map(InteractionEditInput::from)
+                            .toList()
+            );
+        }
+    }
+
+    public record InteractionEditInput(LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
+        private static InteractionEditInput from(InteractionPreview interaction) {
+            return new InteractionEditInput(interaction.data(), interaction.type(), interaction.prossimoContatto(), interaction.testo());
         }
     }
 

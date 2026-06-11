@@ -3,6 +3,8 @@ package com.example.clients.feature.clienti.schedacliente.view;
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ClienteProfile;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.EditProfileDraft;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
@@ -12,6 +14,7 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -19,6 +22,7 @@ import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SchedaClienteView extends BorderPane {
@@ -33,6 +37,9 @@ public class SchedaClienteView extends BorderPane {
     private final Label lastInteractionLabel;
     private final Label nextInteractionLabel;
     private final Button favoriteButton;
+    private final Button editProfileButton;
+    private final Button saveProfileEditButton;
+    private final Button cancelProfileEditButton;
     private final Button newNoteButton;
     private final Button newCallButton;
     private final Button allFilterButton;
@@ -47,6 +54,18 @@ public class SchedaClienteView extends BorderPane {
     private final TextArea noteTextArea;
     private final Button saveNoteButton;
     private final Button cancelNoteButton;
+    private final List<TextField> phoneEditFields = new ArrayList<>();
+    private final List<TextField> emailEditFields = new ArrayList<>();
+    private final List<TextField> siteEditFields = new ArrayList<>();
+    private final List<TextField> contactEditFields = new ArrayList<>();
+    private final List<TextField> addressEditFields = new ArrayList<>();
+    private final List<TimelineEditField> timelineEditFields = new ArrayList<>();
+    private TextField ragioneSocialeEditField;
+    private TextField tipoClienteEditField;
+    private TextField statoTrattativaEditField;
+    private TextField partitaIvaEditField;
+    private TextField codiceFiscaleEditField;
+    private DatePicker acquisizioneEditPicker;
 
     public SchedaClienteView() {
         header = new AppHeader("Scheda cliente");
@@ -60,6 +79,12 @@ public class SchedaClienteView extends BorderPane {
         nextInteractionLabel = createBadgeLabel();
         favoriteButton = new Button("☆");
         favoriteButton.getStyleClass().add("client-profile-favorite-button");
+        editProfileButton = new Button("Modifica");
+        editProfileButton.getStyleClass().add("clients-filter-button");
+        saveProfileEditButton = new Button("Salva modifiche");
+        saveProfileEditButton.getStyleClass().add("clients-primary-button");
+        cancelProfileEditButton = new Button("Annulla");
+        cancelProfileEditButton.getStyleClass().add("clients-filter-button");
         newNoteButton = new Button("+ Nuova nota");
         newNoteButton.getStyleClass().add("clients-primary-button");
         newCallButton = new Button("+ Nuova chiamata");
@@ -84,6 +109,7 @@ public class SchedaClienteView extends BorderPane {
         cancelNoteButton.getStyleClass().add("clients-filter-button");
         noteEditor.getChildren().addAll(nextCallDatePicker, noteTextArea, createNoteActions());
         setActiveTimelineFilter(TimelineFilter.ALL);
+        setEditMode(false);
         hideNoteEditor();
 
         setTop(header);
@@ -117,7 +143,7 @@ public class SchedaClienteView extends BorderPane {
         titleBox.getChildren().addAll(titleLabel, subtitleLabel);
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        titleRow.getChildren().addAll(titleBox, spacer, favoriteButton);
+        titleRow.getChildren().addAll(titleBox, spacer, favoriteButton, editProfileButton, saveProfileEditButton, cancelProfileEditButton);
 
         HBox callBadges = new HBox(10);
         callBadges.getStyleClass().add("client-profile-badges");
@@ -195,6 +221,7 @@ public class SchedaClienteView extends BorderPane {
     }
 
     public void renderProfile(ClienteProfile profile) {
+        setEditMode(false);
         titleLabel.setText(profile.ragioneSociale());
         subtitleLabel.setText(profile.tipoCliente() + " · " + profile.statoTrattativa());
         acquisitionLabel.setText("Acquisito " + formatDate(profile.acquisizione()));
@@ -215,6 +242,184 @@ public class SchedaClienteView extends BorderPane {
         renderList(contactsList, profile.contatti());
         renderList(addressesList, profile.indirizzi());
         renderTimeline(profile.interazioni());
+    }
+
+    public void renderEditableProfile(EditProfileDraft draft) {
+        setEditMode(true);
+        titleLabel.setText(draft.ragioneSociale().isBlank() ? "Cliente" : draft.ragioneSociale());
+        subtitleLabel.setText("Modifica dati cliente");
+        acquisitionLabel.setText("Acquisito " + formatDate(draft.acquisizione()));
+        lastInteractionLabel.setText("Ultima chiamata " + lastEditableCallText(draft.interazioni()));
+        nextInteractionLabel.setText("Prossima chiamata " + nextEditableCallText(draft.interazioni()));
+        setActiveTimelineFilter(TimelineFilter.ALL);
+        renderCustomerDataEditor(draft);
+        renderEditableValues(contactsList, contactEditFields, draft.contatti(), "Contatto cliente");
+        renderEditableValues(addressesList, addressEditFields, draft.indirizzi(), "Indirizzo cliente");
+        renderEditableTimeline(draft.interazioni());
+    }
+
+    public EditProfileDraft collectEditDraft() {
+        return new EditProfileDraft(
+                valueOf(ragioneSocialeEditField),
+                valueOf(tipoClienteEditField),
+                valueOf(statoTrattativaEditField),
+                valueOf(partitaIvaEditField),
+                valueOf(codiceFiscaleEditField),
+                acquisizioneEditPicker.getValue(),
+                valuesOf(phoneEditFields),
+                valuesOf(emailEditFields),
+                valuesOf(siteEditFields),
+                valuesOf(addressEditFields),
+                valuesOf(contactEditFields),
+                timelineEditFields.stream()
+                        .map(field -> new InteractionEditInput(
+                                field.data(),
+                                field.type(),
+                                field.nextCallPicker() == null ? field.prossimoContatto() : field.nextCallPicker().getValue(),
+                                field.textArea().getText()))
+                        .toList()
+        );
+    }
+
+    private void renderCustomerDataEditor(EditProfileDraft draft) {
+        customerDataList.getChildren().clear();
+        ragioneSocialeEditField = createTextField(draft.ragioneSociale(), "Ragione sociale");
+        tipoClienteEditField = createTextField(draft.tipoCliente(), "Tipo cliente");
+        statoTrattativaEditField = createTextField(draft.statoTrattativa(), "Stato trattativa");
+        partitaIvaEditField = createTextField(draft.partitaIva(), "Partita IVA");
+        codiceFiscaleEditField = createTextField(draft.codiceFiscale(), "Codice fiscale");
+        acquisizioneEditPicker = new DatePicker(draft.acquisizione());
+        acquisizioneEditPicker.getStyleClass().add("client-profile-call-date-picker");
+
+        customerDataList.getChildren().addAll(
+                createFieldRow("Ragione sociale", ragioneSocialeEditField),
+                createFieldRow("Tipo cliente", tipoClienteEditField),
+                createFieldRow("Stato trattativa", statoTrattativaEditField),
+                createFieldRow("Partita IVA", partitaIvaEditField),
+                createFieldRow("Codice fiscale", codiceFiscaleEditField),
+                createDateRow("Acquisizione", acquisizioneEditPicker),
+                createEditSectionLabel("Telefoni azienda")
+        );
+        addEditableValues(customerDataList, phoneEditFields, draft.telefoni(), "Telefono azienda");
+        customerDataList.getChildren().add(createEditSectionLabel("Email azienda"));
+        addEditableValues(customerDataList, emailEditFields, draft.email(), "Email azienda");
+        customerDataList.getChildren().add(createEditSectionLabel("Siti web"));
+        addEditableValues(customerDataList, siteEditFields, draft.sitiWeb(), "Sito web");
+    }
+
+    private void renderEditableValues(VBox container, List<TextField> target, List<String> values, String prompt) {
+        container.getChildren().clear();
+        addEditableValues(container, target, values, prompt);
+    }
+
+    private void addEditableValues(VBox container, List<TextField> target, List<String> values, String prompt) {
+        target.clear();
+        List<String> safeValues = values.isEmpty() ? List.of("") : values;
+        safeValues.forEach(value -> addEditableValueRow(container, target, value, prompt));
+    }
+
+    private void addEditableValueRow(VBox container, List<TextField> target, String value, String prompt) {
+        TextField field = createTextField(value, prompt);
+        target.add(field);
+        HBox row = new HBox(8);
+        row.getStyleClass().add("client-profile-edit-row");
+        Button addButton = new Button("+");
+        addButton.getStyleClass().add("client-profile-small-filter-button");
+        Button removeButton = new Button("-");
+        removeButton.getStyleClass().add("client-profile-small-filter-button");
+        addButton.setOnAction(event -> addEditableValueRow(container, target, "", prompt));
+        removeButton.setOnAction(event -> {
+            target.remove(field);
+            container.getChildren().remove(row);
+            if (target.isEmpty()) {
+                addEditableValueRow(container, target, "", prompt);
+            }
+        });
+        HBox.setHgrow(field, Priority.ALWAYS);
+        row.getChildren().addAll(field, addButton, removeButton);
+        container.getChildren().add(row);
+    }
+
+    private HBox createFieldRow(String labelText, TextField field) {
+        HBox row = new HBox(8);
+        row.getStyleClass().add("client-profile-edit-row");
+        Label label = createEditLabel(labelText);
+        HBox.setHgrow(field, Priority.ALWAYS);
+        row.getChildren().addAll(label, field);
+        return row;
+    }
+
+    private HBox createDateRow(String labelText, DatePicker picker) {
+        HBox row = new HBox(8);
+        row.getStyleClass().add("client-profile-edit-row");
+        Label label = createEditLabel(labelText);
+        HBox.setHgrow(picker, Priority.ALWAYS);
+        row.getChildren().addAll(label, picker);
+        return row;
+    }
+
+    private TextField createTextField(String value, String prompt) {
+        TextField field = new TextField(emptyFallbackForEdit(value));
+        field.setPromptText(prompt);
+        field.getStyleClass().add("client-profile-edit-field");
+        return field;
+    }
+
+    private Label createEditLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("client-profile-edit-label");
+        label.setMinWidth(120);
+        return label;
+    }
+
+    private Label createEditSectionLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("client-profile-edit-section-title");
+        return label;
+    }
+
+    private void renderEditableTimeline(List<InteractionEditInput> interactions) {
+        timelineList.getChildren().clear();
+        timelineEditFields.clear();
+        if (interactions.isEmpty()) {
+            timelineList.getChildren().add(createInfoLabel("Nessuna interazione registrata"));
+            return;
+        }
+        for (InteractionEditInput interaction : interactions) {
+            VBox card = new VBox(8);
+            card.getStyleClass().add("client-profile-timeline-card");
+            Label title = createInfoLabel(DATE_FORMATTER.format(interaction.data()) + " · " + interaction.type().label());
+            title.getStyleClass().add("client-profile-timeline-title");
+            DatePicker nextCallPicker = null;
+            if (interaction.type() == InteractionType.CHIAMATA) {
+                nextCallPicker = new DatePicker(interaction.prossimoContatto());
+                nextCallPicker.setPromptText("Prossima chiamata");
+                nextCallPicker.getStyleClass().add("client-profile-call-date-picker");
+                card.getChildren().addAll(title, nextCallPicker);
+            } else {
+                card.getChildren().add(title);
+            }
+            TextArea textArea = new TextArea(interaction.testo());
+            textArea.getStyleClass().add("client-profile-note-area");
+            textArea.setPrefRowCount(3);
+            card.getChildren().add(textArea);
+            timelineList.getChildren().add(card);
+            timelineEditFields.add(new TimelineEditField(interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea));
+        }
+    }
+
+    private void setEditMode(boolean editMode) {
+        editProfileButton.setVisible(!editMode);
+        editProfileButton.setManaged(!editMode);
+        saveProfileEditButton.setVisible(editMode);
+        saveProfileEditButton.setManaged(editMode);
+        cancelProfileEditButton.setVisible(editMode);
+        cancelProfileEditButton.setManaged(editMode);
+        newNoteButton.setDisable(editMode);
+        newCallButton.setDisable(editMode);
+        allFilterButton.setDisable(editMode);
+        notesFilterButton.setDisable(editMode);
+        callsFilterButton.setDisable(editMode);
     }
 
     public void setFavorite(boolean favorite) {
@@ -322,6 +527,23 @@ public class SchedaClienteView extends BorderPane {
                 .orElse("-");
     }
 
+    private String lastEditableCallText(List<InteractionEditInput> interactions) {
+        return interactions.stream()
+                .filter(interaction -> interaction.type() == InteractionType.CHIAMATA)
+                .findFirst()
+                .map(interaction -> DATE_FORMATTER.format(interaction.data()))
+                .orElse("-");
+    }
+
+    private String nextEditableCallText(List<InteractionEditInput> interactions) {
+        return interactions.stream()
+                .map(InteractionEditInput::prossimoContatto)
+                .filter(nextContact -> nextContact != null)
+                .findFirst()
+                .map(DATE_FORMATTER::format)
+                .orElse("-");
+    }
+
     private String formatDate(LocalDate date) {
         return date == null ? "-" : DATE_FORMATTER.format(date);
     }
@@ -334,6 +556,18 @@ public class SchedaClienteView extends BorderPane {
         return value == null || value.isBlank() ? "-" : value;
     }
 
+    private String emptyFallbackForEdit(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String valueOf(TextField field) {
+        return field == null ? "" : field.getText();
+    }
+
+    private List<String> valuesOf(List<TextField> fields) {
+        return fields.stream().map(TextField::getText).toList();
+    }
+
     public AppHeader getHeader() {
         return header;
     }
@@ -344,6 +578,18 @@ public class SchedaClienteView extends BorderPane {
 
     public Button getFavoriteButton() {
         return favoriteButton;
+    }
+
+    public Button getEditProfileButton() {
+        return editProfileButton;
+    }
+
+    public Button getSaveProfileEditButton() {
+        return saveProfileEditButton;
+    }
+
+    public Button getCancelProfileEditButton() {
+        return cancelProfileEditButton;
     }
 
     public Button getNewNoteButton() {
@@ -380,5 +626,14 @@ public class SchedaClienteView extends BorderPane {
 
     public Button getCancelNoteButton() {
         return cancelNoteButton;
+    }
+
+    private record TimelineEditField(
+            LocalDate data,
+            InteractionType type,
+            LocalDate prossimoContatto,
+            DatePicker nextCallPicker,
+            TextArea textArea
+    ) {
     }
 }

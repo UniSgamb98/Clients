@@ -23,6 +23,9 @@ public class SchedaClienteController {
 
     private void configureActions() {
         view.getFavoriteButton().setOnAction(event -> render(service.toggleFavorite()));
+        view.getEditProfileButton().setOnAction(event -> openProfileEditor());
+        view.getCancelProfileEditButton().setOnAction(event -> render(service.cancelEdit()));
+        view.getSaveProfileEditButton().setOnAction(event -> render(service.saveEdit(view.collectEditDraft())));
         view.getNewNoteButton().setOnAction(event -> openNoteEditor());
         view.getNewCallButton().setOnAction(event -> openCallEditor());
         view.getAllFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.ALL));
@@ -30,6 +33,12 @@ public class SchedaClienteController {
         view.getCallsFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.CALLS));
         view.getCancelNoteButton().setOnAction(event -> view.hideNoteEditor());
         view.getSaveNoteButton().setOnAction(event -> saveEditorContent());
+    }
+
+    private void openProfileEditor() {
+        view.hideNoteEditor();
+        applyTimelineFilter(TimelineFilter.ALL);
+        view.renderEditableProfile(service.startEdit());
     }
 
     private void openNoteEditor() {
