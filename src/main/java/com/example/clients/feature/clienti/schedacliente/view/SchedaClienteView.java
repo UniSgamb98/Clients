@@ -298,13 +298,19 @@ public class SchedaClienteView extends BorderPane {
                 createFieldRow("Partita IVA", partitaIvaEditField),
                 createFieldRow("Codice fiscale", codiceFiscaleEditField),
                 createDateRow("Acquisizione", acquisizioneEditPicker),
-                createEditSectionLabel("Telefoni azienda")
+                createEditableValuesSection("Telefoni azienda", phoneEditFields, draft.telefoni(), "Telefono azienda"),
+                createEditableValuesSection("Email azienda", emailEditFields, draft.email(), "Email azienda"),
+                createEditableValuesSection("Siti web", siteEditFields, draft.sitiWeb(), "Sito web")
         );
-        addEditableValues(customerDataList, phoneEditFields, draft.telefoni(), "Telefono azienda");
-        customerDataList.getChildren().add(createEditSectionLabel("Email azienda"));
-        addEditableValues(customerDataList, emailEditFields, draft.email(), "Email azienda");
-        customerDataList.getChildren().add(createEditSectionLabel("Siti web"));
-        addEditableValues(customerDataList, siteEditFields, draft.sitiWeb(), "Sito web");
+    }
+
+
+    private VBox createEditableValuesSection(String title, List<TextField> target, List<String> values, String prompt) {
+        VBox section = new VBox(8);
+        section.getStyleClass().add("client-profile-edit-values-section");
+        section.getChildren().add(createEditSectionLabel(title));
+        addEditableValues(section, target, values, prompt);
+        return section;
     }
 
     private void renderEditableValues(VBox container, List<TextField> target, List<String> values, String prompt) {
