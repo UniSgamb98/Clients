@@ -29,6 +29,7 @@ public class SchedaClienteView extends BorderPane {
     private final AppSidebar sidebar;
     private final Label titleLabel;
     private final Label subtitleLabel;
+    private final Label acquisitionLabel;
     private final Label lastInteractionLabel;
     private final Label nextInteractionLabel;
     private final Button favoriteButton;
@@ -54,6 +55,7 @@ public class SchedaClienteView extends BorderPane {
         titleLabel.getStyleClass().add("clients-title");
         subtitleLabel = new Label("Profilo cliente e storico comunicazioni");
         subtitleLabel.getStyleClass().add("clients-subtitle");
+        acquisitionLabel = createBadgeLabel();
         lastInteractionLabel = createBadgeLabel();
         nextInteractionLabel = createBadgeLabel();
         favoriteButton = new Button("☆");
@@ -119,7 +121,7 @@ public class SchedaClienteView extends BorderPane {
 
         HBox callBadges = new HBox(10);
         callBadges.getStyleClass().add("client-profile-badges");
-        callBadges.getChildren().addAll(lastInteractionLabel, nextInteractionLabel);
+        callBadges.getChildren().addAll(acquisitionLabel, lastInteractionLabel, nextInteractionLabel);
 
         hero.getChildren().addAll(titleRow, callBadges);
         return hero;
@@ -195,6 +197,7 @@ public class SchedaClienteView extends BorderPane {
     public void renderProfile(ClienteProfile profile) {
         titleLabel.setText(profile.ragioneSociale());
         subtitleLabel.setText(profile.tipoCliente() + " · " + profile.statoTrattativa());
+        acquisitionLabel.setText("Acquisito " + formatDate(profile.acquisizione()));
         lastInteractionLabel.setText("Ultima chiamata " + lastCallText(profile.interazioni()));
         nextInteractionLabel.setText("Prossima chiamata " + nextCallText(profile.interazioni()));
         setFavorite(profile.favorite());
