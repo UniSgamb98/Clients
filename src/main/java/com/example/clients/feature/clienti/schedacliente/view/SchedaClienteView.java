@@ -4,6 +4,7 @@ import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ClienteProfile;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
@@ -16,6 +17,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -27,9 +29,6 @@ public class SchedaClienteView extends BorderPane {
     private final AppSidebar sidebar;
     private final Label titleLabel;
     private final Label subtitleLabel;
-    private final Label vatLabel;
-    private final Label fiscalCodeLabel;
-    private final Label acquisitionLabel;
     private final Label lastInteractionLabel;
     private final Label nextInteractionLabel;
     private final Button favoriteButton;
@@ -55,9 +54,6 @@ public class SchedaClienteView extends BorderPane {
         titleLabel.getStyleClass().add("clients-title");
         subtitleLabel = new Label("Profilo cliente e storico comunicazioni");
         subtitleLabel.getStyleClass().add("clients-subtitle");
-        vatLabel = createBadgeLabel();
-        fiscalCodeLabel = createBadgeLabel();
-        acquisitionLabel = createBadgeLabel();
         lastInteractionLabel = createBadgeLabel();
         nextInteractionLabel = createBadgeLabel();
         favoriteButton = new Button("☆");
@@ -121,11 +117,11 @@ public class SchedaClienteView extends BorderPane {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         titleRow.getChildren().addAll(titleBox, spacer, favoriteButton);
 
-        HBox badges = new HBox(10);
-        badges.getStyleClass().add("client-profile-badges");
-        badges.getChildren().addAll(vatLabel, fiscalCodeLabel, acquisitionLabel, lastInteractionLabel, nextInteractionLabel);
+        HBox callBadges = new HBox(10);
+        callBadges.getStyleClass().add("client-profile-badges");
+        callBadges.getChildren().addAll(lastInteractionLabel, nextInteractionLabel);
 
-        hero.getChildren().addAll(titleRow, badges);
+        hero.getChildren().addAll(titleRow, callBadges);
         return hero;
     }
 
@@ -199,16 +195,19 @@ public class SchedaClienteView extends BorderPane {
     public void renderProfile(ClienteProfile profile) {
         titleLabel.setText(profile.ragioneSociale());
         subtitleLabel.setText(profile.tipoCliente() + " · " + profile.statoTrattativa());
-        vatLabel.setText("P.IVA " + emptyFallback(profile.partitaIva()));
-        fiscalCodeLabel.setText("CF " + emptyFallback(profile.codiceFiscale()));
-        acquisitionLabel.setText("Acquisizione " + (profile.acquisizione() == null ? "-" : DATE_FORMATTER.format(profile.acquisizione())));
-        lastInteractionLabel.setText("Ultima interazione " + lastInteractionText(profile.interazioni()));
-        nextInteractionLabel.setText("Prossimo contatto " + nextInteractionText(profile.interazioni()));
+        lastInteractionLabel.setText("Ultima chiamata " + lastCallText(profile.interazioni()));
+        nextInteractionLabel.setText("Prossima chiamata " + nextCallText(profile.interazioni()));
         setFavorite(profile.favorite());
         renderList(customerDataList, List.of(
                 "Ragione sociale: " + emptyFallback(profile.ragioneSociale()),
                 "Tipo cliente: " + emptyFallback(profile.tipoCliente()),
-                "Stato trattativa: " + emptyFallback(profile.statoTrattativa())
+                "Stato trattativa: " + emptyFallback(profile.statoTrattativa()),
+                "Partita IVA: " + emptyFallback(profile.partitaIva()),
+                "Codice fiscale: " + emptyFallback(profile.codiceFiscale()),
+                "Acquisizione: " + formatDate(profile.acquisizione()),
+                "Telefoni azienda: " + joinValues(profile.telefoni()),
+                "Email azienda: " + joinValues(profile.email()),
+                "Siti web: " + joinValues(profile.sitiWeb())
         ));
         renderList(contactsList, profile.contatti());
         renderList(addressesList, profile.indirizzi());
@@ -303,20 +302,29 @@ public class SchedaClienteView extends BorderPane {
         return label;
     }
 
-    private String lastInteractionText(List<InteractionPreview> interactions) {
-        if (interactions.isEmpty()) {
-            return "-";
-        }
-        return DATE_FORMATTER.format(interactions.get(0).data());
+    private String lastCallText(List<InteractionPreview> interactions) {
+        return interactions.stream()
+                .filter(interaction -> interaction.type() == InteractionType.CHIAMATA)
+                .findFirst()
+                .map(interaction -> DATE_FORMATTER.format(interaction.data()))
+                .orElse("-");
     }
 
-    private String nextInteractionText(List<InteractionPreview> interactions) {
+    private String nextCallText(List<InteractionPreview> interactions) {
         return interactions.stream()
                 .map(InteractionPreview::prossimoContatto)
                 .filter(nextContact -> nextContact != null)
                 .findFirst()
                 .map(DATE_FORMATTER::format)
                 .orElse("-");
+    }
+
+    private String formatDate(LocalDate date) {
+        return date == null ? "-" : DATE_FORMATTER.format(date);
+    }
+
+    private String joinValues(List<String> values) {
+        return values.isEmpty() ? "-" : String.join(", ", values);
     }
 
     private String emptyFallback(String value) {
