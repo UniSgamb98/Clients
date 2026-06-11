@@ -1,11 +1,13 @@
 package com.example.clients.feature.clienti.nuovocliente.service;
 
 import com.example.clients.core.database.model.Cliente;
+import com.example.clients.core.database.model.ClienteAggregate;
 import com.example.clients.core.database.model.ContattoCliente;
 import com.example.clients.core.database.model.EmailCliente;
 import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
+import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.feature.clienti.nuovocliente.dto.ContattoClienteInput;
 import com.example.clients.feature.clienti.nuovocliente.dto.EmailClienteInput;
 import com.example.clients.feature.clienti.nuovocliente.dto.IndirizzoClienteInput;
@@ -23,10 +25,21 @@ import java.util.UUID;
 
 public class NuovoClienteService {
 
+    private final ClientePersistenceService persistenceService;
     private NuovoClienteDraft lastPreparedDraft;
 
+    public NuovoClienteService() {
+        this(new ClientePersistenceService());
+    }
+
+    public NuovoClienteService(ClientePersistenceService persistenceService) {
+        this.persistenceService = persistenceService;
+    }
+
     public NuovoClienteDraft saveCliente(NuovoClienteRequest request) {
-        return prepareCliente(request);
+        NuovoClienteDraft draft = prepareCliente(request);
+        persistenceService.saveNuovoCliente(draft.toAggregate());
+        return draft;
     }
 
     public NuovoClienteDraft prepareCliente(NuovoClienteRequest request) {
@@ -187,6 +200,10 @@ public class NuovoClienteService {
             telefoni = List.copyOf(telefoni);
             email = List.copyOf(email);
             contatti = List.copyOf(contatti);
+        }
+
+        private ClienteAggregate toAggregate() {
+            return new ClienteAggregate(cliente, indirizzi, sitiWeb, telefoni, email, contatti);
         }
     }
 }
