@@ -1,11 +1,17 @@
 package com.example.clients.feature.clienti.nuovocliente.controller;
 
 import com.example.clients.feature.clienti.navigator.ClientiNav;
+import com.example.clients.feature.clienti.nuovocliente.dto.ClienteInput;
+import com.example.clients.feature.clienti.nuovocliente.dto.ContattoClienteInput;
+import com.example.clients.feature.clienti.nuovocliente.dto.EmailClienteInput;
+import com.example.clients.feature.clienti.nuovocliente.dto.IndirizzoClienteInput;
+import com.example.clients.feature.clienti.nuovocliente.dto.NuovoClienteRequest;
+import com.example.clients.feature.clienti.nuovocliente.dto.SitoWebClienteInput;
+import com.example.clients.feature.clienti.nuovocliente.dto.TelefonoClienteInput;
 import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService;
-import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService.ContattoInput;
-import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService.NuovoClienteFormData;
 import com.example.clients.feature.clienti.nuovocliente.view.NuovoClienteView;
 import com.example.clients.feature.clienti.nuovocliente.view.NuovoClienteView.ContactEntryControls;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.control.ComboBox;
@@ -26,7 +32,7 @@ public class NuovoClienteController {
 
     private void configureActions() {
         view.getCancelButton().setOnAction(event -> clientiNav.showClienti());
-        view.getSaveButton().setOnAction(event -> service.saveCliente(createFormData()));
+        view.getSaveButton().setOnAction(event -> service.saveCliente(createRequest()));
         view.getAddWebsiteButton().setOnAction(event -> view.addWebsiteField().requestFocus());
         view.getAddAddressButton().setOnAction(event -> view.addAddressField().requestFocus());
         view.getAddContactButton().setOnAction(event -> {
@@ -68,15 +74,28 @@ public class NuovoClienteController {
         view.setContactEmailOptions(nonBlankValues(view.getEmailFields()));
     }
 
-    private NuovoClienteFormData createFormData() {
-        return new NuovoClienteFormData(
-                text(view.getNameField()),
-                text(view.getTypeField()),
-                text(view.getStatusField()),
-                text(view.getVatField()),
-                text(view.getFiscalCodeField()),
-                text(view.getAcquisitionField()),
-                text(view.getOperatorField()),
+    private NuovoClienteRequest createRequest() {
+        return new NuovoClienteRequest(
+                new ClienteInput(
+                        text(view.getNameField()),
+                        text(view.getTypeField()),
+                        text(view.getStatusField()),
+                        text(view.getVatField()),
+                        text(view.getFiscalCodeField()),
+                        parseDate(text(view.getAcquisitionField())),
+                        text(view.getOperatorField())
+                ),
+                indirizzi(),
+                telefoni(view.getPhoneFields()),
+                email(view.getEmailFields()),
+                sitiWeb(),
+                contactInputs()
+        );
+    }
+
+    private List<IndirizzoClienteInput> indirizzi() {
+        List<IndirizzoClienteInput> indirizzi = new ArrayList<>();
+        indirizzi.add(new IndirizzoClienteInput(
                 text(view.getCountryField()),
                 text(view.getRegionField()),
                 text(view.getProvinceField()),
@@ -84,21 +103,42 @@ public class NuovoClienteController {
                 text(view.getAddressField()),
                 text(view.getStreetNumberField()),
                 text(view.getZipField()),
-                values(view.getExtraAddressFields()),
-                values(view.getWebsiteFields()),
-                values(view.getEmailFields()),
-                values(view.getPhoneFields()),
-                contactInputs()
-        );
+                true
+        ));
+        view.getExtraAddressFields().stream()
+                .map(NuovoClienteController::text)
+                .map(value -> new IndirizzoClienteInput("", "", "", "", value, "", "", false))
+                .forEach(indirizzi::add);
+        return indirizzi;
     }
 
-    private List<ContattoInput> contactInputs() {
-        List<ContattoInput> inputs = new ArrayList<>();
+    private List<SitoWebClienteInput> sitiWeb() {
+        return values(view.getWebsiteFields()).stream()
+                .map(SitoWebClienteInput::new)
+                .toList();
+    }
+
+    private static List<TelefonoClienteInput> telefoni(List<TextField> fields) {
+        return values(fields).stream()
+                .map(TelefonoClienteInput::new)
+                .toList();
+    }
+
+    private static List<EmailClienteInput> email(List<TextField> fields) {
+        return values(fields).stream()
+                .map(EmailClienteInput::new)
+                .toList();
+    }
+
+    private List<ContattoClienteInput> contactInputs() {
+        List<ContattoClienteInput> inputs = new ArrayList<>();
         for (int index = 0; index < view.getContactFields().size(); index++) {
-            inputs.add(new ContattoInput(
+            String telefono = comboText(view.getContactPhoneFields().get(index));
+            String email = comboText(view.getContactEmailFields().get(index));
+            inputs.add(new ContattoClienteInput(
                     text(view.getContactFields().get(index)),
-                    comboText(view.getContactPhoneFields().get(index)),
-                    comboText(view.getContactEmailFields().get(index))
+                    telefono.isBlank() ? List.of() : List.of(new TelefonoClienteInput(telefono)),
+                    email.isBlank() ? List.of() : List.of(new EmailClienteInput(email))
             ));
         }
         return inputs;
@@ -116,6 +156,14 @@ public class NuovoClienteController {
                 .filter(value -> !value.isBlank())
                 .distinct()
                 .toList();
+    }
+
+
+    private static LocalDate parseDate(String value) {
+        if (value.isBlank()) {
+            return null;
+        }
+        return LocalDate.parse(value);
     }
 
     private static String text(TextField field) {

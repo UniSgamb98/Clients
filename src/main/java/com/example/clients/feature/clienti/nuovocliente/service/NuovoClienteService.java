@@ -6,7 +6,12 @@ import com.example.clients.core.database.model.EmailCliente;
 import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
-import java.time.LocalDate;
+import com.example.clients.feature.clienti.nuovocliente.dto.ContattoClienteInput;
+import com.example.clients.feature.clienti.nuovocliente.dto.EmailClienteInput;
+import com.example.clients.feature.clienti.nuovocliente.dto.IndirizzoClienteInput;
+import com.example.clients.feature.clienti.nuovocliente.dto.NuovoClienteRequest;
+import com.example.clients.feature.clienti.nuovocliente.dto.SitoWebClienteInput;
+import com.example.clients.feature.clienti.nuovocliente.dto.TelefonoClienteInput;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -20,21 +25,21 @@ public class NuovoClienteService {
 
     private NuovoClienteDraft lastPreparedDraft;
 
-    public NuovoClienteDraft saveCliente(NuovoClienteFormData formData) {
-        return prepareCliente(formData);
+    public NuovoClienteDraft saveCliente(NuovoClienteRequest request) {
+        return prepareCliente(request);
     }
 
-    public NuovoClienteDraft prepareCliente(NuovoClienteFormData formData) {
+    public NuovoClienteDraft prepareCliente(NuovoClienteRequest request) {
         UUID clienteId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now();
         Cliente cliente = new Cliente(
                 clienteId,
-                clean(formData.ragioneSociale()),
-                clean(formData.tipoCliente()),
-                clean(formData.statoTrattativa()),
-                clean(formData.partitaIva()),
-                clean(formData.codiceFiscale()),
-                parseDate(formData.acquisizione()),
+                clean(request.cliente().ragioneSociale()),
+                clean(request.cliente().tipoCliente()),
+                clean(request.cliente().statoTrattativa()),
+                clean(request.cliente().partitaIva()),
+                clean(request.cliente().codiceFiscale()),
+                request.cliente().acquisizione(),
                 null,
                 now,
                 null
@@ -46,44 +51,44 @@ public class NuovoClienteService {
         Set<String> telefoniUsatiDaiContatti = new HashSet<>();
         Set<String> emailUsateDaiContatti = new HashSet<>();
 
-        for (ContattoInput input : formData.contatti()) {
+        for (ContattoClienteInput input : request.contatti()) {
             String descrizione = clean(input.descrizione());
-            String telefono = clean(input.telefono());
-            String email = clean(input.email());
-            if (descrizione == null && telefono == null && email == null) {
+            List<String> telefoniContatto = cleanTelefonoInput(input.telefoni());
+            List<String> emailContatto = cleanEmailInput(input.email());
+            if (descrizione == null && telefoniContatto.isEmpty() && emailContatto.isEmpty()) {
                 continue;
             }
 
             UUID contattoId = UUID.randomUUID();
             contatti.add(new ContattoCliente(contattoId, clienteId, descrizione));
-            if (telefono != null) {
+            for (String telefono : telefoniContatto) {
                 telefoniUsatiDaiContatti.add(key(telefono));
                 telefoniCollegati.add(new TelefonoCliente(UUID.randomUUID(), clienteId, contattoId, telefono));
             }
-            if (email != null) {
+            for (String email : emailContatto) {
                 emailUsateDaiContatti.add(key(email));
                 emailCollegate.add(new EmailCliente(UUID.randomUUID(), clienteId, contattoId, email));
             }
         }
 
-        List<IndirizzoCliente> indirizzi = createIndirizzi(clienteId, formData, now);
-        List<SitoWebCliente> sitiWeb = formData.sitiWeb().stream()
-                .map(NuovoClienteService::clean)
-                .filter(value -> value != null)
-                .map(value -> new SitoWebCliente(UUID.randomUUID(), clienteId, value))
-                .toList();
+        List<IndirizzoCliente> indirizzi = createIndirizzi(clienteId, request.indirizzi(), now);
+        List<SitoWebCliente> sitiWeb = createSitiWeb(clienteId, request.sitiWeb());
         List<TelefonoCliente> telefoni = new ArrayList<>(telefoniCollegati);
-        formData.telefoni().stream()
+        Set<String> telefoniGenerici = new HashSet<>(telefoniUsatiDaiContatti);
+        request.telefoni().stream()
+                .map(TelefonoClienteInput::descrizione)
                 .map(NuovoClienteService::clean)
                 .filter(value -> value != null)
-                .filter(value -> !telefoniUsatiDaiContatti.contains(key(value)))
+                .filter(value -> telefoniGenerici.add(key(value)))
                 .map(value -> new TelefonoCliente(UUID.randomUUID(), clienteId, null, value))
                 .forEach(telefoni::add);
         List<EmailCliente> email = new ArrayList<>(emailCollegate);
-        formData.email().stream()
+        Set<String> emailGeneriche = new HashSet<>(emailUsateDaiContatti);
+        request.email().stream()
+                .map(EmailClienteInput::descrizione)
                 .map(NuovoClienteService::clean)
                 .filter(value -> value != null)
-                .filter(value -> !emailUsateDaiContatti.contains(key(value)))
+                .filter(value -> emailGeneriche.add(key(value)))
                 .map(value -> new EmailCliente(UUID.randomUUID(), clienteId, null, value))
                 .forEach(email::add);
 
@@ -95,48 +100,66 @@ public class NuovoClienteService {
         return Optional.ofNullable(lastPreparedDraft);
     }
 
-    private static List<IndirizzoCliente> createIndirizzi(UUID clienteId, NuovoClienteFormData formData, LocalDateTime now) {
-        List<IndirizzoCliente> indirizzi = new ArrayList<>();
-        if (hasPrimaryAddress(formData)) {
-            indirizzi.add(new IndirizzoCliente(
-                    UUID.randomUUID(),
-                    clienteId,
-                    clean(formData.paese()),
-                    clean(formData.regione()),
-                    clean(formData.provincia()),
-                    clean(formData.citta()),
-                    clean(formData.indirizzo()),
-                    clean(formData.numeroCivico()),
-                    clean(formData.cap()),
-                    true,
-                    now,
-                    null
-            ));
-        }
-        formData.altriIndirizzi().stream()
+    private static List<IndirizzoCliente> createIndirizzi(
+            UUID clienteId,
+            List<IndirizzoClienteInput> input,
+            LocalDateTime now
+    ) {
+        return input.stream()
+                .filter(NuovoClienteService::hasAddressData)
+                .map(indirizzo -> new IndirizzoCliente(
+                        UUID.randomUUID(),
+                        clienteId,
+                        clean(indirizzo.paese()),
+                        clean(indirizzo.regione()),
+                        clean(indirizzo.provincia()),
+                        clean(indirizzo.citta()),
+                        clean(indirizzo.indirizzo()),
+                        clean(indirizzo.numeroCivico()),
+                        clean(indirizzo.cap()),
+                        indirizzo.principale(),
+                        now,
+                        null
+                ))
+                .toList();
+    }
+
+    private static boolean hasAddressData(IndirizzoClienteInput input) {
+        return clean(input.paese()) != null
+                || clean(input.regione()) != null
+                || clean(input.provincia()) != null
+                || clean(input.citta()) != null
+                || clean(input.indirizzo()) != null
+                || clean(input.numeroCivico()) != null
+                || clean(input.cap()) != null;
+    }
+
+    private static List<SitoWebCliente> createSitiWeb(UUID clienteId, List<SitoWebClienteInput> input) {
+        return input.stream()
+                .map(SitoWebClienteInput::descrizione)
                 .map(NuovoClienteService::clean)
                 .filter(value -> value != null)
-                .map(value -> new IndirizzoCliente(UUID.randomUUID(), clienteId, null, null, null, null, value, null, null, false, now, null))
-                .forEach(indirizzi::add);
-        return indirizzi;
+                .distinct()
+                .map(value -> new SitoWebCliente(UUID.randomUUID(), clienteId, value))
+                .toList();
     }
 
-    private static boolean hasPrimaryAddress(NuovoClienteFormData formData) {
-        return clean(formData.paese()) != null
-                || clean(formData.regione()) != null
-                || clean(formData.provincia()) != null
-                || clean(formData.citta()) != null
-                || clean(formData.indirizzo()) != null
-                || clean(formData.numeroCivico()) != null
-                || clean(formData.cap()) != null;
+    private static List<String> cleanTelefonoInput(List<TelefonoClienteInput> input) {
+        return input.stream()
+                .map(TelefonoClienteInput::descrizione)
+                .map(NuovoClienteService::clean)
+                .filter(value -> value != null)
+                .distinct()
+                .toList();
     }
 
-    private static LocalDate parseDate(String value) {
-        String cleaned = clean(value);
-        if (cleaned == null) {
-            return null;
-        }
-        return LocalDate.parse(cleaned);
+    private static List<String> cleanEmailInput(List<EmailClienteInput> input) {
+        return input.stream()
+                .map(EmailClienteInput::descrizione)
+                .map(NuovoClienteService::clean)
+                .filter(value -> value != null)
+                .distinct()
+                .toList();
     }
 
     private static String clean(String value) {
@@ -148,39 +171,6 @@ public class NuovoClienteService {
 
     private static String key(String value) {
         return value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    public record NuovoClienteFormData(
-            String ragioneSociale,
-            String tipoCliente,
-            String statoTrattativa,
-            String partitaIva,
-            String codiceFiscale,
-            String acquisizione,
-            String operatore,
-            String paese,
-            String regione,
-            String provincia,
-            String citta,
-            String indirizzo,
-            String numeroCivico,
-            String cap,
-            List<String> altriIndirizzi,
-            List<String> sitiWeb,
-            List<String> email,
-            List<String> telefoni,
-            List<ContattoInput> contatti
-    ) {
-        public NuovoClienteFormData {
-            altriIndirizzi = List.copyOf(altriIndirizzi);
-            sitiWeb = List.copyOf(sitiWeb);
-            email = List.copyOf(email);
-            telefoni = List.copyOf(telefoni);
-            contatti = List.copyOf(contatti);
-        }
-    }
-
-    public record ContattoInput(String descrizione, String telefono, String email) {
     }
 
     public record NuovoClienteDraft(
