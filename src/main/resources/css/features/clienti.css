@@ -280,3 +280,30 @@
     -fx-background-radius: 8;
     -fx-min-height: 110;
 }
+
+.client-profile-timeline-filter-bar {
+    -fx-alignment: center-left;
+}
+
+.client-profile-small-filter-button {
+    -fx-background-color: #1f1f1f;
+    -fx-text-fill: #d4d4d4;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 999;
+    -fx-background-radius: 999;
+    -fx-font-size: 10px;
+    -fx-padding: 3 8;
+}
+
+.client-profile-small-filter-active {
+    -fx-background-color: #0e639c;
+    -fx-border-color: #0e639c;
+    -fx-text-fill: #ffffff;
+}
+
+.client-profile-call-date-picker {
+    -fx-background-color: #1f1f1f;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}

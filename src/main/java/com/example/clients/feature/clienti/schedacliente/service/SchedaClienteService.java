@@ -6,7 +6,17 @@ import java.util.List;
 
 public class SchedaClienteService {
 
+    private final SchedaClientePersistenceService persistenceService;
     private ClienteProfile currentProfile;
+    private TimelineFilter currentFilter = TimelineFilter.ALL;
+
+    public SchedaClienteService() {
+        this(new SchedaClientePersistenceService());
+    }
+
+    public SchedaClienteService(SchedaClientePersistenceService persistenceService) {
+        this.persistenceService = persistenceService;
+    }
 
     public ClienteProfile loadProfile(String clienteName) {
         String name = clienteName == null || clienteName.isBlank() ? "Rossi S.r.l." : clienteName;
@@ -24,34 +34,91 @@ public class SchedaClienteService {
                 new ArrayList<>(List.of("Sede principale · Milano, Via Roma 12 · 20100")),
                 new ArrayList<>(List.of("Mario Rossi · 333 4455667 · mario@rossi.it")),
                 new ArrayList<>(List.of(
-                        new InteractionPreview(LocalDate.now().minusDays(1), "Nota", "Cliente interessato a ricevere un preventivo aggiornato."),
-                        new InteractionPreview(LocalDate.now().minusDays(7), "Chiamata", "Primo contatto telefonico con il referente amministrativo.")
+                        new InteractionPreview(LocalDate.now().minusDays(1), InteractionType.NOTA, null,
+                                "Cliente interessato a ricevere un preventivo aggiornato."),
+                        new InteractionPreview(LocalDate.now().minusDays(7), InteractionType.CHIAMATA, LocalDate.now().plusDays(3),
+                                "Primo contatto telefonico con il referente amministrativo.")
                 ))
         );
-        return currentProfile;
+        currentFilter = TimelineFilter.ALL;
+        return filteredProfile();
     }
 
     public ClienteProfile toggleFavorite() {
         ensureProfileLoaded();
         currentProfile = currentProfile.withFavorite(!currentProfile.favorite());
-        return currentProfile;
+        return filteredProfile();
     }
 
-    public ClienteProfile addAnnotazione(String testo) {
+    public ClienteProfile setTimelineFilter(TimelineFilter filter) {
+        ensureProfileLoaded();
+        currentFilter = filter == null ? TimelineFilter.ALL : filter;
+        return filteredProfile();
+    }
+
+    public ClienteProfile addNota(String testo) {
         ensureProfileLoaded();
         if (testo == null || testo.isBlank()) {
+            return filteredProfile();
+        }
+
+        addInteraction(persistenceService.salvaNota(testo));
+        return filteredProfile();
+    }
+
+    public ClienteProfile addChiamata(String testo, LocalDate prossimoContatto) {
+        ensureProfileLoaded();
+        addInteraction(persistenceService.salvaChiamata(testo, prossimoContatto));
+        return filteredProfile();
+    }
+
+    private void addInteraction(InteractionPreview interaction) {
+        List<InteractionPreview> interazioni = new ArrayList<>(currentProfile.interazioni());
+        interazioni.add(0, interaction);
+        currentProfile = currentProfile.withInterazioni(interazioni);
+    }
+
+    private ClienteProfile filteredProfile() {
+        if (currentFilter == TimelineFilter.ALL) {
             return currentProfile;
         }
 
-        List<InteractionPreview> interazioni = new ArrayList<>(currentProfile.interazioni());
-        interazioni.add(0, new InteractionPreview(LocalDate.now(), "Annotazione", testo.trim()));
-        currentProfile = currentProfile.withInterazioni(interazioni);
-        return currentProfile;
+        List<InteractionPreview> filteredInteractions = currentProfile.interazioni().stream()
+                .filter(interaction -> currentFilter.matches(interaction.type()))
+                .toList();
+        return currentProfile.withInterazioni(filteredInteractions);
     }
 
     private void ensureProfileLoaded() {
         if (currentProfile == null) {
             loadProfile(null);
+        }
+    }
+
+    public enum TimelineFilter {
+        ALL,
+        NOTES,
+        CALLS;
+
+        private boolean matches(InteractionType type) {
+            return this == ALL
+                    || (this == NOTES && type == InteractionType.NOTA)
+                    || (this == CALLS && type == InteractionType.CHIAMATA);
+        }
+    }
+
+    public enum InteractionType {
+        NOTA("Nota"),
+        CHIAMATA("Chiamata");
+
+        private final String label;
+
+        InteractionType(String label) {
+            this.label = label;
+        }
+
+        public String label() {
+            return label;
         }
     }
 
@@ -90,6 +157,6 @@ public class SchedaClienteService {
         }
     }
 
-    public record InteractionPreview(LocalDate data, String titolo, String testo) {
+    public record InteractionPreview(LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
     }
 }
