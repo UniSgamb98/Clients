@@ -149,11 +149,12 @@ public class ClientiView extends BorderPane {
         tableScrollPane.setVvalue(0);
     }
 
-    public void addClientRow(String name, String type, String contact, String phone, String email, String status) {
+    public HBox addClientRow(String name, String type, String contact, String phone, String email, String status) {
         tableRows.getChildren().remove(emptyRow);
         HBox row = createTableRow(name, type, contact, phone, email, status);
         row.getStyleClass().add("clients-data-row");
         tableRows.getChildren().add(row);
+        return row;
     }
 
     private HBox createTableRow(String name, String type, String contact, String phone, String email, String status) {

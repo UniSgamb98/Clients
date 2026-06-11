@@ -8,6 +8,9 @@ import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.nuovocliente.controller.NuovoClienteController;
 import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService;
 import com.example.clients.feature.clienti.nuovocliente.view.NuovoClienteView;
+import com.example.clients.feature.clienti.schedacliente.controller.SchedaClienteController;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService;
+import com.example.clients.feature.clienti.schedacliente.view.SchedaClienteView;
 import com.example.clients.feature.clienti.navigator.ClientiNav;
 import com.example.clients.feature.dashboard.controller.DashboardController;
 import com.example.clients.feature.dashboard.navigator.DashboardNav;
@@ -72,6 +75,17 @@ public class AppController implements DashboardNav, ClientiNav {
 
         stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Nuovo cliente");
+    }
+
+    @Override
+    public void showSchedaCliente(String clienteName) {
+        SchedaClienteView view = new SchedaClienteView();
+        configureHeader(view.getHeader());
+        configureSidebar(view.getSidebar());
+        new SchedaClienteController(view, this, new SchedaClienteService(), clienteName);
+
+        stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
+        stage.setTitle("Clients - Scheda cliente");
     }
 
     public void showLaboratory() {

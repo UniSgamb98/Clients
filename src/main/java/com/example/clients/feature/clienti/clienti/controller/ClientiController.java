@@ -51,7 +51,7 @@ public class ClientiController {
                     cliente.phone(),
                     cliente.email(),
                     cliente.status()
-            );
+            ).setOnMouseClicked(event -> clientiNav.showSchedaCliente(cliente.name()));
         }
     }
 
