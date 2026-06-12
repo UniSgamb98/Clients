@@ -28,6 +28,7 @@ public class AppController implements DashboardNav, ClientiNav {
     private final Stage stage;
     private final AppContainer app;
     private final String cssPath;
+    private boolean shutdown;
 
     public AppController(Stage stage) {
         this.stage = stage;
@@ -126,6 +127,11 @@ public class AppController implements DashboardNav, ClientiNav {
     }
 
     public void shutdown() {
+        if (shutdown) {
+            return;
+        }
+
+        shutdown = true;
         app.shutdown();
         app.database.stop();
     }

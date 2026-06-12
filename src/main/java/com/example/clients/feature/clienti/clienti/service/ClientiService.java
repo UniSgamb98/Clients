@@ -15,10 +15,6 @@ public class ClientiService {
     private SortColumn lastSortColumn;
     private boolean ascending = true;
 
-    public ClientiService() {
-        this(new Database());
-    }
-
     public ClientiService(Database database) {
         this(new DerbyClientiPreviewQuery(database));
     }
