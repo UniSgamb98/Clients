@@ -32,7 +32,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
     }
 
     @Override
-    public Optional<ClienteProfileRecord> findById(UUID clienteId) {
+    public Optional<ClienteProfileRecord> findById(UUID clienteId, UUID operatoreId) {
         schemaInitializer.initialize();
 
         String sql = "SELECT * FROM CLIENTI WHERE ID = ?";
@@ -51,7 +51,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
                         valueOrEmpty(resultSet.getString("PARTITA_IVA")),
                         valueOrEmpty(resultSet.getString("CODICE_FISCALE")),
                         getDate(resultSet, "ACQUISIZIONE"),
-                        false,
+                        isFavorite(clienteId, operatoreId),
                         findSimpleValues("TELEFONI_CLIENTE", clienteId, "CONTATTO_ID IS NULL"),
                         findSimpleValues("EMAIL_CLIENTE", clienteId, "CONTATTO_ID IS NULL"),
                         findSimpleValues("SITI_WEB_CLIENTE", clienteId, null),
@@ -62,6 +62,22 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
             }
         } catch (SQLException e) {
             throw new RuntimeException("Errore caricamento scheda cliente.", e);
+        }
+    }
+
+
+    private boolean isFavorite(UUID clienteId, UUID operatoreId) throws SQLException {
+        if (operatoreId == null) {
+            return false;
+        }
+
+        String sql = "SELECT 1 FROM CLIENTI_PREFERITI WHERE CLIENTE_ID = ? AND OPERATORE_ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            statement.setString(2, operatoreId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
         }
     }
 
@@ -147,7 +163,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
     }
 
     private List<TimelineRecord> findStandaloneNotes(UUID clienteId) throws SQLException {
-        String sql = "SELECT N.TESTO, N.CREATED_AT FROM NOTE_CLIENTE N "
+        String sql = "SELECT N.ID, N.TESTO, N.CREATED_AT FROM NOTE_CLIENTE N "
                 + "WHERE N.CLIENTE_ID = ? AND NOT EXISTS (SELECT 1 FROM INTERAZIONI I WHERE I.NOTA_ID = N.ID)";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
@@ -155,6 +171,8 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
                 List<TimelineRecord> notes = new ArrayList<>();
                 while (resultSet.next()) {
                     notes.add(new TimelineRecord(
+                            getUuid(resultSet, "ID"),
+                            null,
                             getTimestampDate(resultSet, "CREATED_AT"),
                             TimelineType.NOTA,
                             null,
@@ -167,7 +185,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
     }
 
     private List<TimelineRecord> findInterazioni(UUID clienteId) throws SQLException {
-        String sql = "SELECT I.DATA_CONTATTO, I.PROSSIMO_CONTATTO, I.CREATED_AT, N.TESTO "
+        String sql = "SELECT I.ID, I.NOTA_ID, I.DATA_CONTATTO, I.PROSSIMO_CONTATTO, I.CREATED_AT, N.TESTO "
                 + "FROM INTERAZIONI I LEFT JOIN NOTE_CLIENTE N ON I.NOTA_ID = N.ID WHERE I.CLIENTE_ID = ?";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
@@ -177,6 +195,8 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
                     LocalDate dataContatto = getDate(resultSet, "DATA_CONTATTO");
                     LocalDate createdAt = getTimestampDate(resultSet, "CREATED_AT");
                     interazioni.add(new TimelineRecord(
+                            getUuid(resultSet, "NOTA_ID"),
+                            getUuid(resultSet, "ID"),
                             dataContatto == null ? createdAt : dataContatto,
                             TimelineType.CHIAMATA,
                             getDate(resultSet, "PROSSIMO_CONTATTO"),

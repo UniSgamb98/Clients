@@ -32,7 +32,10 @@ public class NuovoClienteController {
 
     private void configureActions() {
         view.getCancelButton().setOnAction(event -> clientiNav.showClienti());
-        view.getSaveButton().setOnAction(event -> service.saveCliente(createRequest()));
+        view.getSaveButton().setOnAction(event -> {
+            NuovoClienteService.NuovoClienteDraft draft = service.saveCliente(createRequest());
+            clientiNav.showSchedaCliente(draft.cliente().id());
+        });
         view.getAddWebsiteButton().setOnAction(event -> view.addWebsiteField().requestFocus());
         view.getAddAddressButton().setOnAction(event -> view.addAddressField().requestFocus());
         view.getAddContactButton().setOnAction(event -> {

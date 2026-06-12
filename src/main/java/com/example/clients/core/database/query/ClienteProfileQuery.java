@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ClienteProfileQuery {
-    Optional<ClienteProfileRecord> findById(UUID clienteId);
+    Optional<ClienteProfileRecord> findById(UUID clienteId, UUID operatoreId);
 
     enum TimelineType {
         NOTA,
@@ -40,6 +40,8 @@ public interface ClienteProfileQuery {
     }
 
     record TimelineRecord(
+            UUID notaId,
+            UUID interazioneId,
             LocalDate data,
             TimelineType type,
             LocalDate prossimoContatto,

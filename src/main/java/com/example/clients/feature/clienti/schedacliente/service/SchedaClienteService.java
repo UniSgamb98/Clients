@@ -1,12 +1,18 @@
 package com.example.clients.feature.clienti.schedacliente.service;
 
 import com.example.clients.core.database.Database;
+import com.example.clients.core.database.model.Interazione;
+import com.example.clients.core.database.model.NotaCliente;
 import com.example.clients.core.database.query.ClienteProfileQuery;
 import com.example.clients.core.database.query.ClienteProfileQuery.ClienteProfileRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.TimelineRecord;
 import com.example.clients.core.database.query.derby.DerbyClienteProfileQuery;
+import com.example.clients.core.database.service.ClientePersistenceService;
+import com.example.clients.core.database.service.CurrentOperatoreService;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -14,7 +20,8 @@ import java.util.UUID;
 public class SchedaClienteService {
 
     private final ClienteProfileQuery profileQuery;
-    private final SchedaClientePersistenceService persistenceService;
+    private final ClientePersistenceService persistenceService;
+    private final CurrentOperatoreService currentOperatoreService;
     private ClienteProfile currentProfile;
     private EditProfileDraft editingDraft;
     private UUID currentClienteId;
@@ -25,23 +32,24 @@ public class SchedaClienteService {
     }
 
     public SchedaClienteService(Database database) {
-        this(new DerbyClienteProfileQuery(database), new SchedaClientePersistenceService());
+        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService());
     }
 
-    public SchedaClienteService(SchedaClientePersistenceService persistenceService) {
-        this(new DerbyClienteProfileQuery(new Database()), persistenceService);
-    }
-
-    public SchedaClienteService(ClienteProfileQuery profileQuery, SchedaClientePersistenceService persistenceService) {
+    public SchedaClienteService(
+            ClienteProfileQuery profileQuery,
+            ClientePersistenceService persistenceService,
+            CurrentOperatoreService currentOperatoreService
+    ) {
         this.profileQuery = profileQuery;
         this.persistenceService = persistenceService;
+        this.currentOperatoreService = currentOperatoreService;
     }
 
     public ClienteProfile loadProfile(UUID clienteId) {
         currentClienteId = clienteId;
         currentProfile = clienteId == null
                 ? emptyProfile()
-                : profileQuery.findById(clienteId)
+                : profileQuery.findById(clienteId, currentOperatoreService.currentOperatoreId())
                 .map(this::toClienteProfile)
                 .orElseGet(this::emptyProfile);
         editingDraft = null;
@@ -51,6 +59,7 @@ public class SchedaClienteService {
 
     private ClienteProfile toClienteProfile(ClienteProfileRecord record) {
         return new ClienteProfile(
+                record.clienteId(),
                 record.ragioneSociale(),
                 record.tipoCliente(),
                 record.statoTrattativa(),
@@ -73,11 +82,12 @@ public class SchedaClienteService {
         InteractionType type = record.type() == ClienteProfileQuery.TimelineType.CHIAMATA
                 ? InteractionType.CHIAMATA
                 : InteractionType.NOTA;
-        return new InteractionPreview(record.data(), type, record.prossimoContatto(), record.testo());
+        return new InteractionPreview(record.notaId(), record.interazioneId(), record.data(), type, record.prossimoContatto(), record.testo());
     }
 
     private ClienteProfile emptyProfile() {
         return new ClienteProfile(
+                currentClienteId,
                 "Cliente non trovato",
                 "",
                 "",
@@ -96,8 +106,12 @@ public class SchedaClienteService {
 
     public ClienteProfile toggleFavorite() {
         ensureProfileLoaded();
-        currentProfile = currentProfile.withFavorite(!currentProfile.favorite());
-        return filteredProfile();
+        if (currentClienteId == null) {
+            return filteredProfile();
+        }
+
+        persistenceService.togglePreferito(currentOperatoreService.currentOperatoreId(), currentClienteId);
+        return loadProfile(currentClienteId);
     }
 
     public ClienteProfile setTimelineFilter(TimelineFilter filter) {
@@ -124,6 +138,7 @@ public class SchedaClienteService {
         editingDraft = null;
         currentFilter = TimelineFilter.ALL;
         currentProfile = new ClienteProfile(
+                currentProfile.clienteId(),
                 normalize(draft.ragioneSociale()),
                 normalize(draft.tipoCliente()),
                 normalize(draft.statoTrattativa()),
@@ -138,6 +153,8 @@ public class SchedaClienteService {
                 cleanList(draft.contatti()),
                 draft.interazioni().stream()
                         .map(interaction -> new InteractionPreview(
+                                interaction.notaId(),
+                                interaction.interazioneId(),
                                 interaction.data(),
                                 interaction.type(),
                                 interaction.prossimoContatto(),
@@ -150,18 +167,55 @@ public class SchedaClienteService {
 
     public ClienteProfile addNota(String testo) {
         ensureProfileLoaded();
-        if (testo == null || testo.isBlank()) {
+        if (currentClienteId == null || testo == null || testo.isBlank()) {
             return filteredProfile();
         }
 
-        addInteraction(persistenceService.salvaNota(testo));
-        return filteredProfile();
+        LocalDateTime now = LocalDateTime.now();
+        NotaCliente nota = new NotaCliente(
+                UUID.randomUUID(),
+                currentClienteId,
+                currentOperatoreService.currentOperatoreId(),
+                testo.trim(),
+                now,
+                null
+        );
+        persistenceService.addNota(nota);
+        return loadProfile(currentClienteId);
     }
 
     public ClienteProfile addChiamata(String testo, LocalDate prossimoContatto) {
         ensureProfileLoaded();
-        addInteraction(persistenceService.salvaChiamata(testo, prossimoContatto));
-        return filteredProfile();
+        if (currentClienteId == null) {
+            return filteredProfile();
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        NotaCliente nota = null;
+        if (testo != null && !testo.isBlank()) {
+            nota = new NotaCliente(
+                    UUID.randomUUID(),
+                    currentClienteId,
+                    currentOperatoreService.currentOperatoreId(),
+                    testo.trim(),
+                    now,
+                    null
+            );
+        }
+
+        Interazione interazione = new Interazione(
+                UUID.randomUUID(),
+                currentClienteId,
+                currentOperatoreService.currentOperatoreId(),
+                nota == null ? null : nota.id(),
+                LocalDate.now(),
+                prossimoContatto,
+                BigDecimal.ZERO,
+                now,
+                null
+        );
+        persistenceService.addChiamata(nota, interazione);
+        return loadProfile(currentClienteId);
     }
 
     private void addInteraction(InteractionPreview interaction) {
@@ -226,6 +280,7 @@ public class SchedaClienteService {
     }
 
     public record ClienteProfile(
+            UUID clienteId,
             String ragioneSociale,
             String tipoCliente,
             String statoTrattativa,
@@ -250,12 +305,12 @@ public class SchedaClienteService {
         }
 
         private ClienteProfile withFavorite(boolean favorite) {
-            return new ClienteProfile(ragioneSociale, tipoCliente, statoTrattativa, partitaIva, codiceFiscale, acquisizione,
+            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, partitaIva, codiceFiscale, acquisizione,
                     favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
         }
 
         private ClienteProfile withInterazioni(List<InteractionPreview> interazioni) {
-            return new ClienteProfile(ragioneSociale, tipoCliente, statoTrattativa, partitaIva, codiceFiscale, acquisizione,
+            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, partitaIva, codiceFiscale, acquisizione,
                     favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
         }
     }
@@ -303,12 +358,12 @@ public class SchedaClienteService {
         }
     }
 
-    public record InteractionEditInput(LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
+    public record InteractionEditInput(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
         private static InteractionEditInput from(InteractionPreview interaction) {
-            return new InteractionEditInput(interaction.data(), interaction.type(), interaction.prossimoContatto(), interaction.testo());
+            return new InteractionEditInput(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), interaction.testo());
         }
     }
 
-    public record InteractionPreview(LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
+    public record InteractionPreview(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
     }
 }

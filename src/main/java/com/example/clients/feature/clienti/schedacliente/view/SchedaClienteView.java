@@ -273,6 +273,8 @@ public class SchedaClienteView extends BorderPane {
                 valuesOf(contactEditFields),
                 timelineEditFields.stream()
                         .map(field -> new InteractionEditInput(
+                                field.notaId(),
+                                field.interazioneId(),
                                 field.data(),
                                 field.type(),
                                 field.nextCallPicker() == null ? field.prossimoContatto() : field.nextCallPicker().getValue(),
@@ -410,7 +412,7 @@ public class SchedaClienteView extends BorderPane {
             textArea.setPrefRowCount(3);
             card.getChildren().add(textArea);
             timelineList.getChildren().add(card);
-            timelineEditFields.add(new TimelineEditField(interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea));
+            timelineEditFields.add(new TimelineEditField(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea));
         }
     }
 
@@ -635,6 +637,8 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private record TimelineEditField(
+            java.util.UUID notaId,
+            java.util.UUID interazioneId,
             LocalDate data,
             InteractionType type,
             LocalDate prossimoContatto,
