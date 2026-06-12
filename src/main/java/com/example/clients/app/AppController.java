@@ -1,5 +1,6 @@
 package com.example.clients.app;
 
+import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.controller.ClientiController;
@@ -21,6 +22,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public class AppController implements DashboardNav, ClientiNav {
     private final Stage stage;
@@ -60,7 +62,7 @@ public class AppController implements DashboardNav, ClientiNav {
         ClientiView view = new ClientiView();
         configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
-        new ClientiController(view, this, new ClientiService());
+        new ClientiController(view, this, new ClientiService(app.database));
 
         stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Clienti");
@@ -71,18 +73,18 @@ public class AppController implements DashboardNav, ClientiNav {
         NuovoClienteView view = new NuovoClienteView();
         configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
-        new NuovoClienteController(view, this, new NuovoClienteService());
+        new NuovoClienteController(view, this, new NuovoClienteService(new ClientePersistenceService(app.database)));
 
         stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Nuovo cliente");
     }
 
     @Override
-    public void showSchedaCliente(String clienteName) {
+    public void showSchedaCliente(UUID clienteId) {
         SchedaClienteView view = new SchedaClienteView();
         configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
-        new SchedaClienteController(view, this, new SchedaClienteService(), clienteName);
+        new SchedaClienteController(view, this, new SchedaClienteService(), clienteId);
 
         stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Scheda cliente");

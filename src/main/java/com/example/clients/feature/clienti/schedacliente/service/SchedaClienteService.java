@@ -3,12 +3,14 @@ package com.example.clients.feature.clienti.schedacliente.service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class SchedaClienteService {
 
     private final SchedaClientePersistenceService persistenceService;
     private ClienteProfile currentProfile;
     private EditProfileDraft editingDraft;
+    private UUID currentClienteId;
     private TimelineFilter currentFilter = TimelineFilter.ALL;
 
     public SchedaClienteService() {
@@ -19,10 +21,10 @@ public class SchedaClienteService {
         this.persistenceService = persistenceService;
     }
 
-    public ClienteProfile loadProfile(String clienteName) {
-        String name = clienteName == null || clienteName.isBlank() ? "Rossi S.r.l." : clienteName;
+    public ClienteProfile loadProfile(UUID clienteId) {
+        currentClienteId = clienteId;
         currentProfile = new ClienteProfile(
-                name,
+                "Rossi S.r.l.",
                 "Azienda",
                 "Attivo",
                 "IT12345678901",
@@ -135,7 +137,7 @@ public class SchedaClienteService {
 
     private void ensureProfileLoaded() {
         if (currentProfile == null) {
-            loadProfile(null);
+            loadProfile(currentClienteId);
         }
     }
 

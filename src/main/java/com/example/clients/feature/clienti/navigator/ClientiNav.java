@@ -1,7 +1,9 @@
 package com.example.clients.feature.clienti.navigator;
 
+import java.util.UUID;
+
 public interface ClientiNav {
     void showClienti();
     void showNuovoCliente();
-    void showSchedaCliente(String clienteName);
+    void showSchedaCliente(UUID clienteId);
 }

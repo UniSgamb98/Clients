@@ -6,6 +6,8 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
 import com.example.clients.feature.clienti.schedacliente.view.SchedaClienteView;
 
+import java.util.UUID;
+
 public class SchedaClienteController {
 
     private final SchedaClienteView view;
@@ -13,12 +15,12 @@ public class SchedaClienteController {
     private final SchedaClienteService service;
     private EditorMode editorMode = EditorMode.NOTE;
 
-    public SchedaClienteController(SchedaClienteView view, ClientiNav clientiNav, SchedaClienteService service, String clienteName) {
+    public SchedaClienteController(SchedaClienteView view, ClientiNav clientiNav, SchedaClienteService service, UUID clienteId) {
         this.view = view;
         this.clientiNav = clientiNav;
         this.service = service;
         configureActions();
-        render(service.loadProfile(clienteName));
+        render(service.loadProfile(clienteId));
     }
 
     private void configureActions() {

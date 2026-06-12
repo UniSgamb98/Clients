@@ -2,6 +2,7 @@ package com.example.clients.feature.clienti.clienti.controller;
 
 import com.example.clients.feature.clienti.clienti.service.ClientiService;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.ClientePreview;
+import com.example.clients.feature.clienti.clienti.service.ClientiService.ClientePreviewRow;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.SortColumn;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.navigator.ClientiNav;
@@ -40,18 +41,19 @@ public class ClientiController {
         renderClienti(service.sortClientiBy(sortColumn));
     }
 
-    private void renderClienti(List<ClientePreview> clienti) {
+    private void renderClienti(List<ClientePreviewRow> clienti) {
         view.clearClientRows();
 
-        for (ClientePreview cliente : clienti) {
+        for (ClientePreviewRow cliente : clienti) {
+            ClientePreview preview = cliente.preview();
             view.addClientRow(
-                    cliente.name(),
-                    cliente.type(),
-                    cliente.contact(),
-                    cliente.phone(),
-                    cliente.email(),
-                    cliente.status()
-            ).setOnMouseClicked(event -> clientiNav.showSchedaCliente(cliente.name()));
+                    preview.name(),
+                    preview.type(),
+                    preview.contact(),
+                    preview.phone(),
+                    preview.email(),
+                    preview.status()
+            ).setOnMouseClicked(event -> clientiNav.showSchedaCliente(cliente.clienteId()));
         }
     }
 
