@@ -1,5 +1,6 @@
 package com.example.clients.feature.clienti.nuovocliente.service;
 
+import com.example.clients.core.database.Database;
 import com.example.clients.core.database.model.Cliente;
 import com.example.clients.core.database.model.ClienteAggregate;
 import com.example.clients.core.database.model.ContattoCliente;
@@ -7,6 +8,9 @@ import com.example.clients.core.database.model.EmailCliente;
 import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
+import com.example.clients.core.database.query.ClienteLookupQuery;
+import com.example.clients.core.database.query.ClienteLookupQuery.LookupValues;
+import com.example.clients.core.database.query.derby.DerbyClienteLookupQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
 import com.example.clients.feature.clienti.nuovocliente.dto.ContattoClienteInput;
@@ -28,19 +32,33 @@ public class NuovoClienteService {
 
     private final ClientePersistenceService persistenceService;
     private final CurrentOperatoreService currentOperatoreService;
+    private final ClienteLookupQuery lookupQuery;
     private NuovoClienteDraft lastPreparedDraft;
 
     public NuovoClienteService() {
-        this(new ClientePersistenceService());
+        this(new Database());
+    }
+
+    public NuovoClienteService(Database database) {
+        this(new ClientePersistenceService(database), new CurrentOperatoreService(), new DerbyClienteLookupQuery(database));
     }
 
     public NuovoClienteService(ClientePersistenceService persistenceService) {
-        this(persistenceService, new CurrentOperatoreService());
+        this(persistenceService, new CurrentOperatoreService(), null);
     }
 
     public NuovoClienteService(ClientePersistenceService persistenceService, CurrentOperatoreService currentOperatoreService) {
+        this(persistenceService, currentOperatoreService, null);
+    }
+
+    public NuovoClienteService(ClientePersistenceService persistenceService, CurrentOperatoreService currentOperatoreService, ClienteLookupQuery lookupQuery) {
         this.persistenceService = persistenceService;
         this.currentOperatoreService = currentOperatoreService;
+        this.lookupQuery = lookupQuery;
+    }
+
+    public LookupValues lookupValues() {
+        return lookupQuery == null ? new LookupValues(List.of(), List.of(), List.of(), List.of()) : lookupQuery.findValues();
     }
 
     public NuovoClienteDraft saveCliente(NuovoClienteRequest request) {

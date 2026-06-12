@@ -23,8 +23,8 @@ public class NuovoClienteView extends BorderPane {
     private final AppHeader header;
     private final AppSidebar sidebar;
     private final TextField nameField;
-    private final TextField typeField;
-    private final TextField statusField;
+    private final ComboBox<String> typeField;
+    private final ComboBox<String> statusField;
     private final TextField vatField;
     private final TextField fiscalCodeField;
     private final TextField acquisitionField;
@@ -68,8 +68,8 @@ public class NuovoClienteView extends BorderPane {
         sidebar = new AppSidebar();
 
         nameField = createTextField("Ragione sociale");
-        typeField = createTextField("Tipo cliente");
-        statusField = createTextField("Stato trattativa");
+        typeField = createLinkedComboBox("Tipo cliente");
+        statusField = createLinkedComboBox("Stato trattativa");
         vatField = createTextField("Partita IVA");
         fiscalCodeField = createTextField("Codice fiscale");
         acquisitionField = createTextField("Data acquisizione");
@@ -174,8 +174,8 @@ public class NuovoClienteView extends BorderPane {
         VBox fields = new VBox(10);
         fields.getChildren().addAll(
                 createFieldGroup("Ragione sociale", nameField),
-                createFieldGroup("Tipo cliente", typeField),
-                createFieldGroup("Stato trattativa", statusField),
+                createComboGroup("Tipo cliente", typeField),
+                createComboGroup("Stato trattativa", statusField),
                 createFieldGroup("Partita IVA", vatField),
                 createFieldGroup("Codice fiscale", fiscalCodeField),
                 createFieldGroup("Acquisizione", acquisitionField),
@@ -418,12 +418,40 @@ public class NuovoClienteView extends BorderPane {
         firstRow.getChildren().set(1, addContactButton);
     }
 
+    public void setClientTypeOptions(List<String> types) {
+        typeField.getItems().setAll(types);
+    }
+
+    public void setStatusOptions(List<String> statuses) {
+        statusField.getItems().setAll(statuses);
+    }
+
     public void setContactPhoneOptions(List<String> phones) {
-        contactPhoneFields.forEach(field -> field.getItems().setAll(phones));
+        contactPhoneFields.forEach(field -> updateComboOptions(field, phones));
     }
 
     public void setContactEmailOptions(List<String> emails) {
-        contactEmailFields.forEach(field -> field.getItems().setAll(emails));
+        contactEmailFields.forEach(field -> updateComboOptions(field, emails));
+    }
+
+    private void updateComboOptions(ComboBox<String> field, List<String> options) {
+        String currentValue = comboValue(field);
+        List<String> updatedOptions = new ArrayList<>(options);
+        if (!currentValue.isBlank() && !updatedOptions.contains(currentValue)) {
+            updatedOptions.add(currentValue);
+        }
+        field.getProperties().put("autocompleteOptions", List.copyOf(updatedOptions));
+        field.getItems().setAll(updatedOptions);
+        field.getEditor().setText(currentValue);
+    }
+
+    private String comboValue(ComboBox<String> comboBox) {
+        String editorText = comboBox.getEditor().getText();
+        if (editorText != null && !editorText.isBlank()) {
+            return editorText.trim();
+        }
+        String value = comboBox.getValue();
+        return value == null ? "" : value.trim();
     }
 
     public AppHeader getHeader() {
@@ -438,11 +466,11 @@ public class NuovoClienteView extends BorderPane {
         return nameField;
     }
 
-    public TextField getTypeField() {
+    public ComboBox<String> getTypeField() {
         return typeField;
     }
 
-    public TextField getStatusField() {
+    public ComboBox<String> getStatusField() {
         return statusField;
     }
 
