@@ -36,10 +36,6 @@ public class SchedaClienteService {
     private UUID currentClienteId;
     private TimelineFilter currentFilter = TimelineFilter.ALL;
 
-    public SchedaClienteService() {
-        this(new Database());
-    }
-
     public SchedaClienteService(Database database) {
         this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService());
     }

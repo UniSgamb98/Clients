@@ -30,10 +30,6 @@ public class NuovoClienteService {
     private final CurrentOperatoreService currentOperatoreService;
     private NuovoClienteDraft lastPreparedDraft;
 
-    public NuovoClienteService() {
-        this(new ClientePersistenceService());
-    }
-
     public NuovoClienteService(ClientePersistenceService persistenceService) {
         this(persistenceService, new CurrentOperatoreService());
     }

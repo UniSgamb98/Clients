@@ -54,10 +54,6 @@ public class ClientePersistenceService {
     private final InterazioneRepository interazioneRepository;
     private final ClientePreferitoRepository clientePreferitoRepository;
 
-    public ClientePersistenceService() {
-        this(new Database());
-    }
-
     public ClientePersistenceService(Database database) {
         this(
                 database,

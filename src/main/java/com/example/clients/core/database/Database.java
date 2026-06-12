@@ -21,7 +21,8 @@ public final class Database {
     private static final String DB_NAME = "Clients";
     private static final String DB_USER = "APP";
     private static final String DB_PASSWORD = "pw";
-    private static final String DERBY_SYSTEM_HOME = "I:/CliZr/Tommaso";
+    private static final String DERBY_HOME_PROPERTY = "clients.derby.system.home";
+    private static final String DERBY_HOME_ENV = "CLIENTS_DERBY_SYSTEM_HOME";
 
     private static final int DERBY_PORT = 1527;
     private static final int DISCOVERY_PORT = 45678;
@@ -94,7 +95,7 @@ public final class Database {
         jdbcUrl = buildJdbcUrl("localhost", DERBY_PORT, true);
 
         try (Connection ignored = DriverManager.getConnection(jdbcUrl)) {
-            // Apre il database condiviso su DERBY_SYSTEM_HOME e lo crea se non esiste.
+            // Apre il database condiviso nella Derby home configurata e lo crea se non esiste.
         }
 
         discoveryServer = new DiscoveryServer(DISCOVERY_PORT, DERBY_PORT);
@@ -190,12 +191,28 @@ public final class Database {
     }
 
     private void configureDerbyHome() {
+        Path derbyHome = resolveDerbyHome();
+
         try {
-            Files.createDirectories(Path.of(DERBY_SYSTEM_HOME));
-            System.setProperty("derby.system.home", DERBY_SYSTEM_HOME);
+            Files.createDirectories(derbyHome);
+            System.setProperty("derby.system.home", derbyHome.toString());
         } catch (Exception e) {
-            throw new RuntimeException("Impossibile configurare Derby home: " + DERBY_SYSTEM_HOME, e);
+            throw new RuntimeException("Impossibile configurare Derby home: " + derbyHome, e);
         }
+    }
+
+    private Path resolveDerbyHome() {
+        String configuredHome = System.getProperty(DERBY_HOME_PROPERTY);
+
+        if (configuredHome == null || configuredHome.isBlank()) {
+            configuredHome = System.getenv(DERBY_HOME_ENV);
+        }
+
+        if (configuredHome == null || configuredHome.isBlank()) {
+            return Path.of(System.getProperty("user.home"), ".clients");
+        }
+
+        return Path.of(configuredHome.trim());
     }
 
     private void ensurePhysicalConnection() {
