@@ -1,0 +1,244 @@
+package com.example.clients.core.database.query.derby;
+
+import com.example.clients.core.database.Database;
+import com.example.clients.core.database.SchemaInitializer;
+import com.example.clients.core.database.query.ClienteProfileQuery;
+
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
+
+    private final Database database;
+    private final SchemaInitializer schemaInitializer;
+
+    public DerbyClienteProfileQuery(Database database) {
+        this(database, new SchemaInitializer(database));
+    }
+
+    public DerbyClienteProfileQuery(Database database, SchemaInitializer schemaInitializer) {
+        this.database = database;
+        this.schemaInitializer = schemaInitializer;
+    }
+
+    @Override
+    public Optional<ClienteProfileRecord> findById(UUID clienteId) {
+        schemaInitializer.initialize();
+
+        String sql = "SELECT * FROM CLIENTI WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return Optional.empty();
+                }
+
+                return Optional.of(new ClienteProfileRecord(
+                        clienteId,
+                        valueOrEmpty(resultSet.getString("RAGIONE_SOCIALE")),
+                        valueOrEmpty(resultSet.getString("TIPO_CLIENTE")),
+                        valueOrEmpty(resultSet.getString("STATO_TRATTATIVA")),
+                        valueOrEmpty(resultSet.getString("PARTITA_IVA")),
+                        valueOrEmpty(resultSet.getString("CODICE_FISCALE")),
+                        getDate(resultSet, "ACQUISIZIONE"),
+                        false,
+                        findSimpleValues("TELEFONI_CLIENTE", clienteId, "CONTATTO_ID IS NULL"),
+                        findSimpleValues("EMAIL_CLIENTE", clienteId, "CONTATTO_ID IS NULL"),
+                        findSimpleValues("SITI_WEB_CLIENTE", clienteId, null),
+                        findIndirizzi(clienteId),
+                        findContatti(clienteId),
+                        findTimeline(clienteId)
+                ));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Errore caricamento scheda cliente.", e);
+        }
+    }
+
+    private List<String> findSimpleValues(String tableName, UUID clienteId, String extraCondition) throws SQLException {
+        String sql = "SELECT DESCRIZIONE FROM " + tableName + " WHERE CLIENTE_ID = ?";
+        if (extraCondition != null && !extraCondition.isBlank()) {
+            sql += " AND " + extraCondition;
+        }
+        sql += " ORDER BY ID";
+
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<String> values = new ArrayList<>();
+                while (resultSet.next()) {
+                    addIfPresent(values, resultSet.getString("DESCRIZIONE"));
+                }
+                return values;
+            }
+        }
+    }
+
+    private List<String> findIndirizzi(UUID clienteId) throws SQLException {
+        String sql = "SELECT PAESE, REGIONE, PROVINCIA, CITTA, INDIRIZZO, NUMERO_CIVICO, CAP "
+                + "FROM INDIRIZZI_CLIENTE WHERE CLIENTE_ID = ? ORDER BY PRINCIPALE DESC, ID";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<String> indirizzi = new ArrayList<>();
+                while (resultSet.next()) {
+                    addIfPresent(indirizzi, joinNonBlank(
+                            resultSet.getString("INDIRIZZO"),
+                            resultSet.getString("NUMERO_CIVICO"),
+                            resultSet.getString("CAP"),
+                            resultSet.getString("CITTA"),
+                            resultSet.getString("PROVINCIA"),
+                            resultSet.getString("REGIONE"),
+                            resultSet.getString("PAESE")
+                    ));
+                }
+                return indirizzi;
+            }
+        }
+    }
+
+    private List<String> findContatti(UUID clienteId) throws SQLException {
+        String sql = "SELECT ID, DESCRIZIONE FROM CONTATTI_CLIENTE WHERE CLIENTE_ID = ? ORDER BY ID";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<String> contatti = new ArrayList<>();
+                while (resultSet.next()) {
+                    UUID contattoId = getUuid(resultSet, "ID");
+                    String contatto = joinNonBlank(
+                            resultSet.getString("DESCRIZIONE"),
+                            firstLinkedValue("TELEFONI_CLIENTE", contattoId),
+                            firstLinkedValue("EMAIL_CLIENTE", contattoId)
+                    );
+                    addIfPresent(contatti, contatto);
+                }
+                return contatti;
+            }
+        }
+    }
+
+    private String firstLinkedValue(String tableName, UUID contattoId) throws SQLException {
+        String sql = "SELECT DESCRIZIONE FROM " + tableName + " WHERE CONTATTO_ID = ? ORDER BY ID FETCH FIRST ROW ONLY";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, contattoId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? valueOrEmpty(resultSet.getString("DESCRIZIONE")) : "";
+            }
+        }
+    }
+
+    private List<TimelineRecord> findTimeline(UUID clienteId) throws SQLException {
+        List<TimelineRecord> timeline = new ArrayList<>();
+        timeline.addAll(findStandaloneNotes(clienteId));
+        timeline.addAll(findInterazioni(clienteId));
+        return timeline.stream()
+                .sorted(Comparator.comparing(TimelineRecord::data, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+    }
+
+    private List<TimelineRecord> findStandaloneNotes(UUID clienteId) throws SQLException {
+        String sql = "SELECT N.TESTO, N.CREATED_AT FROM NOTE_CLIENTE N "
+                + "WHERE N.CLIENTE_ID = ? AND NOT EXISTS (SELECT 1 FROM INTERAZIONI I WHERE I.NOTA_ID = N.ID)";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<TimelineRecord> notes = new ArrayList<>();
+                while (resultSet.next()) {
+                    notes.add(new TimelineRecord(
+                            getTimestampDate(resultSet, "CREATED_AT"),
+                            TimelineType.NOTA,
+                            null,
+                            getClobText(resultSet, "TESTO")
+                    ));
+                }
+                return notes;
+            }
+        }
+    }
+
+    private List<TimelineRecord> findInterazioni(UUID clienteId) throws SQLException {
+        String sql = "SELECT I.DATA_CONTATTO, I.PROSSIMO_CONTATTO, I.CREATED_AT, N.TESTO "
+                + "FROM INTERAZIONI I LEFT JOIN NOTE_CLIENTE N ON I.NOTA_ID = N.ID WHERE I.CLIENTE_ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<TimelineRecord> interazioni = new ArrayList<>();
+                while (resultSet.next()) {
+                    LocalDate dataContatto = getDate(resultSet, "DATA_CONTATTO");
+                    LocalDate createdAt = getTimestampDate(resultSet, "CREATED_AT");
+                    interazioni.add(new TimelineRecord(
+                            dataContatto == null ? createdAt : dataContatto,
+                            TimelineType.CHIAMATA,
+                            getDate(resultSet, "PROSSIMO_CONTATTO"),
+                            valueOrDefault(getClobText(resultSet, "TESTO"), "Chiamata registrata.")
+                    ));
+                }
+                return interazioni;
+            }
+        }
+    }
+
+    private UUID getUuid(ResultSet resultSet, String column) throws SQLException {
+        String value = resultSet.getString(column);
+        return value == null ? null : UUID.fromString(value);
+    }
+
+    private LocalDate getDate(ResultSet resultSet, String column) throws SQLException {
+        Date value = resultSet.getDate(column);
+        return value == null ? null : value.toLocalDate();
+    }
+
+    private LocalDate getTimestampDate(ResultSet resultSet, String column) throws SQLException {
+        Timestamp value = resultSet.getTimestamp(column);
+        return value == null ? null : value.toLocalDateTime().toLocalDate();
+    }
+
+    private String getClobText(ResultSet resultSet, String column) throws SQLException {
+        Clob clob = resultSet.getClob(column);
+        if (clob == null) {
+            return "";
+        }
+        long length = clob.length();
+        if (length == 0) {
+            return "";
+        }
+        return clob.getSubString(1, Math.toIntExact(length));
+    }
+
+    private void addIfPresent(List<String> values, String value) {
+        String cleanValue = valueOrEmpty(value).trim();
+        if (!cleanValue.isBlank()) {
+            values.add(cleanValue);
+        }
+    }
+
+    private String joinNonBlank(String... values) {
+        List<String> cleanValues = new ArrayList<>();
+        for (String value : values) {
+            String cleanValue = valueOrEmpty(value).trim();
+            if (!cleanValue.isBlank()) {
+                cleanValues.add(cleanValue);
+            }
+        }
+        return String.join(" · ", cleanValues);
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String valueOrDefault(String value, String defaultValue) {
+        String cleanValue = valueOrEmpty(value).trim();
+        return cleanValue.isBlank() ? defaultValue : cleanValue;
+    }
+}

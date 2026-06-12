@@ -84,7 +84,7 @@ public class AppController implements DashboardNav, ClientiNav {
         SchedaClienteView view = new SchedaClienteView();
         configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
-        new SchedaClienteController(view, this, new SchedaClienteService(), clienteId);
+        new SchedaClienteController(view, this, new SchedaClienteService(app.database), clienteId);
 
         stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Scheda cliente");

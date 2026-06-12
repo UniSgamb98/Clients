@@ -1,5 +1,11 @@
 package com.example.clients.feature.clienti.schedacliente.service;
 
+import com.example.clients.core.database.Database;
+import com.example.clients.core.database.query.ClienteProfileQuery;
+import com.example.clients.core.database.query.ClienteProfileQuery.ClienteProfileRecord;
+import com.example.clients.core.database.query.ClienteProfileQuery.TimelineRecord;
+import com.example.clients.core.database.query.derby.DerbyClienteProfileQuery;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,6 +13,7 @@ import java.util.UUID;
 
 public class SchedaClienteService {
 
+    private final ClienteProfileQuery profileQuery;
     private final SchedaClientePersistenceService persistenceService;
     private ClienteProfile currentProfile;
     private EditProfileDraft editingDraft;
@@ -14,38 +21,77 @@ public class SchedaClienteService {
     private TimelineFilter currentFilter = TimelineFilter.ALL;
 
     public SchedaClienteService() {
-        this(new SchedaClientePersistenceService());
+        this(new Database());
+    }
+
+    public SchedaClienteService(Database database) {
+        this(new DerbyClienteProfileQuery(database), new SchedaClientePersistenceService());
     }
 
     public SchedaClienteService(SchedaClientePersistenceService persistenceService) {
+        this(new DerbyClienteProfileQuery(new Database()), persistenceService);
+    }
+
+    public SchedaClienteService(ClienteProfileQuery profileQuery, SchedaClientePersistenceService persistenceService) {
+        this.profileQuery = profileQuery;
         this.persistenceService = persistenceService;
     }
 
     public ClienteProfile loadProfile(UUID clienteId) {
         currentClienteId = clienteId;
-        currentProfile = new ClienteProfile(
-                "Rossi S.r.l.",
-                "Azienda",
-                "Attivo",
-                "IT12345678901",
-                "RSSSRL80A01H501Z",
-                LocalDate.of(2026, 6, 1),
-                false,
-                new ArrayList<>(List.of("02 123456", "333 4455667")),
-                new ArrayList<>(List.of("info@rossi.it", "amministrazione@rossi.it")),
-                new ArrayList<>(List.of("www.rossi.it")),
-                new ArrayList<>(List.of("Sede principale · Milano, Via Roma 12 · 20100")),
-                new ArrayList<>(List.of("Mario Rossi · 333 4455667 · mario@rossi.it")),
-                new ArrayList<>(List.of(
-                        new InteractionPreview(LocalDate.now().minusDays(1), InteractionType.NOTA, null,
-                                "Cliente interessato a ricevere un preventivo aggiornato."),
-                        new InteractionPreview(LocalDate.now().minusDays(7), InteractionType.CHIAMATA, LocalDate.now().plusDays(3),
-                                "Primo contatto telefonico con il referente amministrativo.")
-                ))
-        );
+        currentProfile = clienteId == null
+                ? emptyProfile()
+                : profileQuery.findById(clienteId)
+                .map(this::toClienteProfile)
+                .orElseGet(this::emptyProfile);
         editingDraft = null;
         currentFilter = TimelineFilter.ALL;
         return filteredProfile();
+    }
+
+    private ClienteProfile toClienteProfile(ClienteProfileRecord record) {
+        return new ClienteProfile(
+                record.ragioneSociale(),
+                record.tipoCliente(),
+                record.statoTrattativa(),
+                record.partitaIva(),
+                record.codiceFiscale(),
+                record.acquisizione(),
+                record.favorite(),
+                record.telefoni(),
+                record.email(),
+                record.sitiWeb(),
+                record.indirizzi(),
+                record.contatti(),
+                record.timeline().stream()
+                        .map(this::toInteractionPreview)
+                        .toList()
+        );
+    }
+
+    private InteractionPreview toInteractionPreview(TimelineRecord record) {
+        InteractionType type = record.type() == ClienteProfileQuery.TimelineType.CHIAMATA
+                ? InteractionType.CHIAMATA
+                : InteractionType.NOTA;
+        return new InteractionPreview(record.data(), type, record.prossimoContatto(), record.testo());
+    }
+
+    private ClienteProfile emptyProfile() {
+        return new ClienteProfile(
+                "Cliente non trovato",
+                "",
+                "",
+                "",
+                "",
+                null,
+                false,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of()
+        );
     }
 
     public ClienteProfile toggleFavorite() {
