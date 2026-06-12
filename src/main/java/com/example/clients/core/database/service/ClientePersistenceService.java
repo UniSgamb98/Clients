@@ -167,17 +167,11 @@ public class ClientePersistenceService {
     }
 
     private void syncTelefoni(UUID clienteId, List<TelefonoCliente> desired) {
-        List<TelefonoCliente> genericTelefoni = telefonoRepository.findByClienteId(clienteId).stream()
-                .filter(telefono -> telefono.contattoId() == null)
-                .toList();
-        syncById(genericTelefoni, desired, TelefonoCliente::id, telefonoRepository::insert, telefonoRepository::update, telefonoRepository::deleteById);
+        syncById(telefonoRepository.findByClienteId(clienteId), desired, TelefonoCliente::id, telefonoRepository::insert, telefonoRepository::update, telefonoRepository::deleteById);
     }
 
     private void syncEmail(UUID clienteId, List<EmailCliente> desired) {
-        List<EmailCliente> genericEmail = emailRepository.findByClienteId(clienteId).stream()
-                .filter(emailCliente -> emailCliente.contattoId() == null)
-                .toList();
-        syncById(genericEmail, desired, EmailCliente::id, emailRepository::insert, emailRepository::update, emailRepository::deleteById);
+        syncById(emailRepository.findByClienteId(clienteId), desired, EmailCliente::id, emailRepository::insert, emailRepository::update, emailRepository::deleteById);
     }
 
     private void syncSitiWeb(UUID clienteId, List<SitoWebCliente> desired) {

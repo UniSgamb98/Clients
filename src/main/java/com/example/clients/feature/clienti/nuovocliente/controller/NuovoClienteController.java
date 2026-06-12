@@ -14,6 +14,7 @@ import com.example.clients.feature.clienti.nuovocliente.view.NuovoClienteView.Co
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 
@@ -33,8 +34,12 @@ public class NuovoClienteController {
     private void configureActions() {
         view.getCancelButton().setOnAction(event -> clientiNav.showClienti());
         view.getSaveButton().setOnAction(event -> {
-            NuovoClienteService.NuovoClienteDraft draft = service.saveCliente(createRequest());
-            clientiNav.showSchedaCliente(draft.cliente().id());
+            try {
+                NuovoClienteService.NuovoClienteDraft draft = service.saveCliente(createRequest());
+                clientiNav.showSchedaCliente(draft.cliente().id());
+            } catch (RuntimeException e) {
+                showError("Salvataggio cliente non riuscito", e);
+            }
         });
         view.getAddWebsiteButton().setOnAction(event -> view.addWebsiteField().requestFocus());
         view.getAddAddressButton().setOnAction(event -> view.addAddressField().requestFocus());
@@ -180,6 +185,14 @@ public class NuovoClienteController {
         }
         String value = comboBox.getValue();
         return value == null ? "" : value.trim();
+    }
+
+    private void showError(String title, RuntimeException e) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(title);
+        alert.setContentText(e.getMessage() == null ? "Errore imprevisto." : e.getMessage());
+        alert.showAndWait();
     }
 
     public NuovoClienteView getView() {

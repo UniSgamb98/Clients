@@ -10,7 +10,9 @@ import com.example.clients.core.database.model.NotaCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
 import com.example.clients.core.database.query.ClienteProfileQuery;
+import com.example.clients.core.database.query.ClienteProfileQuery.AddressRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ClienteProfileRecord;
+import com.example.clients.core.database.query.ClienteProfileQuery.ContactRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.TimelineRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ValueRecord;
 import com.example.clients.core.database.query.derby.DerbyClienteProfileQuery;
@@ -77,8 +79,8 @@ public class SchedaClienteService {
                 toValueItems(record.telefoni()),
                 toValueItems(record.email()),
                 toValueItems(record.sitiWeb()),
-                toValueItems(record.indirizzi()),
-                toValueItems(record.contatti()),
+                toAddressItems(record.indirizzi()),
+                toContactItems(record.contatti()),
                 record.timeline().stream()
                         .map(this::toInteractionPreview)
                         .toList()
@@ -89,6 +91,27 @@ public class SchedaClienteService {
     private List<ValueItem> toValueItems(List<ValueRecord> values) {
         return values.stream()
                 .map(value -> new ValueItem(value.id(), value.value()))
+                .toList();
+    }
+
+    private List<AddressItem> toAddressItems(List<AddressRecord> values) {
+        return values.stream()
+                .map(value -> new AddressItem(
+                        value.id(),
+                        value.paese(),
+                        value.regione(),
+                        value.provincia(),
+                        value.citta(),
+                        value.indirizzo(),
+                        value.numeroCivico(),
+                        value.cap(),
+                        value.principale()))
+                .toList();
+    }
+
+    private List<ContactItem> toContactItems(List<ContactRecord> values) {
+        return values.stream()
+                .map(value -> new ContactItem(value.id(), value.descrizione(), toValueItems(value.telefoni()), toValueItems(value.email())))
                 .toList();
     }
 
@@ -167,13 +190,14 @@ public class SchedaClienteService {
                 now
         );
 
+        ContactModels contactModels = toContactModels(draft.contatti());
         persistenceService.updateClienteProfile(
                 cliente,
                 toIndirizzi(draft.indirizzi(), now),
                 toSitiWeb(draft.sitiWeb()),
-                toContatti(draft.contatti()),
-                toTelefoni(draft.telefoni()),
-                toEmail(draft.email()),
+                contactModels.contatti(),
+                combine(toTelefoni(draft.telefoni(), null), contactModels.telefoni()),
+                combine(toEmail(draft.email(), null), contactModels.email()),
                 toNoteUpdates(draft.interazioni(), now),
                 toInterazioneUpdates(draft.interazioni(), now)
         );
@@ -184,19 +208,19 @@ public class SchedaClienteService {
     }
 
 
-    private List<TelefonoCliente> toTelefoni(List<ValueEditInput> values) {
+    private List<TelefonoCliente> toTelefoni(List<ValueEditInput> values, UUID contattoId) {
         return values.stream()
                 .map(value -> new ValueItem(idOrNew(value.id()), normalize(value.value())))
                 .filter(value -> !value.value().isBlank())
-                .map(value -> new TelefonoCliente(value.id(), currentClienteId, null, value.value()))
+                .map(value -> new TelefonoCliente(value.id(), currentClienteId, contattoId, value.value()))
                 .toList();
     }
 
-    private List<EmailCliente> toEmail(List<ValueEditInput> values) {
+    private List<EmailCliente> toEmail(List<ValueEditInput> values, UUID contattoId) {
         return values.stream()
                 .map(value -> new ValueItem(idOrNew(value.id()), normalize(value.value())))
                 .filter(value -> !value.value().isBlank())
-                .map(value -> new EmailCliente(value.id(), currentClienteId, null, value.value()))
+                .map(value -> new EmailCliente(value.id(), currentClienteId, contattoId, value.value()))
                 .toList();
     }
 
@@ -208,20 +232,69 @@ public class SchedaClienteService {
                 .toList();
     }
 
-    private List<ContattoCliente> toContatti(List<ValueEditInput> values) {
+    private ContactModels toContactModels(List<ContactEditInput> values) {
+        List<ContattoCliente> contatti = new ArrayList<>();
+        List<TelefonoCliente> telefoni = new ArrayList<>();
+        List<EmailCliente> email = new ArrayList<>();
+        for (ContactEditInput value : values) {
+            UUID contattoId = idOrNew(value.id());
+            String descrizione = nullableClean(value.descrizione());
+            List<TelefonoCliente> telefoniContatto = toTelefoni(value.telefoni(), contattoId);
+            List<EmailCliente> emailContatto = toEmail(value.email(), contattoId);
+            if (descrizione == null && telefoniContatto.isEmpty() && emailContatto.isEmpty()) {
+                continue;
+            }
+
+            contatti.add(new ContattoCliente(contattoId, currentClienteId, descrizione));
+            telefoni.addAll(telefoniContatto);
+            email.addAll(emailContatto);
+        }
+        return new ContactModels(contatti, telefoni, email);
+    }
+
+    private List<IndirizzoCliente> toIndirizzi(List<AddressEditInput> values, LocalDateTime now) {
         return values.stream()
-                .map(value -> new ValueItem(idOrNew(value.id()), normalize(value.value())))
-                .filter(value -> !value.value().isBlank())
-                .map(value -> new ContattoCliente(value.id(), currentClienteId, value.value()))
+                .map(value -> new AddressEditInput(
+                        idOrNew(value.id()),
+                        nullableClean(value.paese()),
+                        nullableClean(value.regione()),
+                        nullableClean(value.provincia()),
+                        nullableClean(value.citta()),
+                        nullableClean(value.indirizzo()),
+                        nullableClean(value.numeroCivico()),
+                        nullableClean(value.cap()),
+                        value.principale()))
+                .filter(this::hasAddressData)
+                .map(value -> new IndirizzoCliente(
+                        value.id(),
+                        currentClienteId,
+                        value.paese(),
+                        value.regione(),
+                        value.provincia(),
+                        value.citta(),
+                        value.indirizzo(),
+                        value.numeroCivico(),
+                        value.cap(),
+                        value.principale(),
+                        now,
+                        now))
                 .toList();
     }
 
-    private List<IndirizzoCliente> toIndirizzi(List<ValueEditInput> values, LocalDateTime now) {
-        return values.stream()
-                .map(value -> new ValueItem(idOrNew(value.id()), normalize(value.value())))
-                .filter(value -> !value.value().isBlank())
-                .map(value -> new IndirizzoCliente(value.id(), currentClienteId, null, null, null, null, value.value(), null, null, false, now, now))
-                .toList();
+    private boolean hasAddressData(AddressEditInput value) {
+        return value.paese() != null
+                || value.regione() != null
+                || value.provincia() != null
+                || value.citta() != null
+                || value.indirizzo() != null
+                || value.numeroCivico() != null
+                || value.cap() != null;
+    }
+
+    private <T> List<T> combine(List<T> first, List<T> second) {
+        List<T> values = new ArrayList<>(first);
+        values.addAll(second);
+        return values;
     }
 
     private List<NotaCliente> toNoteUpdates(List<InteractionEditInput> interactions, LocalDateTime now) {
@@ -391,8 +464,8 @@ public class SchedaClienteService {
             List<ValueItem> telefoni,
             List<ValueItem> email,
             List<ValueItem> sitiWeb,
-            List<ValueItem> indirizzi,
-            List<ValueItem> contatti,
+            List<AddressItem> indirizzi,
+            List<ContactItem> contatti,
             List<InteractionPreview> interazioni
     ) {
         public ClienteProfile {
@@ -425,8 +498,8 @@ public class SchedaClienteService {
             List<ValueEditInput> telefoni,
             List<ValueEditInput> email,
             List<ValueEditInput> sitiWeb,
-            List<ValueEditInput> indirizzi,
-            List<ValueEditInput> contatti,
+            List<AddressEditInput> indirizzi,
+            List<ContactEditInput> contatti,
             List<InteractionEditInput> interazioni
     ) {
         public EditProfileDraft {
@@ -445,6 +518,27 @@ public class SchedaClienteService {
                     .toList();
         }
 
+        private static List<AddressEditInput> toAddressEditInputs(List<AddressItem> values) {
+            return values.stream()
+                    .map(value -> new AddressEditInput(
+                            value.id(),
+                            value.paese(),
+                            value.regione(),
+                            value.provincia(),
+                            value.citta(),
+                            value.indirizzo(),
+                            value.numeroCivico(),
+                            value.cap(),
+                            value.principale()))
+                    .toList();
+        }
+
+        private static List<ContactEditInput> toContactEditInputs(List<ContactItem> values) {
+            return values.stream()
+                    .map(value -> new ContactEditInput(value.id(), value.descrizione(), toEditInputs(value.telefoni()), toEditInputs(value.email())))
+                    .toList();
+        }
+
         private static EditProfileDraft from(ClienteProfile profile) {
             return new EditProfileDraft(
                     profile.ragioneSociale(),
@@ -456,8 +550,8 @@ public class SchedaClienteService {
                     toEditInputs(profile.telefoni()),
                     toEditInputs(profile.email()),
                     toEditInputs(profile.sitiWeb()),
-                    toEditInputs(profile.indirizzi()),
-                    toEditInputs(profile.contatti()),
+                    toAddressEditInputs(profile.indirizzi()),
+                    toContactEditInputs(profile.contatti()),
                     profile.interazioni().stream()
                             .map(InteractionEditInput::from)
                             .toList()
@@ -468,7 +562,50 @@ public class SchedaClienteService {
     public record ValueItem(UUID id, String value) {
     }
 
+    public record AddressItem(
+            UUID id,
+            String paese,
+            String regione,
+            String provincia,
+            String citta,
+            String indirizzo,
+            String numeroCivico,
+            String cap,
+            boolean principale
+    ) {
+    }
+
+    public record ContactItem(UUID id, String descrizione, List<ValueItem> telefoni, List<ValueItem> email) {
+        public ContactItem {
+            telefoni = List.copyOf(telefoni);
+            email = List.copyOf(email);
+        }
+    }
+
     public record ValueEditInput(UUID id, String value) {
+    }
+
+    public record AddressEditInput(
+            UUID id,
+            String paese,
+            String regione,
+            String provincia,
+            String citta,
+            String indirizzo,
+            String numeroCivico,
+            String cap,
+            boolean principale
+    ) {
+    }
+
+    public record ContactEditInput(UUID id, String descrizione, List<ValueEditInput> telefoni, List<ValueEditInput> email) {
+        public ContactEditInput {
+            telefoni = List.copyOf(telefoni);
+            email = List.copyOf(email);
+        }
+    }
+
+    private record ContactModels(List<ContattoCliente> contatti, List<TelefonoCliente> telefoni, List<EmailCliente> email) {
     }
 
     public record InteractionEditInput(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {

@@ -2,7 +2,11 @@ package com.example.clients.feature.clienti.schedacliente.view;
 
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.AddressEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.AddressItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ClienteProfile;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ContactEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ContactItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.EditProfileDraft;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
@@ -12,6 +16,7 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ValueItem;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -59,8 +64,8 @@ public class SchedaClienteView extends BorderPane {
     private final List<TextField> phoneEditFields = new ArrayList<>();
     private final List<TextField> emailEditFields = new ArrayList<>();
     private final List<TextField> siteEditFields = new ArrayList<>();
-    private final List<TextField> contactEditFields = new ArrayList<>();
-    private final List<TextField> addressEditFields = new ArrayList<>();
+    private final List<ContactEditControls> contactEditControls = new ArrayList<>();
+    private final List<AddressEditControls> addressEditControls = new ArrayList<>();
     private final List<TimelineEditField> timelineEditFields = new ArrayList<>();
     private TextField ragioneSocialeEditField;
     private TextField tipoClienteEditField;
@@ -241,8 +246,8 @@ public class SchedaClienteView extends BorderPane {
                 "Email azienda: " + joinProfileValues(profile.email()),
                 "Siti web: " + joinProfileValues(profile.sitiWeb())
         ));
-        renderValueList(contactsList, profile.contatti());
-        renderValueList(addressesList, profile.indirizzi());
+        renderContactList(contactsList, profile.contatti());
+        renderAddressList(addressesList, profile.indirizzi());
         renderTimeline(profile.interazioni());
     }
 
@@ -255,8 +260,8 @@ public class SchedaClienteView extends BorderPane {
         nextInteractionLabel.setText("Prossima chiamata " + nextEditableCallText(draft.interazioni()));
         setActiveTimelineFilter(TimelineFilter.ALL);
         renderCustomerDataEditor(draft);
-        renderEditableValues(contactsList, contactEditFields, draft.contatti(), "Contatto cliente");
-        renderEditableValues(addressesList, addressEditFields, draft.indirizzi(), "Indirizzo cliente");
+        renderEditableContacts(draft.contatti());
+        renderEditableAddresses(draft.indirizzi());
         renderEditableTimeline(draft.interazioni());
     }
 
@@ -271,8 +276,8 @@ public class SchedaClienteView extends BorderPane {
                 valuesOf(phoneEditFields),
                 valuesOf(emailEditFields),
                 valuesOf(siteEditFields),
-                valuesOf(addressEditFields),
-                valuesOf(contactEditFields),
+                addressInputs(),
+                contactInputs(),
                 timelineEditFields.stream()
                         .map(field -> new InteractionEditInput(
                                 field.notaId(),
@@ -349,6 +354,122 @@ public class SchedaClienteView extends BorderPane {
         HBox.setHgrow(field, Priority.ALWAYS);
         row.getChildren().addAll(field, addButton, removeButton);
         container.getChildren().add(row);
+    }
+
+    private void renderEditableContacts(List<ContactEditInput> values) {
+        contactsList.getChildren().clear();
+        contactEditControls.clear();
+        List<ContactEditInput> safeValues = values.isEmpty() ? List.of(new ContactEditInput(null, "", List.of(), List.of())) : values;
+        safeValues.forEach(this::addContactEditor);
+    }
+
+    private void addContactEditor(ContactEditInput value) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("client-profile-timeline-card");
+        TextField descriptionField = createTextField(value.descrizione(), "Nome referente / contatto");
+
+        List<TextField> phoneFields = new ArrayList<>();
+        List<TextField> emailFields = new ArrayList<>();
+        VBox phoneBox = createEditableValuesSection("Telefoni contatto", phoneFields, value.telefoni(), "Telefono contatto");
+        VBox emailBox = createEditableValuesSection("Email contatto", emailFields, value.email(), "Email contatto");
+
+        HBox actions = new HBox(8);
+        Button addButton = new Button("+");
+        addButton.getStyleClass().add("client-profile-small-filter-button");
+        Button removeButton = new Button("-");
+        removeButton.getStyleClass().add("client-profile-small-filter-button");
+        addButton.setOnAction(event -> addContactEditor(new ContactEditInput(null, "", List.of(), List.of())));
+        removeButton.setOnAction(event -> {
+            contactsList.getChildren().remove(card);
+            contactEditControls.removeIf(control -> control.container() == card);
+            if (contactEditControls.isEmpty()) {
+                addContactEditor(new ContactEditInput(null, "", List.of(), List.of()));
+            }
+        });
+        actions.getChildren().addAll(addButton, removeButton);
+
+        card.getChildren().addAll(createFieldRow("Contatto", descriptionField), phoneBox, emailBox, actions);
+        contactsList.getChildren().add(card);
+        contactEditControls.add(new ContactEditControls(value.id(), descriptionField, phoneFields, emailFields, card));
+    }
+
+    private void renderEditableAddresses(List<AddressEditInput> values) {
+        addressesList.getChildren().clear();
+        addressEditControls.clear();
+        List<AddressEditInput> safeValues = values.isEmpty() ? List.of(emptyAddressInput()) : values;
+        safeValues.forEach(this::addAddressEditor);
+    }
+
+    private AddressEditInput emptyAddressInput() {
+        return new AddressEditInput(null, "", "", "", "", "", "", "", false);
+    }
+
+    private void addAddressEditor(AddressEditInput value) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("client-profile-timeline-card");
+        TextField countryField = createTextField(value.paese(), "Paese");
+        TextField regionField = createTextField(value.regione(), "Regione");
+        TextField provinceField = createTextField(value.provincia(), "Provincia");
+        TextField cityField = createTextField(value.citta(), "Città");
+        TextField addressField = createTextField(value.indirizzo(), "Indirizzo");
+        TextField streetNumberField = createTextField(value.numeroCivico(), "Numero civico");
+        TextField zipField = createTextField(value.cap(), "CAP");
+        CheckBox primaryCheck = new CheckBox("Indirizzo principale");
+        primaryCheck.setSelected(value.principale());
+
+        HBox actions = new HBox(8);
+        Button addButton = new Button("+");
+        addButton.getStyleClass().add("client-profile-small-filter-button");
+        Button removeButton = new Button("-");
+        removeButton.getStyleClass().add("client-profile-small-filter-button");
+        addButton.setOnAction(event -> addAddressEditor(emptyAddressInput()));
+        removeButton.setOnAction(event -> {
+            addressesList.getChildren().remove(card);
+            addressEditControls.removeIf(control -> control.container() == card);
+            if (addressEditControls.isEmpty()) {
+                addAddressEditor(emptyAddressInput());
+            }
+        });
+        actions.getChildren().addAll(addButton, removeButton);
+
+        card.getChildren().addAll(
+                createFieldRow("Paese", countryField),
+                createFieldRow("Regione", regionField),
+                createFieldRow("Provincia", provinceField),
+                createFieldRow("Città", cityField),
+                createFieldRow("Indirizzo", addressField),
+                createFieldRow("Numero civico", streetNumberField),
+                createFieldRow("CAP", zipField),
+                primaryCheck,
+                actions
+        );
+        addressesList.getChildren().add(card);
+        addressEditControls.add(new AddressEditControls(value.id(), countryField, regionField, provinceField, cityField, addressField, streetNumberField, zipField, primaryCheck, card));
+    }
+
+    private List<ContactEditInput> contactInputs() {
+        return contactEditControls.stream()
+                .map(control -> new ContactEditInput(
+                        control.id(),
+                        valueOf(control.descriptionField()),
+                        valuesOf(control.phoneFields()),
+                        valuesOf(control.emailFields())))
+                .toList();
+    }
+
+    private List<AddressEditInput> addressInputs() {
+        return addressEditControls.stream()
+                .map(control -> new AddressEditInput(
+                        control.id(),
+                        valueOf(control.countryField()),
+                        valueOf(control.regionField()),
+                        valueOf(control.provinceField()),
+                        valueOf(control.cityField()),
+                        valueOf(control.addressField()),
+                        valueOf(control.streetNumberField()),
+                        valueOf(control.zipField()),
+                        control.primaryCheck().isSelected()))
+                .toList();
     }
 
     private HBox createFieldRow(String labelText, TextField field) {
@@ -559,8 +680,42 @@ public class SchedaClienteView extends BorderPane {
         return date == null ? "-" : DATE_FORMATTER.format(date);
     }
 
-    private void renderValueList(VBox container, List<ValueItem> values) {
-        renderList(container, values.stream().map(ValueItem::value).toList());
+    private void renderContactList(VBox container, List<ContactItem> values) {
+        renderList(container, values.stream().map(this::formatContact).toList());
+    }
+
+    private void renderAddressList(VBox container, List<AddressItem> values) {
+        renderList(container, values.stream().map(this::formatAddress).toList());
+    }
+
+    private String formatContact(ContactItem contact) {
+        return joinNonBlank(
+                contact.descrizione(),
+                contact.telefoni().isEmpty() ? "" : "Tel: " + joinProfileValues(contact.telefoni()),
+                contact.email().isEmpty() ? "" : "Email: " + joinProfileValues(contact.email())
+        );
+    }
+
+    private String formatAddress(AddressItem address) {
+        return joinNonBlank(
+                address.indirizzo(),
+                address.numeroCivico(),
+                address.cap(),
+                address.citta(),
+                address.provincia(),
+                address.regione(),
+                address.paese()
+        );
+    }
+
+    private String joinNonBlank(String... values) {
+        List<String> parts = new ArrayList<>();
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                parts.add(value.trim());
+            }
+        }
+        return String.join(" · ", parts);
     }
 
     private String joinProfileValues(List<ValueItem> values) {
@@ -643,6 +798,29 @@ public class SchedaClienteView extends BorderPane {
 
     public Button getCancelNoteButton() {
         return cancelNoteButton;
+    }
+
+    private record ContactEditControls(
+            java.util.UUID id,
+            TextField descriptionField,
+            List<TextField> phoneFields,
+            List<TextField> emailFields,
+            VBox container
+    ) {
+    }
+
+    private record AddressEditControls(
+            java.util.UUID id,
+            TextField countryField,
+            TextField regionField,
+            TextField provinceField,
+            TextField cityField,
+            TextField addressField,
+            TextField streetNumberField,
+            TextField zipField,
+            CheckBox primaryCheck,
+            VBox container
+    ) {
     }
 
     private record TimelineEditField(

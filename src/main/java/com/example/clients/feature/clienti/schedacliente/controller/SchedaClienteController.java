@@ -7,6 +7,7 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.view.SchedaClienteView;
 
 import java.util.UUID;
+import javafx.scene.control.Alert;
 
 public class SchedaClienteController {
 
@@ -20,14 +21,18 @@ public class SchedaClienteController {
         this.clientiNav = clientiNav;
         this.service = service;
         configureActions();
-        render(service.loadProfile(clienteId));
+        try {
+            render(service.loadProfile(clienteId));
+        } catch (RuntimeException e) {
+            showError("Caricamento scheda non riuscito", e);
+        }
     }
 
     private void configureActions() {
-        view.getFavoriteButton().setOnAction(event -> render(service.toggleFavorite()));
+        view.getFavoriteButton().setOnAction(event -> runAndRender("Aggiornamento preferito non riuscito", service::toggleFavorite));
         view.getEditProfileButton().setOnAction(event -> openProfileEditor());
-        view.getCancelProfileEditButton().setOnAction(event -> render(service.cancelEdit()));
-        view.getSaveProfileEditButton().setOnAction(event -> render(service.saveEdit(view.collectEditDraft())));
+        view.getCancelProfileEditButton().setOnAction(event -> runAndRender("Annullamento modifica non riuscito", service::cancelEdit));
+        view.getSaveProfileEditButton().setOnAction(event -> runAndRender("Salvataggio scheda non riuscito", () -> service.saveEdit(view.collectEditDraft())));
         view.getNewNoteButton().setOnAction(event -> openNoteEditor());
         view.getNewCallButton().setOnAction(event -> openCallEditor());
         view.getAllFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.ALL));
@@ -59,12 +64,29 @@ public class SchedaClienteController {
     }
 
     private void saveEditorContent() {
-        if (editorMode == EditorMode.CALL) {
-            render(service.addChiamata(view.getNoteTextArea().getText(), view.getNextCallDatePicker().getValue()));
-        } else {
-            render(service.addNota(view.getNoteTextArea().getText()));
-        }
+        runAndRender("Salvataggio interazione non riuscito", () -> {
+            if (editorMode == EditorMode.CALL) {
+                return service.addChiamata(view.getNoteTextArea().getText(), view.getNextCallDatePicker().getValue());
+            }
+            return service.addNota(view.getNoteTextArea().getText());
+        });
         view.hideNoteEditor();
+    }
+
+    private void runAndRender(String errorTitle, ProfileAction action) {
+        try {
+            render(action.run());
+        } catch (RuntimeException e) {
+            showError(errorTitle, e);
+        }
+    }
+
+    private void showError(String title, RuntimeException e) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(title);
+        alert.setContentText(e.getMessage() == null ? "Errore imprevisto." : e.getMessage());
+        alert.showAndWait();
     }
 
     private void render(ClienteProfile profile) {
@@ -81,6 +103,11 @@ public class SchedaClienteController {
 
     public SchedaClienteService getService() {
         return service;
+    }
+
+    @FunctionalInterface
+    private interface ProfileAction {
+        ClienteProfile run();
     }
 
     private enum EditorMode {

@@ -8,6 +8,7 @@ import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
 import com.example.clients.core.database.service.ClientePersistenceService;
+import com.example.clients.core.database.service.CurrentOperatoreService;
 import com.example.clients.feature.clienti.nuovocliente.dto.ContattoClienteInput;
 import com.example.clients.feature.clienti.nuovocliente.dto.EmailClienteInput;
 import com.example.clients.feature.clienti.nuovocliente.dto.IndirizzoClienteInput;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class NuovoClienteService {
 
     private final ClientePersistenceService persistenceService;
+    private final CurrentOperatoreService currentOperatoreService;
     private NuovoClienteDraft lastPreparedDraft;
 
     public NuovoClienteService() {
@@ -33,7 +35,12 @@ public class NuovoClienteService {
     }
 
     public NuovoClienteService(ClientePersistenceService persistenceService) {
+        this(persistenceService, new CurrentOperatoreService());
+    }
+
+    public NuovoClienteService(ClientePersistenceService persistenceService, CurrentOperatoreService currentOperatoreService) {
         this.persistenceService = persistenceService;
+        this.currentOperatoreService = currentOperatoreService;
     }
 
     public NuovoClienteDraft saveCliente(NuovoClienteRequest request) {
@@ -53,7 +60,7 @@ public class NuovoClienteService {
                 clean(request.cliente().partitaIva()),
                 clean(request.cliente().codiceFiscale()),
                 request.cliente().acquisizione(),
-                null,
+                currentOperatoreService.currentOperatoreId(),
                 now,
                 null
         );

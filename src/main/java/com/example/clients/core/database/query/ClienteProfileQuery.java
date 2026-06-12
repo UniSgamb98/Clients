@@ -25,8 +25,8 @@ public interface ClienteProfileQuery {
             List<ValueRecord> telefoni,
             List<ValueRecord> email,
             List<ValueRecord> sitiWeb,
-            List<ValueRecord> indirizzi,
-            List<ValueRecord> contatti,
+            List<AddressRecord> indirizzi,
+            List<ContactRecord> contatti,
             List<TimelineRecord> timeline
     ) {
         public ClienteProfileRecord {
@@ -40,6 +40,26 @@ public interface ClienteProfileQuery {
     }
 
     record ValueRecord(UUID id, String value) {
+    }
+
+    record AddressRecord(
+            UUID id,
+            String paese,
+            String regione,
+            String provincia,
+            String citta,
+            String indirizzo,
+            String numeroCivico,
+            String cap,
+            boolean principale
+    ) {
+    }
+
+    record ContactRecord(UUID id, String descrizione, List<ValueRecord> telefoni, List<ValueRecord> email) {
+        public ContactRecord {
+            telefoni = List.copyOf(telefoni);
+            email = List.copyOf(email);
+        }
     }
 
     record TimelineRecord(
