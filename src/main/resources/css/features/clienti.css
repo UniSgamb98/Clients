@@ -337,3 +337,48 @@
 .client-profile-edit-values-section {
     -fx-padding: 4 0 0 0;
 }
+
+.client-profile-linked-combo {
+    -fx-background-color: #1f1f1f;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.client-profile-linked-combo .text-field {
+    -fx-background-color: #1f1f1f;
+    -fx-text-fill: #ffffff;
+    -fx-prompt-text-fill: #8b8b8b;
+}
+
+.client-profile-linked-combo .arrow-button {
+    -fx-background-color: #2f2f33;
+    -fx-background-radius: 0 8 8 0;
+}
+
+.client-profile-linked-combo .arrow {
+    -fx-background-color: #d4d4d4;
+}
+
+.client-profile-primary-check {
+    -fx-text-fill: #d4d4d4;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 4 0 4 0;
+}
+
+.client-profile-primary-check .box {
+    -fx-background-color: #1f1f1f;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.client-profile-primary-check:selected .box {
+    -fx-background-color: #0e639c;
+    -fx-border-color: #0e639c;
+}
+
+.client-profile-primary-check:selected .mark {
+    -fx-background-color: #ffffff;
+}

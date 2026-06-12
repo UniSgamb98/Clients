@@ -17,6 +17,7 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -368,10 +369,10 @@ public class SchedaClienteView extends BorderPane {
         card.getStyleClass().add("client-profile-timeline-card");
         TextField descriptionField = createTextField(value.descrizione(), "Nome referente / contatto");
 
-        List<TextField> phoneFields = new ArrayList<>();
-        List<TextField> emailFields = new ArrayList<>();
-        VBox phoneBox = createEditableValuesSection("Telefoni contatto", phoneFields, value.telefoni(), "Telefono contatto");
-        VBox emailBox = createEditableValuesSection("Email contatto", emailFields, value.email(), "Email contatto");
+        List<ComboBox<String>> phoneFields = new ArrayList<>();
+        List<ComboBox<String>> emailFields = new ArrayList<>();
+        VBox phoneBox = createLinkedEditableValuesSection("Telefoni contatto", phoneFields, value.telefoni(), "Telefono contatto", linkedOptions(phoneEditFields, value.telefoni()));
+        VBox emailBox = createLinkedEditableValuesSection("Email contatto", emailFields, value.email(), "Email contatto", linkedOptions(emailEditFields, value.email()));
 
         HBox actions = new HBox(8);
         Button addButton = new Button("+");
@@ -415,7 +416,13 @@ public class SchedaClienteView extends BorderPane {
         TextField streetNumberField = createTextField(value.numeroCivico(), "Numero civico");
         TextField zipField = createTextField(value.cap(), "CAP");
         CheckBox primaryCheck = new CheckBox("Indirizzo principale");
+        primaryCheck.getStyleClass().add("client-profile-primary-check");
         primaryCheck.setSelected(value.principale());
+        primaryCheck.selectedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                unsetOtherPrimaryChecks(primaryCheck);
+            }
+        });
 
         HBox actions = new HBox(8);
         Button addButton = new Button("+");
@@ -445,6 +452,9 @@ public class SchedaClienteView extends BorderPane {
         );
         addressesList.getChildren().add(card);
         addressEditControls.add(new AddressEditControls(value.id(), countryField, regionField, provinceField, cityField, addressField, streetNumberField, zipField, primaryCheck, card));
+        if (primaryCheck.isSelected()) {
+            unsetOtherPrimaryChecks(primaryCheck);
+        }
     }
 
     private List<ContactEditInput> contactInputs() {
@@ -452,8 +462,8 @@ public class SchedaClienteView extends BorderPane {
                 .map(control -> new ContactEditInput(
                         control.id(),
                         valueOf(control.descriptionField()),
-                        valuesOf(control.phoneFields()),
-                        valuesOf(control.emailFields())))
+                        linkedValuesOf(control.phoneFields(), phoneEditFields),
+                        linkedValuesOf(control.emailFields(), emailEditFields)))
                 .toList();
     }
 
@@ -470,6 +480,69 @@ public class SchedaClienteView extends BorderPane {
                         valueOf(control.zipField()),
                         control.primaryCheck().isSelected()))
                 .toList();
+    }
+
+    private VBox createLinkedEditableValuesSection(String title, List<ComboBox<String>> target, List<ValueEditInput> values, String prompt, List<String> options) {
+        VBox section = new VBox(8);
+        section.getStyleClass().add("client-profile-edit-values-section");
+        section.getChildren().add(createEditSectionLabel(title));
+        addLinkedEditableValues(section, target, values, prompt, options);
+        return section;
+    }
+
+    private void addLinkedEditableValues(VBox container, List<ComboBox<String>> target, List<ValueEditInput> values, String prompt, List<String> options) {
+        target.clear();
+        List<ValueEditInput> safeValues = values.isEmpty() ? List.of(new ValueEditInput(null, "")) : values;
+        safeValues.forEach(value -> addLinkedEditableValueRow(container, target, value.id(), value.value(), prompt, options));
+    }
+
+    private void addLinkedEditableValueRow(VBox container, List<ComboBox<String>> target, java.util.UUID id, String value, String prompt, List<String> options) {
+        ComboBox<String> field = new ComboBox<>();
+        field.setEditable(true);
+        field.setPromptText(prompt);
+        field.getStyleClass().add("client-profile-linked-combo");
+        field.getItems().setAll(options);
+        field.getEditor().setText(emptyFallbackForEdit(value));
+        field.setUserData(id);
+        target.add(field);
+
+        HBox row = new HBox(8);
+        row.getStyleClass().add("client-profile-edit-row");
+        Button addButton = new Button("+");
+        addButton.getStyleClass().add("client-profile-small-filter-button");
+        Button removeButton = new Button("-");
+        removeButton.getStyleClass().add("client-profile-small-filter-button");
+        addButton.setOnAction(event -> addLinkedEditableValueRow(container, target, null, "", prompt, options));
+        removeButton.setOnAction(event -> {
+            target.remove(field);
+            container.getChildren().remove(row);
+            if (target.isEmpty()) {
+                addLinkedEditableValueRow(container, target, null, "", prompt, options);
+            }
+        });
+        HBox.setHgrow(field, Priority.ALWAYS);
+        row.getChildren().addAll(field, addButton, removeButton);
+        container.getChildren().add(row);
+    }
+
+    private List<String> linkedOptions(List<TextField> sourceFields, List<ValueEditInput> selectedValues) {
+        List<String> options = new ArrayList<>();
+        sourceFields.stream()
+                .map(this::valueOf)
+                .filter(value -> !value.isBlank())
+                .forEach(options::add);
+        selectedValues.stream()
+                .map(ValueEditInput::value)
+                .filter(value -> value != null && !value.isBlank() && !options.contains(value))
+                .forEach(options::add);
+        return options;
+    }
+
+    private void unsetOtherPrimaryChecks(CheckBox selectedCheck) {
+        addressEditControls.stream()
+                .map(AddressEditControls::primaryCheck)
+                .filter(checkBox -> checkBox != selectedCheck)
+                .forEach(checkBox -> checkBox.setSelected(false));
     }
 
     private HBox createFieldRow(String labelText, TextField field) {
@@ -740,6 +813,33 @@ public class SchedaClienteView extends BorderPane {
                 .toList();
     }
 
+    private List<ValueEditInput> linkedValuesOf(List<ComboBox<String>> fields, List<TextField> sourceFields) {
+        return fields.stream()
+                .map(field -> new ValueEditInput(idForLinkedValue(field, sourceFields), comboValue(field)))
+                .toList();
+    }
+
+    private java.util.UUID idForLinkedValue(ComboBox<String> field, List<TextField> sourceFields) {
+        String value = comboValue(field);
+        if (!value.isBlank()) {
+            for (TextField sourceField : sourceFields) {
+                if (value.equals(valueOf(sourceField))) {
+                    return (java.util.UUID) sourceField.getUserData();
+                }
+            }
+        }
+        return (java.util.UUID) field.getUserData();
+    }
+
+    private String comboValue(ComboBox<String> comboBox) {
+        String editorText = comboBox.getEditor().getText();
+        if (editorText != null && !editorText.isBlank()) {
+            return editorText.trim();
+        }
+        String value = comboBox.getValue();
+        return value == null ? "" : value.trim();
+    }
+
     public AppHeader getHeader() {
         return header;
     }
@@ -803,8 +903,8 @@ public class SchedaClienteView extends BorderPane {
     private record ContactEditControls(
             java.util.UUID id,
             TextField descriptionField,
-            List<TextField> phoneFields,
-            List<TextField> emailFields,
+            List<ComboBox<String>> phoneFields,
+            List<ComboBox<String>> emailFields,
             VBox container
     ) {
     }
