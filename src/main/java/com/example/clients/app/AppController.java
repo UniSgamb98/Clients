@@ -1,6 +1,5 @@
 package com.example.clients.app;
 
-import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.controller.ClientiController;
@@ -73,7 +72,7 @@ public class AppController implements DashboardNav, ClientiNav {
         NuovoClienteView view = new NuovoClienteView();
         configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
-        new NuovoClienteController(view, this, new NuovoClienteService(new ClientePersistenceService(app.database)));
+        new NuovoClienteController(view, this, new NuovoClienteService(app.database));
 
         stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Nuovo cliente");

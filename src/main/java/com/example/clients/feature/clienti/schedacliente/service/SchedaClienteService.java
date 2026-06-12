@@ -9,12 +9,15 @@ import com.example.clients.core.database.model.Interazione;
 import com.example.clients.core.database.model.NotaCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
+import com.example.clients.core.database.query.ClienteLookupQuery;
+import com.example.clients.core.database.query.ClienteLookupQuery.LookupValues;
 import com.example.clients.core.database.query.ClienteProfileQuery;
 import com.example.clients.core.database.query.ClienteProfileQuery.AddressRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ClienteProfileRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ContactRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.TimelineRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ValueRecord;
+import com.example.clients.core.database.query.derby.DerbyClienteLookupQuery;
 import com.example.clients.core.database.query.derby.DerbyClienteProfileQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
@@ -29,6 +32,7 @@ import java.util.UUID;
 public class SchedaClienteService {
 
     private final ClienteProfileQuery profileQuery;
+    private final ClienteLookupQuery lookupQuery;
     private final ClientePersistenceService persistenceService;
     private final CurrentOperatoreService currentOperatoreService;
     private ClienteProfile currentProfile;
@@ -41,7 +45,7 @@ public class SchedaClienteService {
     }
 
     public SchedaClienteService(Database database) {
-        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService());
+        this(new DerbyClienteProfileQuery(database), new DerbyClienteLookupQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService());
     }
 
     public SchedaClienteService(
@@ -49,9 +53,23 @@ public class SchedaClienteService {
             ClientePersistenceService persistenceService,
             CurrentOperatoreService currentOperatoreService
     ) {
+        this(profileQuery, null, persistenceService, currentOperatoreService);
+    }
+
+    public SchedaClienteService(
+            ClienteProfileQuery profileQuery,
+            ClienteLookupQuery lookupQuery,
+            ClientePersistenceService persistenceService,
+            CurrentOperatoreService currentOperatoreService
+    ) {
         this.profileQuery = profileQuery;
+        this.lookupQuery = lookupQuery;
         this.persistenceService = persistenceService;
         this.currentOperatoreService = currentOperatoreService;
+    }
+
+    public LookupValues lookupValues() {
+        return lookupQuery == null ? new LookupValues(List.of(), List.of(), List.of(), List.of()) : lookupQuery.findValues();
     }
 
     public ClienteProfile loadProfile(UUID clienteId) {
@@ -160,7 +178,7 @@ public class SchedaClienteService {
     public EditProfileDraft startEdit() {
         ensureProfileLoaded();
         currentFilter = TimelineFilter.ALL;
-        editingDraft = EditProfileDraft.from(currentProfile);
+        editingDraft = EditProfileDraft.from(currentProfile, lookupValues());
         return editingDraft;
     }
 
@@ -500,7 +518,11 @@ public class SchedaClienteService {
             List<ValueEditInput> sitiWeb,
             List<AddressEditInput> indirizzi,
             List<ContactEditInput> contatti,
-            List<InteractionEditInput> interazioni
+            List<InteractionEditInput> interazioni,
+            List<String> tipiClienteOptions,
+            List<String> statiTrattativaOptions,
+            List<String> telefonoOptions,
+            List<String> emailOptions
     ) {
         public EditProfileDraft {
             telefoni = List.copyOf(telefoni);
@@ -509,6 +531,10 @@ public class SchedaClienteService {
             indirizzi = List.copyOf(indirizzi);
             contatti = List.copyOf(contatti);
             interazioni = List.copyOf(interazioni);
+            tipiClienteOptions = List.copyOf(tipiClienteOptions);
+            statiTrattativaOptions = List.copyOf(statiTrattativaOptions);
+            telefonoOptions = List.copyOf(telefonoOptions);
+            emailOptions = List.copyOf(emailOptions);
         }
 
 
@@ -539,7 +565,7 @@ public class SchedaClienteService {
                     .toList();
         }
 
-        private static EditProfileDraft from(ClienteProfile profile) {
+        private static EditProfileDraft from(ClienteProfile profile, LookupValues lookupValues) {
             return new EditProfileDraft(
                     profile.ragioneSociale(),
                     profile.tipoCliente(),
@@ -554,7 +580,11 @@ public class SchedaClienteService {
                     toContactEditInputs(profile.contatti()),
                     profile.interazioni().stream()
                             .map(InteractionEditInput::from)
-                            .toList()
+                            .toList(),
+                    lookupValues.tipiCliente(),
+                    lookupValues.statiTrattativa(),
+                    lookupValues.telefoni(),
+                    lookupValues.email()
             );
         }
     }

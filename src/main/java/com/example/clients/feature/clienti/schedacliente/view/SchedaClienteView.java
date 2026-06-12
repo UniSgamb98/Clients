@@ -32,6 +32,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 public class SchedaClienteView extends BorderPane {
 
@@ -68,9 +70,11 @@ public class SchedaClienteView extends BorderPane {
     private final List<ContactEditControls> contactEditControls = new ArrayList<>();
     private final List<AddressEditControls> addressEditControls = new ArrayList<>();
     private final List<TimelineEditField> timelineEditFields = new ArrayList<>();
+    private List<String> phoneLookupOptions = List.of();
+    private List<String> emailLookupOptions = List.of();
     private TextField ragioneSocialeEditField;
-    private TextField tipoClienteEditField;
-    private TextField statoTrattativaEditField;
+    private ComboBox<String> tipoClienteEditField;
+    private ComboBox<String> statoTrattativaEditField;
     private TextField partitaIvaEditField;
     private TextField codiceFiscaleEditField;
     private DatePicker acquisizioneEditPicker;
@@ -260,6 +264,8 @@ public class SchedaClienteView extends BorderPane {
         lastInteractionLabel.setText("Ultima chiamata " + lastEditableCallText(draft.interazioni()));
         nextInteractionLabel.setText("Prossima chiamata " + nextEditableCallText(draft.interazioni()));
         setActiveTimelineFilter(TimelineFilter.ALL);
+        phoneLookupOptions = draft.telefonoOptions();
+        emailLookupOptions = draft.emailOptions();
         renderCustomerDataEditor(draft);
         renderEditableContacts(draft.contatti());
         renderEditableAddresses(draft.indirizzi());
@@ -269,8 +275,8 @@ public class SchedaClienteView extends BorderPane {
     public EditProfileDraft collectEditDraft() {
         return new EditProfileDraft(
                 valueOf(ragioneSocialeEditField),
-                valueOf(tipoClienteEditField),
-                valueOf(statoTrattativaEditField),
+                comboValue(tipoClienteEditField),
+                comboValue(statoTrattativaEditField),
                 valueOf(partitaIvaEditField),
                 valueOf(codiceFiscaleEditField),
                 acquisizioneEditPicker.getValue(),
@@ -287,15 +293,19 @@ public class SchedaClienteView extends BorderPane {
                                 field.type(),
                                 field.nextCallPicker() == null ? field.prossimoContatto() : field.nextCallPicker().getValue(),
                                 field.textArea().getText()))
-                        .toList()
+                        .toList(),
+                List.of(),
+                List.of(),
+                phoneLookupOptions,
+                emailLookupOptions
         );
     }
 
     private void renderCustomerDataEditor(EditProfileDraft draft) {
         customerDataList.getChildren().clear();
         ragioneSocialeEditField = createTextField(draft.ragioneSociale(), "Ragione sociale");
-        tipoClienteEditField = createTextField(draft.tipoCliente(), "Tipo cliente");
-        statoTrattativaEditField = createTextField(draft.statoTrattativa(), "Stato trattativa");
+        tipoClienteEditField = createComboField(draft.tipoCliente(), "Tipo cliente", draft.tipiClienteOptions());
+        statoTrattativaEditField = createComboField(draft.statoTrattativa(), "Stato trattativa", draft.statiTrattativaOptions());
         partitaIvaEditField = createTextField(draft.partitaIva(), "Partita IVA");
         codiceFiscaleEditField = createTextField(draft.codiceFiscale(), "Codice fiscale");
         acquisizioneEditPicker = new DatePicker(draft.acquisizione());
@@ -303,8 +313,8 @@ public class SchedaClienteView extends BorderPane {
 
         customerDataList.getChildren().addAll(
                 createFieldRow("Ragione sociale", ragioneSocialeEditField),
-                createFieldRow("Tipo cliente", tipoClienteEditField),
-                createFieldRow("Stato trattativa", statoTrattativaEditField),
+                createComboRow("Tipo cliente", tipoClienteEditField),
+                createComboRow("Stato trattativa", statoTrattativaEditField),
                 createFieldRow("Partita IVA", partitaIvaEditField),
                 createFieldRow("Codice fiscale", codiceFiscaleEditField),
                 createDateRow("Acquisizione", acquisizioneEditPicker),
@@ -337,6 +347,19 @@ public class SchedaClienteView extends BorderPane {
     private void addEditableValueRow(VBox container, List<TextField> target, java.util.UUID id, String value, String prompt) {
         TextField field = createTextField(value, prompt);
         field.setUserData(id);
+        if (target == phoneEditFields) {
+            configureTextFieldAutocomplete(field, phoneLookupOptions);
+            field.textProperty().addListener((observable, oldValue, newValue) -> {
+                updateLinkedComboValues(oldValue, newValue, true);
+                refreshContactLinkedOptions();
+            });
+        } else if (target == emailEditFields) {
+            configureTextFieldAutocomplete(field, emailLookupOptions);
+            field.textProperty().addListener((observable, oldValue, newValue) -> {
+                updateLinkedComboValues(oldValue, newValue, false);
+                refreshContactLinkedOptions();
+            });
+        }
         target.add(field);
         HBox row = new HBox(8);
         row.getStyleClass().add("client-profile-edit-row");
@@ -344,13 +367,17 @@ public class SchedaClienteView extends BorderPane {
         addButton.getStyleClass().add("client-profile-small-filter-button");
         Button removeButton = new Button("-");
         removeButton.getStyleClass().add("client-profile-small-filter-button");
-        addButton.setOnAction(event -> addEditableValueRow(container, target, null, "", prompt));
+        addButton.setOnAction(event -> {
+            addEditableValueRow(container, target, null, "", prompt);
+            refreshContactLinkedOptions();
+        });
         removeButton.setOnAction(event -> {
             target.remove(field);
             container.getChildren().remove(row);
             if (target.isEmpty()) {
                 addEditableValueRow(container, target, null, "", prompt);
             }
+            refreshContactLinkedOptions();
         });
         HBox.setHgrow(field, Priority.ALWAYS);
         row.getChildren().addAll(field, addButton, removeButton);
@@ -386,12 +413,14 @@ public class SchedaClienteView extends BorderPane {
             if (contactEditControls.isEmpty()) {
                 addContactEditor(new ContactEditInput(null, "", List.of(), List.of()));
             }
+            refreshContactLinkedOptions();
         });
         actions.getChildren().addAll(addButton, removeButton);
 
         card.getChildren().addAll(createFieldRow("Contatto", descriptionField), phoneBox, emailBox, actions);
         contactsList.getChildren().add(card);
         contactEditControls.add(new ContactEditControls(value.id(), descriptionField, phoneFields, emailFields, card));
+        refreshContactLinkedOptions();
     }
 
     private void renderEditableAddresses(List<AddressEditInput> values) {
@@ -503,6 +532,7 @@ public class SchedaClienteView extends BorderPane {
         field.getStyleClass().add("client-profile-linked-combo");
         field.getItems().setAll(options);
         field.getEditor().setText(emptyFallbackForEdit(value));
+        configureComboAutocomplete(field, options);
         field.setUserData(id);
         target.add(field);
 
@@ -512,13 +542,17 @@ public class SchedaClienteView extends BorderPane {
         addButton.getStyleClass().add("client-profile-small-filter-button");
         Button removeButton = new Button("-");
         removeButton.getStyleClass().add("client-profile-small-filter-button");
-        addButton.setOnAction(event -> addLinkedEditableValueRow(container, target, null, "", prompt, options));
+        addButton.setOnAction(event -> {
+            addLinkedEditableValueRow(container, target, null, "", prompt, options);
+            refreshContactLinkedOptions();
+        });
         removeButton.setOnAction(event -> {
             target.remove(field);
             container.getChildren().remove(row);
             if (target.isEmpty()) {
                 addLinkedEditableValueRow(container, target, null, "", prompt, options);
             }
+            refreshContactLinkedOptions();
         });
         HBox.setHgrow(field, Priority.ALWAYS);
         row.getChildren().addAll(field, addButton, removeButton);
@@ -526,13 +560,61 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private List<String> linkedOptions(List<TextField> sourceFields, List<ValueEditInput> selectedValues) {
+        return linkedOptionsFromValues(sourceFields, selectedValues.stream().map(ValueEditInput::value).toList());
+    }
+
+    private void updateLinkedComboValues(String oldValue, String newValue, boolean phoneValue) {
+        if (oldValue == null || oldValue.isBlank()) {
+            return;
+        }
+        String cleanOldValue = oldValue.trim();
+        String cleanNewValue = newValue == null ? "" : newValue.trim();
+        contactEditControls.stream()
+                .flatMap(control -> (phoneValue ? control.phoneFields() : control.emailFields()).stream())
+                .filter(field -> comboValue(field).equals(cleanOldValue))
+                .forEach(field -> field.getEditor().setText(cleanNewValue));
+    }
+
+    private void refreshContactLinkedOptions() {
+        if (contactEditControls.isEmpty()) {
+            return;
+        }
+
+        List<String> phoneOptions = linkedOptionsFromValues(phoneEditFields, currentComboValues(true));
+        List<String> emailOptions = linkedOptionsFromValues(emailEditFields, currentComboValues(false));
+        contactEditControls.forEach(control -> {
+            control.phoneFields().forEach(field -> updateComboOptions(field, phoneOptions));
+            control.emailFields().forEach(field -> updateComboOptions(field, emailOptions));
+        });
+    }
+
+    private List<String> currentComboValues(boolean phoneValues) {
+        return contactEditControls.stream()
+                .flatMap(control -> (phoneValues ? control.phoneFields() : control.emailFields()).stream())
+                .map(this::comboValue)
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    private void updateComboOptions(ComboBox<String> field, List<String> options) {
+        String currentValue = comboValue(field);
+        List<String> updatedOptions = new ArrayList<>(options);
+        if (!currentValue.isBlank() && !updatedOptions.contains(currentValue)) {
+            updatedOptions.add(currentValue);
+        }
+        field.getProperties().put("autocompleteOptions", List.copyOf(updatedOptions));
+        field.getItems().setAll(updatedOptions);
+        field.getEditor().setText(currentValue);
+    }
+
+    private List<String> linkedOptionsFromValues(List<TextField> sourceFields, List<String> selectedValues) {
         List<String> options = new ArrayList<>();
         sourceFields.stream()
                 .map(this::valueOf)
-                .filter(value -> !value.isBlank())
+                .filter(value -> !value.isBlank() && !options.contains(value))
                 .forEach(options::add);
         selectedValues.stream()
-                .map(ValueEditInput::value)
                 .filter(value -> value != null && !value.isBlank() && !options.contains(value))
                 .forEach(options::add);
         return options;
@@ -561,6 +643,26 @@ public class SchedaClienteView extends BorderPane {
         HBox.setHgrow(picker, Priority.ALWAYS);
         row.getChildren().addAll(label, picker);
         return row;
+    }
+
+    private HBox createComboRow(String labelText, ComboBox<String> field) {
+        HBox row = new HBox(8);
+        row.getStyleClass().add("client-profile-edit-row");
+        Label label = createEditLabel(labelText);
+        HBox.setHgrow(field, Priority.ALWAYS);
+        row.getChildren().addAll(label, field);
+        return row;
+    }
+
+    private ComboBox<String> createComboField(String value, String prompt, List<String> options) {
+        ComboBox<String> comboBox = new ComboBox<>();
+        comboBox.setEditable(true);
+        comboBox.setPromptText(prompt);
+        comboBox.getStyleClass().add("client-profile-linked-combo");
+        comboBox.getItems().setAll(options);
+        comboBox.getEditor().setText(emptyFallbackForEdit(value));
+        configureComboAutocomplete(comboBox, options);
+        return comboBox;
     }
 
     private TextField createTextField(String value, String prompt) {
@@ -625,6 +727,7 @@ public class SchedaClienteView extends BorderPane {
         allFilterButton.setDisable(editMode);
         notesFilterButton.setDisable(editMode);
         callsFilterButton.setDisable(editMode);
+        favoriteButton.setDisable(editMode);
     }
 
     public void setFavorite(boolean favorite) {
@@ -838,6 +941,64 @@ public class SchedaClienteView extends BorderPane {
         }
         String value = comboBox.getValue();
         return value == null ? "" : value.trim();
+    }
+
+    private void configureTextFieldAutocomplete(TextField field, List<String> options) {
+        final boolean[] updating = {false};
+        field.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (updating[0] || newValue == null || newValue.isBlank()) {
+                return;
+            }
+            firstMatch(newValue, options).ifPresent(match -> {
+                if (!match.equals(newValue)) {
+                    updating[0] = true;
+                    field.setText(match);
+                    field.positionCaret(newValue.length());
+                    field.selectRange(newValue.length(), match.length());
+                    updating[0] = false;
+                }
+            });
+        });
+    }
+
+    private void configureComboAutocomplete(ComboBox<String> comboBox, List<String> options) {
+        comboBox.getProperties().put("autocompleteOptions", List.copyOf(options));
+        final boolean[] updating = {false};
+        comboBox.getEditor().textProperty().addListener((observable, oldValue, newValue) -> {
+            if (updating[0]) {
+                return;
+            }
+            List<String> currentOptions = comboAutocompleteOptions(comboBox);
+            if (newValue == null || newValue.isBlank()) {
+                comboBox.getItems().setAll(currentOptions);
+                return;
+            }
+            comboBox.getItems().setAll(currentOptions.stream()
+                    .filter(option -> option.toLowerCase(Locale.ROOT).startsWith(newValue.toLowerCase(Locale.ROOT)))
+                    .toList());
+            firstMatch(newValue, currentOptions).ifPresent(match -> {
+                if (!match.equals(newValue)) {
+                    updating[0] = true;
+                    comboBox.getEditor().setText(match);
+                    comboBox.getEditor().positionCaret(newValue.length());
+                    comboBox.getEditor().selectRange(newValue.length(), match.length());
+                    updating[0] = false;
+                }
+            });
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> comboAutocompleteOptions(ComboBox<String> comboBox) {
+        Object options = comboBox.getProperties().get("autocompleteOptions");
+        return options instanceof List<?> ? (List<String>) options : List.copyOf(comboBox.getItems());
+    }
+
+    private Optional<String> firstMatch(String value, List<String> options) {
+        String lowerValue = value.toLowerCase(Locale.ROOT);
+        return options.stream()
+                .filter(option -> option != null && option.toLowerCase(Locale.ROOT).startsWith(lowerValue))
+                .findFirst();
     }
 
     public AppHeader getHeader() {
