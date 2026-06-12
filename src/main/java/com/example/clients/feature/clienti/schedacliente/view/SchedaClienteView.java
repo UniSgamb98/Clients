@@ -560,7 +560,7 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private List<String> linkedOptions(List<TextField> sourceFields, List<ValueEditInput> selectedValues) {
-        return linkedOptions(sourceFields, selectedValues.stream().map(ValueEditInput::value).toList());
+        return linkedOptionsFromValues(sourceFields, selectedValues.stream().map(ValueEditInput::value).toList());
     }
 
     private void updateLinkedComboValues(String oldValue, String newValue, boolean phoneValue) {
@@ -580,8 +580,8 @@ public class SchedaClienteView extends BorderPane {
             return;
         }
 
-        List<String> phoneOptions = linkedOptions(phoneEditFields, currentComboValues(true));
-        List<String> emailOptions = linkedOptions(emailEditFields, currentComboValues(false));
+        List<String> phoneOptions = linkedOptionsFromValues(phoneEditFields, currentComboValues(true));
+        List<String> emailOptions = linkedOptionsFromValues(emailEditFields, currentComboValues(false));
         contactEditControls.forEach(control -> {
             control.phoneFields().forEach(field -> updateComboOptions(field, phoneOptions));
             control.emailFields().forEach(field -> updateComboOptions(field, emailOptions));
@@ -608,7 +608,7 @@ public class SchedaClienteView extends BorderPane {
         field.getEditor().setText(currentValue);
     }
 
-    private List<String> linkedOptions(List<TextField> sourceFields, List<String> selectedValues) {
+    private List<String> linkedOptionsFromValues(List<TextField> sourceFields, List<String> selectedValues) {
         List<String> options = new ArrayList<>();
         sourceFields.stream()
                 .map(this::valueOf)
