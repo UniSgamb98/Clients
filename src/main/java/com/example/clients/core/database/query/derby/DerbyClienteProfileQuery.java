@@ -3,6 +3,7 @@ package com.example.clients.core.database.query.derby;
 import com.example.clients.core.database.Database;
 import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.core.database.query.ClienteProfileQuery;
+import com.example.clients.core.database.query.ClienteProfileQuery.ValueRecord;
 
 import java.sql.Clob;
 import java.sql.Date;
@@ -81,8 +82,8 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
         }
     }
 
-    private List<String> findSimpleValues(String tableName, UUID clienteId, String extraCondition) throws SQLException {
-        String sql = "SELECT DESCRIZIONE FROM " + tableName + " WHERE CLIENTE_ID = ?";
+    private List<ValueRecord> findSimpleValues(String tableName, UUID clienteId, String extraCondition) throws SQLException {
+        String sql = "SELECT ID, DESCRIZIONE FROM " + tableName + " WHERE CLIENTE_ID = ?";
         if (extraCondition != null && !extraCondition.isBlank()) {
             sql += " AND " + extraCondition;
         }
@@ -91,24 +92,24 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
             try (ResultSet resultSet = statement.executeQuery()) {
-                List<String> values = new ArrayList<>();
+                List<ValueRecord> values = new ArrayList<>();
                 while (resultSet.next()) {
-                    addIfPresent(values, resultSet.getString("DESCRIZIONE"));
+                    addIfPresent(values, getUuid(resultSet, "ID"), resultSet.getString("DESCRIZIONE"));
                 }
                 return values;
             }
         }
     }
 
-    private List<String> findIndirizzi(UUID clienteId) throws SQLException {
-        String sql = "SELECT PAESE, REGIONE, PROVINCIA, CITTA, INDIRIZZO, NUMERO_CIVICO, CAP "
+    private List<ValueRecord> findIndirizzi(UUID clienteId) throws SQLException {
+        String sql = "SELECT ID, PAESE, REGIONE, PROVINCIA, CITTA, INDIRIZZO, NUMERO_CIVICO, CAP "
                 + "FROM INDIRIZZI_CLIENTE WHERE CLIENTE_ID = ? ORDER BY PRINCIPALE DESC, ID";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
             try (ResultSet resultSet = statement.executeQuery()) {
-                List<String> indirizzi = new ArrayList<>();
+                List<ValueRecord> indirizzi = new ArrayList<>();
                 while (resultSet.next()) {
-                    addIfPresent(indirizzi, joinNonBlank(
+                    addIfPresent(indirizzi, getUuid(resultSet, "ID"), joinNonBlank(
                             resultSet.getString("INDIRIZZO"),
                             resultSet.getString("NUMERO_CIVICO"),
                             resultSet.getString("CAP"),
@@ -123,12 +124,12 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
         }
     }
 
-    private List<String> findContatti(UUID clienteId) throws SQLException {
+    private List<ValueRecord> findContatti(UUID clienteId) throws SQLException {
         String sql = "SELECT ID, DESCRIZIONE FROM CONTATTI_CLIENTE WHERE CLIENTE_ID = ? ORDER BY ID";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
             try (ResultSet resultSet = statement.executeQuery()) {
-                List<String> contatti = new ArrayList<>();
+                List<ValueRecord> contatti = new ArrayList<>();
                 while (resultSet.next()) {
                     UUID contattoId = getUuid(resultSet, "ID");
                     String contatto = joinNonBlank(
@@ -136,7 +137,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
                             firstLinkedValue("TELEFONI_CLIENTE", contattoId),
                             firstLinkedValue("EMAIL_CLIENTE", contattoId)
                     );
-                    addIfPresent(contatti, contatto);
+                    addIfPresent(contatti, contattoId, contatto);
                 }
                 return contatti;
             }
@@ -235,10 +236,10 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
         return clob.getSubString(1, Math.toIntExact(length));
     }
 
-    private void addIfPresent(List<String> values, String value) {
+    private void addIfPresent(List<ValueRecord> values, UUID id, String value) {
         String cleanValue = valueOrEmpty(value).trim();
         if (!cleanValue.isBlank()) {
-            values.add(cleanValue);
+            values.add(new ValueRecord(id, cleanValue));
         }
     }
 

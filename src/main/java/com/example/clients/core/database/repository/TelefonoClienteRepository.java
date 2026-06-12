@@ -8,5 +8,11 @@ import java.util.UUID;
 public interface TelefonoClienteRepository {
     void insertAll(List<TelefonoCliente> telefoni);
 
+    void insert(TelefonoCliente telefono);
+
+    void update(TelefonoCliente telefono);
+
+    void deleteById(UUID id);
+
     List<TelefonoCliente> findByClienteId(UUID clienteId);
 }

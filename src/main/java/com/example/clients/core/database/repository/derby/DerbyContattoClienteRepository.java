@@ -33,6 +33,35 @@ public final class DerbyContattoClienteRepository extends DerbyRepositorySupport
         }
     }
 
+
+    @Override
+    public void insert(ContattoCliente contatto) {
+        insertAll(List.of(contatto));
+    }
+
+    @Override
+    public void update(ContattoCliente contatto) {
+        String sql = "UPDATE CONTATTI_CLIENTE SET DESCRIZIONE = ? WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, contatto.descrizione());
+            setUuid(statement, 2, contatto.id());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw repositoryException("Errore aggiornamento contatto cliente.", e);
+        }
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        String sql = "DELETE FROM CONTATTI_CLIENTE WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            setUuid(statement, 1, id);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw repositoryException("Errore eliminazione contatto cliente.", e);
+        }
+    }
+
     @Override
     public List<ContattoCliente> findByClienteId(UUID clienteId) {
         String sql = "SELECT * FROM CONTATTI_CLIENTE WHERE CLIENTE_ID = ?";

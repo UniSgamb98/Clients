@@ -34,6 +34,36 @@ public final class DerbyEmailClienteRepository extends DerbyRepositorySupport im
         }
     }
 
+
+    @Override
+    public void insert(EmailCliente email) {
+        insertAll(List.of(email));
+    }
+
+    @Override
+    public void update(EmailCliente email) {
+        String sql = "UPDATE EMAIL_CLIENTE SET CONTATTO_ID = ?, DESCRIZIONE = ? WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            setUuid(statement, 1, email.contattoId());
+            statement.setString(2, email.descrizione());
+            setUuid(statement, 3, email.id());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw repositoryException("Errore aggiornamento email cliente.", e);
+        }
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        String sql = "DELETE FROM EMAIL_CLIENTE WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            setUuid(statement, 1, id);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw repositoryException("Errore eliminazione email cliente.", e);
+        }
+    }
+
     @Override
     public List<EmailCliente> findByClienteId(UUID clienteId) {
         String sql = "SELECT * FROM EMAIL_CLIENTE WHERE CLIENTE_ID = ?";

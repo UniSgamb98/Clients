@@ -8,5 +8,11 @@ import java.util.UUID;
 public interface SitoWebClienteRepository {
     void insertAll(List<SitoWebCliente> sitiWeb);
 
+    void insert(SitoWebCliente sitoWeb);
+
+    void update(SitoWebCliente sitoWeb);
+
+    void deleteById(UUID id);
+
     List<SitoWebCliente> findByClienteId(UUID clienteId);
 }

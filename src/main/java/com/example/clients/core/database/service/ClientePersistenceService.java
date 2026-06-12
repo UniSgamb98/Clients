@@ -2,8 +2,14 @@ package com.example.clients.core.database.service;
 
 import com.example.clients.core.database.Database;
 import com.example.clients.core.database.SchemaInitializer;
+import com.example.clients.core.database.model.Cliente;
+import com.example.clients.core.database.model.ContattoCliente;
+import com.example.clients.core.database.model.EmailCliente;
+import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.Interazione;
 import com.example.clients.core.database.model.NotaCliente;
+import com.example.clients.core.database.model.SitoWebCliente;
+import com.example.clients.core.database.model.TelefonoCliente;
 import com.example.clients.core.database.repository.ClientePreferitoRepository;
 import com.example.clients.core.database.repository.ClienteRepository;
 import com.example.clients.core.database.repository.ContattoClienteRepository;
@@ -26,7 +32,13 @@ import com.example.clients.core.database.model.ClienteAggregate;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ClientePersistenceService {
 
@@ -110,6 +122,103 @@ public class ClientePersistenceService {
             throw new RuntimeException("Errore salvataggio nuovo cliente.", e);
         } finally {
             restoreAutoCommit(connection, previousAutoCommit);
+        }
+    }
+
+
+    public void updateClienteProfile(
+            Cliente cliente,
+            List<IndirizzoCliente> indirizzi,
+            List<SitoWebCliente> sitiWeb,
+            List<ContattoCliente> contatti,
+            List<TelefonoCliente> telefoni,
+            List<EmailCliente> email,
+            List<NotaCliente> note,
+            List<Interazione> interazioni
+    ) {
+        schemaInitializer.initialize();
+
+        Connection connection = database.getConnection();
+        boolean previousAutoCommit = true;
+        try {
+            previousAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+
+            clienteRepository.update(cliente);
+            syncIndirizzi(cliente.id(), indirizzi);
+            syncSitiWeb(cliente.id(), sitiWeb);
+            syncContatti(cliente.id(), contatti);
+            syncTelefoni(cliente.id(), telefoni);
+            syncEmail(cliente.id(), email);
+            for (NotaCliente nota : note) {
+                notaRepository.update(nota);
+            }
+            for (Interazione interazione : interazioni) {
+                interazioneRepository.update(interazione);
+            }
+
+            connection.commit();
+        } catch (RuntimeException | SQLException e) {
+            rollback(connection);
+            throw new RuntimeException("Errore aggiornamento scheda cliente.", e);
+        } finally {
+            restoreAutoCommit(connection, previousAutoCommit);
+        }
+    }
+
+    private void syncTelefoni(UUID clienteId, List<TelefonoCliente> desired) {
+        List<TelefonoCliente> genericTelefoni = telefonoRepository.findByClienteId(clienteId).stream()
+                .filter(telefono -> telefono.contattoId() == null)
+                .toList();
+        syncById(genericTelefoni, desired, TelefonoCliente::id, telefonoRepository::insert, telefonoRepository::update, telefonoRepository::deleteById);
+    }
+
+    private void syncEmail(UUID clienteId, List<EmailCliente> desired) {
+        List<EmailCliente> genericEmail = emailRepository.findByClienteId(clienteId).stream()
+                .filter(emailCliente -> emailCliente.contattoId() == null)
+                .toList();
+        syncById(genericEmail, desired, EmailCliente::id, emailRepository::insert, emailRepository::update, emailRepository::deleteById);
+    }
+
+    private void syncSitiWeb(UUID clienteId, List<SitoWebCliente> desired) {
+        syncById(sitoWebRepository.findByClienteId(clienteId), desired, SitoWebCliente::id, sitoWebRepository::insert, sitoWebRepository::update, sitoWebRepository::deleteById);
+    }
+
+    private void syncContatti(UUID clienteId, List<ContattoCliente> desired) {
+        syncById(contattoRepository.findByClienteId(clienteId), desired, ContattoCliente::id, contattoRepository::insert, contattoRepository::update, contattoRepository::deleteById);
+    }
+
+    private void syncIndirizzi(UUID clienteId, List<IndirizzoCliente> desired) {
+        syncById(indirizzoRepository.findByClienteId(clienteId), desired, IndirizzoCliente::id, indirizzoRepository::insert, indirizzoRepository::update, indirizzoRepository::deleteById);
+    }
+
+    private <T> void syncById(
+            List<T> existing,
+            List<T> desired,
+            Function<T, UUID> idExtractor,
+            Consumer<T> insert,
+            Consumer<T> update,
+            Consumer<UUID> delete
+    ) {
+        Map<UUID, T> existingById = existing.stream()
+                .collect(Collectors.toMap(idExtractor, Function.identity()));
+        Set<UUID> desiredIds = desired.stream()
+                .map(idExtractor)
+                .collect(Collectors.toSet());
+
+        for (T item : desired) {
+            UUID id = idExtractor.apply(item);
+            if (existingById.containsKey(id)) {
+                update.accept(item);
+            } else {
+                insert.accept(item);
+            }
+        }
+
+        for (UUID existingId : existingById.keySet()) {
+            if (!desiredIds.contains(existingId)) {
+                delete.accept(existingId);
+            }
         }
     }
 

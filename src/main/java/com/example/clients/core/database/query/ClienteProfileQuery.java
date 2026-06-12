@@ -22,11 +22,11 @@ public interface ClienteProfileQuery {
             String codiceFiscale,
             LocalDate acquisizione,
             boolean favorite,
-            List<String> telefoni,
-            List<String> email,
-            List<String> sitiWeb,
-            List<String> indirizzi,
-            List<String> contatti,
+            List<ValueRecord> telefoni,
+            List<ValueRecord> email,
+            List<ValueRecord> sitiWeb,
+            List<ValueRecord> indirizzi,
+            List<ValueRecord> contatti,
             List<TimelineRecord> timeline
     ) {
         public ClienteProfileRecord {
@@ -37,6 +37,9 @@ public interface ClienteProfileQuery {
             contatti = List.copyOf(contatti);
             timeline = List.copyOf(timeline);
         }
+    }
+
+    record ValueRecord(UUID id, String value) {
     }
 
     record TimelineRecord(

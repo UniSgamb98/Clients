@@ -43,6 +43,43 @@ public final class DerbyIndirizzoClienteRepository extends DerbyRepositorySuppor
         }
     }
 
+
+    @Override
+    public void insert(IndirizzoCliente indirizzo) {
+        insertAll(List.of(indirizzo));
+    }
+
+    @Override
+    public void update(IndirizzoCliente indirizzo) {
+        String sql = "UPDATE INDIRIZZI_CLIENTE SET PAESE = ?, REGIONE = ?, PROVINCIA = ?, CITTA = ?, INDIRIZZO = ?, NUMERO_CIVICO = ?, CAP = ?, PRINCIPALE = ?, UPDATED_AT = ? WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, indirizzo.paese());
+            statement.setString(2, indirizzo.regione());
+            statement.setString(3, indirizzo.provincia());
+            statement.setString(4, indirizzo.citta());
+            statement.setString(5, indirizzo.indirizzo());
+            statement.setString(6, indirizzo.numeroCivico());
+            statement.setString(7, indirizzo.cap());
+            statement.setInt(8, indirizzo.principale() ? 1 : 0);
+            setTimestamp(statement, 9, indirizzo.updatedAt());
+            setUuid(statement, 10, indirizzo.id());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw repositoryException("Errore aggiornamento indirizzo cliente.", e);
+        }
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        String sql = "DELETE FROM INDIRIZZI_CLIENTE WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            setUuid(statement, 1, id);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw repositoryException("Errore eliminazione indirizzo cliente.", e);
+        }
+    }
+
     @Override
     public List<IndirizzoCliente> findByClienteId(UUID clienteId) {
         String sql = "SELECT * FROM INDIRIZZI_CLIENTE WHERE CLIENTE_ID = ? ORDER BY PRINCIPALE DESC, CREATED_AT";

@@ -8,5 +8,11 @@ import java.util.UUID;
 public interface EmailClienteRepository {
     void insertAll(List<EmailCliente> email);
 
+    void insert(EmailCliente email);
+
+    void update(EmailCliente email);
+
+    void deleteById(UUID id);
+
     List<EmailCliente> findByClienteId(UUID clienteId);
 }

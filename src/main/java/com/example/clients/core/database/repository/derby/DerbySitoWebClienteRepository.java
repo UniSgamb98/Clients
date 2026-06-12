@@ -33,6 +33,35 @@ public final class DerbySitoWebClienteRepository extends DerbyRepositorySupport 
         }
     }
 
+
+    @Override
+    public void insert(SitoWebCliente sitoWeb) {
+        insertAll(List.of(sitoWeb));
+    }
+
+    @Override
+    public void update(SitoWebCliente sitoWeb) {
+        String sql = "UPDATE SITI_WEB_CLIENTE SET DESCRIZIONE = ? WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, sitoWeb.descrizione());
+            setUuid(statement, 2, sitoWeb.id());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw repositoryException("Errore aggiornamento sito web cliente.", e);
+        }
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        String sql = "DELETE FROM SITI_WEB_CLIENTE WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            setUuid(statement, 1, id);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw repositoryException("Errore eliminazione sito web cliente.", e);
+        }
+    }
+
     @Override
     public List<SitoWebCliente> findByClienteId(UUID clienteId) {
         String sql = "SELECT * FROM SITI_WEB_CLIENTE WHERE CLIENTE_ID = ?";

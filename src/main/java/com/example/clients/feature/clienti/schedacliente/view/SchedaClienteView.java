@@ -8,6 +8,8 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ValueEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ValueItem;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
@@ -235,12 +237,12 @@ public class SchedaClienteView extends BorderPane {
                 "Partita IVA: " + emptyFallback(profile.partitaIva()),
                 "Codice fiscale: " + emptyFallback(profile.codiceFiscale()),
                 "Acquisizione: " + formatDate(profile.acquisizione()),
-                "Telefoni azienda: " + joinValues(profile.telefoni()),
-                "Email azienda: " + joinValues(profile.email()),
-                "Siti web: " + joinValues(profile.sitiWeb())
+                "Telefoni azienda: " + joinProfileValues(profile.telefoni()),
+                "Email azienda: " + joinProfileValues(profile.email()),
+                "Siti web: " + joinProfileValues(profile.sitiWeb())
         ));
-        renderList(contactsList, profile.contatti());
-        renderList(addressesList, profile.indirizzi());
+        renderValueList(contactsList, profile.contatti());
+        renderValueList(addressesList, profile.indirizzi());
         renderTimeline(profile.interazioni());
     }
 
@@ -307,7 +309,7 @@ public class SchedaClienteView extends BorderPane {
     }
 
 
-    private VBox createEditableValuesSection(String title, List<TextField> target, List<String> values, String prompt) {
+    private VBox createEditableValuesSection(String title, List<TextField> target, List<ValueEditInput> values, String prompt) {
         VBox section = new VBox(8);
         section.getStyleClass().add("client-profile-edit-values-section");
         section.getChildren().add(createEditSectionLabel(title));
@@ -315,19 +317,20 @@ public class SchedaClienteView extends BorderPane {
         return section;
     }
 
-    private void renderEditableValues(VBox container, List<TextField> target, List<String> values, String prompt) {
+    private void renderEditableValues(VBox container, List<TextField> target, List<ValueEditInput> values, String prompt) {
         container.getChildren().clear();
         addEditableValues(container, target, values, prompt);
     }
 
-    private void addEditableValues(VBox container, List<TextField> target, List<String> values, String prompt) {
+    private void addEditableValues(VBox container, List<TextField> target, List<ValueEditInput> values, String prompt) {
         target.clear();
-        List<String> safeValues = values.isEmpty() ? List.of("") : values;
-        safeValues.forEach(value -> addEditableValueRow(container, target, value, prompt));
+        List<ValueEditInput> safeValues = values.isEmpty() ? List.of(new ValueEditInput(null, "")) : values;
+        safeValues.forEach(value -> addEditableValueRow(container, target, value.id(), value.value(), prompt));
     }
 
-    private void addEditableValueRow(VBox container, List<TextField> target, String value, String prompt) {
+    private void addEditableValueRow(VBox container, List<TextField> target, java.util.UUID id, String value, String prompt) {
         TextField field = createTextField(value, prompt);
+        field.setUserData(id);
         target.add(field);
         HBox row = new HBox(8);
         row.getStyleClass().add("client-profile-edit-row");
@@ -335,12 +338,12 @@ public class SchedaClienteView extends BorderPane {
         addButton.getStyleClass().add("client-profile-small-filter-button");
         Button removeButton = new Button("-");
         removeButton.getStyleClass().add("client-profile-small-filter-button");
-        addButton.setOnAction(event -> addEditableValueRow(container, target, "", prompt));
+        addButton.setOnAction(event -> addEditableValueRow(container, target, null, "", prompt));
         removeButton.setOnAction(event -> {
             target.remove(field);
             container.getChildren().remove(row);
             if (target.isEmpty()) {
-                addEditableValueRow(container, target, "", prompt);
+                addEditableValueRow(container, target, null, "", prompt);
             }
         });
         HBox.setHgrow(field, Priority.ALWAYS);
@@ -556,8 +559,12 @@ public class SchedaClienteView extends BorderPane {
         return date == null ? "-" : DATE_FORMATTER.format(date);
     }
 
-    private String joinValues(List<String> values) {
-        return values.isEmpty() ? "-" : String.join(", ", values);
+    private void renderValueList(VBox container, List<ValueItem> values) {
+        renderList(container, values.stream().map(ValueItem::value).toList());
+    }
+
+    private String joinProfileValues(List<ValueItem> values) {
+        return values.isEmpty() ? "-" : String.join(", ", values.stream().map(ValueItem::value).toList());
     }
 
     private String emptyFallback(String value) {
@@ -572,8 +579,10 @@ public class SchedaClienteView extends BorderPane {
         return field == null ? "" : field.getText();
     }
 
-    private List<String> valuesOf(List<TextField> fields) {
-        return fields.stream().map(TextField::getText).toList();
+    private List<ValueEditInput> valuesOf(List<TextField> fields) {
+        return fields.stream()
+                .map(field -> new ValueEditInput((java.util.UUID) field.getUserData(), field.getText()))
+                .toList();
     }
 
     public AppHeader getHeader() {

@@ -1,11 +1,18 @@
 package com.example.clients.feature.clienti.schedacliente.service;
 
 import com.example.clients.core.database.Database;
+import com.example.clients.core.database.model.Cliente;
+import com.example.clients.core.database.model.ContattoCliente;
+import com.example.clients.core.database.model.EmailCliente;
+import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.Interazione;
 import com.example.clients.core.database.model.NotaCliente;
+import com.example.clients.core.database.model.SitoWebCliente;
+import com.example.clients.core.database.model.TelefonoCliente;
 import com.example.clients.core.database.query.ClienteProfileQuery;
 import com.example.clients.core.database.query.ClienteProfileQuery.ClienteProfileRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.TimelineRecord;
+import com.example.clients.core.database.query.ClienteProfileQuery.ValueRecord;
 import com.example.clients.core.database.query.derby.DerbyClienteProfileQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
@@ -67,15 +74,22 @@ public class SchedaClienteService {
                 record.codiceFiscale(),
                 record.acquisizione(),
                 record.favorite(),
-                record.telefoni(),
-                record.email(),
-                record.sitiWeb(),
-                record.indirizzi(),
-                record.contatti(),
+                toValueItems(record.telefoni()),
+                toValueItems(record.email()),
+                toValueItems(record.sitiWeb()),
+                toValueItems(record.indirizzi()),
+                toValueItems(record.contatti()),
                 record.timeline().stream()
                         .map(this::toInteractionPreview)
                         .toList()
         );
+    }
+
+
+    private List<ValueItem> toValueItems(List<ValueRecord> values) {
+        return values.stream()
+                .map(value -> new ValueItem(value.id(), value.value()))
+                .toList();
     }
 
     private InteractionPreview toInteractionPreview(TimelineRecord record) {
@@ -135,34 +149,115 @@ public class SchedaClienteService {
 
     public ClienteProfile saveEdit(EditProfileDraft draft) {
         ensureProfileLoaded();
+        if (currentClienteId == null) {
+            return filteredProfile();
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        Cliente cliente = new Cliente(
+                currentClienteId,
+                nullableClean(draft.ragioneSociale()),
+                nullableClean(draft.tipoCliente()),
+                nullableClean(draft.statoTrattativa()),
+                nullableClean(draft.partitaIva()),
+                nullableClean(draft.codiceFiscale()),
+                draft.acquisizione(),
+                currentOperatoreService.currentOperatoreId(),
+                null,
+                now
+        );
+
+        persistenceService.updateClienteProfile(
+                cliente,
+                toIndirizzi(draft.indirizzi(), now),
+                toSitiWeb(draft.sitiWeb()),
+                toContatti(draft.contatti()),
+                toTelefoni(draft.telefoni()),
+                toEmail(draft.email()),
+                toNoteUpdates(draft.interazioni(), now),
+                toInterazioneUpdates(draft.interazioni(), now)
+        );
+
         editingDraft = null;
         currentFilter = TimelineFilter.ALL;
-        currentProfile = new ClienteProfile(
-                currentProfile.clienteId(),
-                normalize(draft.ragioneSociale()),
-                normalize(draft.tipoCliente()),
-                normalize(draft.statoTrattativa()),
-                normalize(draft.partitaIva()),
-                normalize(draft.codiceFiscale()),
-                draft.acquisizione(),
-                currentProfile.favorite(),
-                cleanList(draft.telefoni()),
-                cleanList(draft.email()),
-                cleanList(draft.sitiWeb()),
-                cleanList(draft.indirizzi()),
-                cleanList(draft.contatti()),
-                draft.interazioni().stream()
-                        .map(interaction -> new InteractionPreview(
-                                interaction.notaId(),
-                                interaction.interazioneId(),
-                                interaction.data(),
-                                interaction.type(),
-                                interaction.prossimoContatto(),
-                                normalize(interaction.testo())))
-                        .filter(interaction -> !interaction.testo().isBlank())
-                        .toList()
-        );
-        return currentProfile;
+        return loadProfile(currentClienteId);
+    }
+
+
+    private List<TelefonoCliente> toTelefoni(List<ValueEditInput> values) {
+        return values.stream()
+                .map(value -> new ValueItem(idOrNew(value.id()), normalize(value.value())))
+                .filter(value -> !value.value().isBlank())
+                .map(value -> new TelefonoCliente(value.id(), currentClienteId, null, value.value()))
+                .toList();
+    }
+
+    private List<EmailCliente> toEmail(List<ValueEditInput> values) {
+        return values.stream()
+                .map(value -> new ValueItem(idOrNew(value.id()), normalize(value.value())))
+                .filter(value -> !value.value().isBlank())
+                .map(value -> new EmailCliente(value.id(), currentClienteId, null, value.value()))
+                .toList();
+    }
+
+    private List<SitoWebCliente> toSitiWeb(List<ValueEditInput> values) {
+        return values.stream()
+                .map(value -> new ValueItem(idOrNew(value.id()), normalize(value.value())))
+                .filter(value -> !value.value().isBlank())
+                .map(value -> new SitoWebCliente(value.id(), currentClienteId, value.value()))
+                .toList();
+    }
+
+    private List<ContattoCliente> toContatti(List<ValueEditInput> values) {
+        return values.stream()
+                .map(value -> new ValueItem(idOrNew(value.id()), normalize(value.value())))
+                .filter(value -> !value.value().isBlank())
+                .map(value -> new ContattoCliente(value.id(), currentClienteId, value.value()))
+                .toList();
+    }
+
+    private List<IndirizzoCliente> toIndirizzi(List<ValueEditInput> values, LocalDateTime now) {
+        return values.stream()
+                .map(value -> new ValueItem(idOrNew(value.id()), normalize(value.value())))
+                .filter(value -> !value.value().isBlank())
+                .map(value -> new IndirizzoCliente(value.id(), currentClienteId, null, null, null, null, value.value(), null, null, false, now, now))
+                .toList();
+    }
+
+    private List<NotaCliente> toNoteUpdates(List<InteractionEditInput> interactions, LocalDateTime now) {
+        return interactions.stream()
+                .filter(interaction -> interaction.notaId() != null)
+                .map(interaction -> new NotaCliente(
+                        interaction.notaId(),
+                        currentClienteId,
+                        currentOperatoreService.currentOperatoreId(),
+                        normalize(interaction.testo()),
+                        null,
+                        now
+                ))
+                .filter(nota -> !nota.testo().isBlank())
+                .toList();
+    }
+
+    private List<Interazione> toInterazioneUpdates(List<InteractionEditInput> interactions, LocalDateTime now) {
+        return interactions.stream()
+                .filter(interaction -> interaction.interazioneId() != null)
+                .map(interaction -> new Interazione(
+                        interaction.interazioneId(),
+                        currentClienteId,
+                        currentOperatoreService.currentOperatoreId(),
+                        interaction.notaId(),
+                        interaction.data(),
+                        interaction.prossimoContatto(),
+                        BigDecimal.ZERO,
+                        null,
+                        now
+                ))
+                .toList();
+    }
+
+    private UUID idOrNew(UUID id) {
+        return id == null ? UUID.randomUUID() : id;
     }
 
     public ClienteProfile addNota(String testo) {
@@ -241,15 +336,20 @@ public class SchedaClienteService {
         }
     }
 
-    private List<String> cleanList(List<String> values) {
+    private List<ValueItem> cleanValueItems(List<ValueEditInput> values) {
         return values.stream()
-                .map(this::normalize)
-                .filter(value -> !value.isBlank())
+                .map(value -> new ValueItem(value.id(), normalize(value.value())))
+                .filter(value -> !value.value().isBlank())
                 .toList();
     }
 
     private String normalize(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String nullableClean(String value) {
+        String cleanValue = normalize(value);
+        return cleanValue.isBlank() ? null : cleanValue;
     }
 
     public enum TimelineFilter {
@@ -288,11 +388,11 @@ public class SchedaClienteService {
             String codiceFiscale,
             LocalDate acquisizione,
             boolean favorite,
-            List<String> telefoni,
-            List<String> email,
-            List<String> sitiWeb,
-            List<String> indirizzi,
-            List<String> contatti,
+            List<ValueItem> telefoni,
+            List<ValueItem> email,
+            List<ValueItem> sitiWeb,
+            List<ValueItem> indirizzi,
+            List<ValueItem> contatti,
             List<InteractionPreview> interazioni
     ) {
         public ClienteProfile {
@@ -322,11 +422,11 @@ public class SchedaClienteService {
             String partitaIva,
             String codiceFiscale,
             LocalDate acquisizione,
-            List<String> telefoni,
-            List<String> email,
-            List<String> sitiWeb,
-            List<String> indirizzi,
-            List<String> contatti,
+            List<ValueEditInput> telefoni,
+            List<ValueEditInput> email,
+            List<ValueEditInput> sitiWeb,
+            List<ValueEditInput> indirizzi,
+            List<ValueEditInput> contatti,
             List<InteractionEditInput> interazioni
     ) {
         public EditProfileDraft {
@@ -338,6 +438,13 @@ public class SchedaClienteService {
             interazioni = List.copyOf(interazioni);
         }
 
+
+        private static List<ValueEditInput> toEditInputs(List<ValueItem> values) {
+            return values.stream()
+                    .map(value -> new ValueEditInput(value.id(), value.value()))
+                    .toList();
+        }
+
         private static EditProfileDraft from(ClienteProfile profile) {
             return new EditProfileDraft(
                     profile.ragioneSociale(),
@@ -346,16 +453,22 @@ public class SchedaClienteService {
                     profile.partitaIva(),
                     profile.codiceFiscale(),
                     profile.acquisizione(),
-                    profile.telefoni(),
-                    profile.email(),
-                    profile.sitiWeb(),
-                    profile.indirizzi(),
-                    profile.contatti(),
+                    toEditInputs(profile.telefoni()),
+                    toEditInputs(profile.email()),
+                    toEditInputs(profile.sitiWeb()),
+                    toEditInputs(profile.indirizzi()),
+                    toEditInputs(profile.contatti()),
                     profile.interazioni().stream()
                             .map(InteractionEditInput::from)
                             .toList()
             );
         }
+    }
+
+    public record ValueItem(UUID id, String value) {
+    }
+
+    public record ValueEditInput(UUID id, String value) {
     }
 
     public record InteractionEditInput(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
