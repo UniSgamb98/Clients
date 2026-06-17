@@ -52,10 +52,16 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
 
     public void showLogin() {
         LoginView view = new LoginView();
-        new LoginController(view, this, new LoginService());
-
         stage.setScene(createSceneWithCSS(view));
         stage.setTitle("Clients - Login");
+
+        try {
+            ensureAppStarted();
+            new LoginController(view, this, new LoginService(app.database));
+        } catch (RuntimeException e) {
+            view.showError("Caricamento utenti non riuscito: " + safeMessage(e));
+            view.getLoginButton().setDisable(true);
+        }
     }
 
     @Override
@@ -137,6 +143,10 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         if (app == null) {
             app = new AppContainer();
         }
+    }
+
+    private String safeMessage(RuntimeException e) {
+        return e.getMessage() == null || e.getMessage().isBlank() ? "errore imprevisto." : e.getMessage();
     }
 
     private void configureHeader(AppHeader header) {
