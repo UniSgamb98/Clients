@@ -1,5 +1,6 @@
 package com.example.clients.app;
 
+import com.example.clients.core.async.BackgroundExecutor;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.feature.auth.login.controller.LoginController;
@@ -86,10 +87,11 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         ClientiView view = new ClientiView();
         configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
-        new ClientiController(view, this, new ClientiService(app.database));
+        ClientiController controller = new ClientiController(view, this, new ClientiService(app.database));
 
         stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Clienti");
+        controller.loadPreviewClientsAsync();
     }
 
     @Override
@@ -169,5 +171,6 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
             app.shutdown();
             app.database.stop();
         }
+        BackgroundExecutor.shutdown();
     }
 }

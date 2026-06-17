@@ -1,5 +1,6 @@
 package com.example.clients.feature.clienti.clienti.controller;
 
+import com.example.clients.core.async.AsyncLoader;
 import com.example.clients.feature.clienti.clienti.service.ClientiService;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.ClientePreview;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.ClientePreviewRow;
@@ -14,13 +15,13 @@ public class ClientiController {
     private final ClientiView view;
     private final ClientiNav clientiNav;
     private final ClientiService service;
+    private long loadVersion;
 
     public ClientiController(ClientiView view, ClientiNav clientiNav, ClientiService service) {
         this.view = view;
         this.clientiNav = clientiNav;
         this.service = service;
         configureActions();
-        loadPreviewClients();
     }
 
     private void configureActions() {
@@ -33,15 +34,39 @@ public class ClientiController {
         view.getStatusHeaderButton().setOnAction(event -> sortClienti(SortColumn.STATUS));
     }
 
-    private void loadPreviewClients() {
-        renderClienti(service.getClientiPreview());
+    public void loadPreviewClientsAsync() {
+        loadClientiAsync(service::getClientiPreview);
     }
 
     private void sortClienti(SortColumn sortColumn) {
-        renderClienti(service.sortClientiBy(sortColumn));
+        loadClientiAsync(() -> service.sortClientiBy(sortColumn));
+    }
+
+    private void loadClientiAsync(ClientiLoadAction action) {
+        long version = ++loadVersion;
+        view.showLoading();
+
+        AsyncLoader.run(
+                action::load,
+                clienti -> {
+                    if (version == loadVersion) {
+                        renderClienti(clienti);
+                    }
+                },
+                error -> {
+                    if (version == loadVersion) {
+                        view.showError("Caricamento clienti non riuscito.");
+                    }
+                }
+        );
     }
 
     private void renderClienti(List<ClientePreviewRow> clienti) {
+        if (clienti.isEmpty()) {
+            view.showEmpty();
+            return;
+        }
+
         view.clearClientRows();
 
         for (ClientePreviewRow cliente : clienti) {
@@ -67,5 +92,10 @@ public class ClientiController {
 
     public ClientiService getService() {
         return service;
+    }
+
+    @FunctionalInterface
+    private interface ClientiLoadAction {
+        List<ClientePreviewRow> load();
     }
 }

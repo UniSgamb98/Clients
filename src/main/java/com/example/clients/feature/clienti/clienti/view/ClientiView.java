@@ -135,12 +135,35 @@ public class ClientiView extends BorderPane {
     }
 
     private HBox createEmptyRow() {
+        return createMessageRow("Nessun cliente caricato. Usa \"+ Nuovo cliente\" per iniziare.");
+    }
+
+    private HBox createMessageRow(String message) {
         HBox row = new HBox();
         row.getStyleClass().add("clients-empty-row");
-        Label emptyLabel = new Label("Nessun cliente caricato. Usa \"+ Nuovo cliente\" per iniziare.");
-        emptyLabel.getStyleClass().add("clients-empty-label");
-        row.getChildren().add(emptyLabel);
+        Label messageLabel = new Label(message);
+        messageLabel.getStyleClass().add("clients-empty-label");
+        messageLabel.setWrapText(true);
+        row.getChildren().add(messageLabel);
         return row;
+    }
+
+    public void showLoading() {
+        showMessage("Caricamento clienti...");
+    }
+
+    public void showEmpty() {
+        showMessage("Nessun cliente trovato.");
+    }
+
+    public void showError(String message) {
+        showMessage(message == null || message.isBlank() ? "Caricamento clienti non riuscito." : message);
+    }
+
+    private void showMessage(String message) {
+        tableRows.getChildren().clear();
+        tableRows.getChildren().add(createMessageRow(message));
+        tableScrollPane.setVvalue(0);
     }
 
     public void clearClientRows() {
