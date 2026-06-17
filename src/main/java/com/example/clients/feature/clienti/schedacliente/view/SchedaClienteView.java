@@ -338,19 +338,24 @@ public class SchedaClienteView extends BorderPane {
         TextField field = createTextField(value, prompt);
         field.setUserData(id);
         target.add(field);
+        configureLinkedContactOptionsRefresh(field, target);
         HBox row = new HBox(8);
         row.getStyleClass().add("client-profile-edit-row");
         Button addButton = new Button("+");
         addButton.getStyleClass().add("client-profile-small-filter-button");
         Button removeButton = new Button("-");
         removeButton.getStyleClass().add("client-profile-small-filter-button");
-        addButton.setOnAction(event -> addEditableValueRow(container, target, null, "", prompt));
+        addButton.setOnAction(event -> {
+            addEditableValueRow(container, target, null, "", prompt);
+            refreshLinkedContactOptions();
+        });
         removeButton.setOnAction(event -> {
             target.remove(field);
             container.getChildren().remove(row);
             if (target.isEmpty()) {
                 addEditableValueRow(container, target, null, "", prompt);
             }
+            refreshLinkedContactOptions();
         });
         HBox.setHgrow(field, Priority.ALWAYS);
         row.getChildren().addAll(field, addButton, removeButton);
@@ -525,6 +530,36 @@ public class SchedaClienteView extends BorderPane {
         container.getChildren().add(row);
     }
 
+    private void configureLinkedContactOptionsRefresh(TextField field, List<TextField> target) {
+        if (!isLinkedContactOptionsSource(target)) {
+            return;
+        }
+
+        field.textProperty().addListener((observable, oldValue, newValue) -> refreshLinkedContactOptions());
+    }
+
+    private boolean isLinkedContactOptionsSource(List<TextField> target) {
+        return target == phoneEditFields || target == emailEditFields;
+    }
+
+    private void refreshLinkedContactOptions() {
+        contactEditControls.forEach(control -> {
+            refreshLinkedComboOptions(control.phoneFields(), phoneEditFields);
+            refreshLinkedComboOptions(control.emailFields(), emailEditFields);
+        });
+    }
+
+    private void refreshLinkedComboOptions(List<ComboBox<String>> comboFields, List<TextField> sourceFields) {
+        List<String> options = linkedOptions(sourceFields, linkedValuesForOptions(comboFields));
+        comboFields.forEach(field -> field.getItems().setAll(options));
+    }
+
+    private List<ValueEditInput> linkedValuesForOptions(List<ComboBox<String>> fields) {
+        return fields.stream()
+                .map(field -> new ValueEditInput((java.util.UUID) field.getUserData(), comboValue(field)))
+                .toList();
+    }
+
     private List<String> linkedOptions(List<TextField> sourceFields, List<ValueEditInput> selectedValues) {
         List<String> options = new ArrayList<>();
         sourceFields.stream()
@@ -620,6 +655,7 @@ public class SchedaClienteView extends BorderPane {
         saveProfileEditButton.setManaged(editMode);
         cancelProfileEditButton.setVisible(editMode);
         cancelProfileEditButton.setManaged(editMode);
+        favoriteButton.setDisable(editMode);
         newNoteButton.setDisable(editMode);
         newCallButton.setDisable(editMode);
         allFilterButton.setDisable(editMode);
