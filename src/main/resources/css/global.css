@@ -206,3 +206,78 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 .dashboard-content {
     -fx-background-color: #2b2b2b;
 }
+
+/* ==== Login ==== */
+.login-root {
+    -fx-background-color: linear-gradient(to bottom right, #1f2933, #111827);
+}
+
+.login-wrapper {
+    -fx-background-color: transparent;
+}
+
+.login-card {
+    -fx-background-color: #252526;
+    -fx-background-radius: 18;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 18;
+    -fx-padding: 32;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 18, 0.3, 0, 6);
+}
+
+.login-heading {
+    -fx-alignment: center-left;
+}
+
+.login-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #ffffff;
+}
+
+.login-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #c9d1d9;
+}
+
+.login-form {
+    -fx-padding: 8 0 0 0;
+}
+
+.login-field-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #d7dde4;
+}
+
+.login-field {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #4b5563;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #ffffff;
+    -fx-prompt-text-fill: #8b949e;
+    -fx-padding: 10 12;
+}
+
+.login-field:focused {
+    -fx-border-color: #1490df;
+}
+
+.login-primary-button {
+    -fx-background-color: #007acc;
+    -fx-text-fill: white;
+    -fx-font-weight: 700;
+    -fx-background-radius: 8;
+    -fx-padding: 10 22;
+}
+
+.login-primary-button:hover {
+    -fx-background-color: #1490df;
+}
+
+.login-error {
+    -fx-text-fill: #ff7b72;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}

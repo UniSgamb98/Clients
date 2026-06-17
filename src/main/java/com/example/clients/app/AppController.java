@@ -2,6 +2,10 @@ package com.example.clients.app;
 
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.ui.AppHeader;
+import com.example.clients.feature.auth.login.controller.LoginController;
+import com.example.clients.feature.auth.login.navigator.LoginNav;
+import com.example.clients.feature.auth.login.service.LoginService;
+import com.example.clients.feature.auth.login.view.LoginView;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.controller.ClientiController;
 import com.example.clients.feature.clienti.clienti.service.ClientiService;
@@ -24,18 +28,17 @@ import javafx.stage.Stage;
 import java.util.Objects;
 import java.util.UUID;
 
-public class AppController implements DashboardNav, ClientiNav {
+public class AppController implements DashboardNav, ClientiNav, LoginNav {
     private final Stage stage;
-    private final AppContainer app;
+    private AppContainer app;
     private final String cssPath;
     private boolean shutdown;
 
     public AppController(Stage stage) {
         this.stage = stage;
-        this.app = new AppContainer();
         this.cssPath = Objects.requireNonNull(getClass().getResource("/css/global.css")).toExternalForm();
 
-        showDashboard();
+        showLogin();
         stage.setOnCloseRequest(e -> shutdown());
         stage.show();
     }
@@ -46,6 +49,20 @@ public class AppController implements DashboardNav, ClientiNav {
     Creo un metodo per ogni view che devo mostrare. Ogni metodo chiama configureHeader per assegnare le funzioni dei
     tasti dello header qua e non nei singoli controller di tutte le view.
      */
+
+    public void showLogin() {
+        LoginView view = new LoginView();
+        new LoginController(view, this, new LoginService());
+
+        stage.setScene(createSceneWithCSS(view));
+        stage.setTitle("Clients - Login");
+    }
+
+    @Override
+    public void showDashboardAfterLogin() {
+        ensureAppStarted();
+        showDashboard();
+    }
 
     @Override
     public void showDashboard() {
@@ -116,6 +133,12 @@ public class AppController implements DashboardNav, ClientiNav {
         return scene;
     }
 
+    private void ensureAppStarted() {
+        if (app == null) {
+            app = new AppContainer();
+        }
+    }
+
     private void configureHeader(AppHeader header) {
         header.getHomeButton().setOnAction(e -> showDashboard());
         header.getLaboratoryButton().setOnAction(e -> showLaboratory());
@@ -132,7 +155,9 @@ public class AppController implements DashboardNav, ClientiNav {
         }
 
         shutdown = true;
-        app.shutdown();
-        app.database.stop();
+        if (app != null) {
+            app.shutdown();
+            app.database.stop();
+        }
     }
 }
