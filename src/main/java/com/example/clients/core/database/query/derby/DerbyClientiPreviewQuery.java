@@ -46,10 +46,13 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         boolean hasSearch = !cleanSearchText.isBlank();
         long totalRows = countAll(cleanSearchText);
         String sql = "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
-                + "COALESCE((SELECT MIN(CC.DESCRIZIONE) FROM CONTATTI_CLIENTE CC WHERE CC.CLIENTE_ID = C.ID), '') AS REFERENTE, "
-                + "COALESCE((SELECT MIN(T.DESCRIZIONE) FROM TELEFONI_CLIENTE T WHERE T.CLIENTE_ID = C.ID), '') AS TELEFONO, "
-                + "COALESCE((SELECT MIN(E.DESCRIZIONE) FROM EMAIL_CLIENTE E WHERE E.CLIENTE_ID = C.ID), '') AS EMAIL "
+                + "COALESCE(R.REFERENTE, '') AS REFERENTE, "
+                + "COALESCE(T.TELEFONO, '') AS TELEFONO, "
+                + "COALESCE(E.EMAIL, '') AS EMAIL "
                 + "FROM CLIENTI C "
+                + previewAggregateJoin("CONTATTI_CLIENTE", "R", "REFERENTE")
+                + previewAggregateJoin("TELEFONI_CLIENTE", "T", "TELEFONO")
+                + previewAggregateJoin("EMAIL_CLIENTE", "E", "EMAIL")
                 + searchWhereClause(hasSearch)
                 + "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", C.ID "
                 + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -76,6 +79,14 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         } catch (SQLException e) {
             throw new RuntimeException("Errore caricamento anteprima clienti.", e);
         }
+    }
+
+    private String previewAggregateJoin(String tableName, String alias, String valueAlias) {
+        return "LEFT JOIN ("
+                + "SELECT CLIENTE_ID, MIN(DESCRIZIONE) AS " + valueAlias + " "
+                + "FROM " + tableName + " "
+                + "GROUP BY CLIENTE_ID"
+                + ") " + alias + " ON " + alias + ".CLIENTE_ID = C.ID ";
     }
 
     private long countAll(String searchText) {
