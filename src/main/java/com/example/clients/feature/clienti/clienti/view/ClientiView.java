@@ -39,6 +39,9 @@ public class ClientiView extends BorderPane {
     private final VBox tableRows;
     private final HBox emptyRow;
     private final ScrollPane tableScrollPane;
+    private final Button previousPageButton;
+    private final Button nextPageButton;
+    private final Label pageLabel;
 
     public ClientiView() {
         header = new AppHeader("Clienti");
@@ -70,6 +73,12 @@ public class ClientiView extends BorderPane {
         tableScrollPane = new ScrollPane(tableRows);
         tableScrollPane.setFitToWidth(true);
         tableScrollPane.getStyleClass().add("clients-table-scroll");
+
+        previousPageButton = createFilterButton("‹ Indietro");
+        nextPageButton = createFilterButton("Avanti ›");
+        pageLabel = new Label("Pagina -");
+        pageLabel.getStyleClass().add("clients-pagination-label");
+        setPaginationDisabled(true);
 
         setTop(header);
         setLeft(sidebar);
@@ -109,7 +118,7 @@ public class ClientiView extends BorderPane {
         VBox.setVgrow(table, javafx.scene.layout.Priority.ALWAYS);
         VBox.setVgrow(tableScrollPane, javafx.scene.layout.Priority.ALWAYS);
 
-        content.getChildren().addAll(titleBar, toolbar, filters, table);
+        content.getChildren().addAll(titleBar, toolbar, filters, table, createPaginationBar());
         return content;
     }
 
@@ -132,6 +141,15 @@ public class ClientiView extends BorderPane {
                 statusHeaderButton
         );
         return row;
+    }
+
+    private HBox createPaginationBar() {
+        HBox pagination = new HBox(10);
+        pagination.getStyleClass().add("clients-pagination-bar");
+        HBox spacer = new HBox();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        pagination.getChildren().addAll(spacer, previousPageButton, pageLabel, nextPageButton);
+        return pagination;
     }
 
     private HBox createEmptyRow() {
@@ -170,6 +188,17 @@ public class ClientiView extends BorderPane {
         tableRows.getChildren().clear();
         tableRows.getChildren().add(emptyRow);
         tableScrollPane.setVvalue(0);
+    }
+
+    public void renderPagination(int page, int totalPages, boolean hasPreviousPage, boolean hasNextPage) {
+        pageLabel.setText(totalPages == 0 ? "Nessuna pagina" : "Pagina " + (page + 1) + " di " + totalPages);
+        previousPageButton.setDisable(!hasPreviousPage);
+        nextPageButton.setDisable(!hasNextPage);
+    }
+
+    public void setPaginationDisabled(boolean disabled) {
+        previousPageButton.setDisable(disabled);
+        nextPageButton.setDisable(disabled);
     }
 
     public HBox addClientRow(String name, String type, String contact, String phone, String email, String status) {
@@ -274,5 +303,13 @@ public class ClientiView extends BorderPane {
 
     public Button getStatusHeaderButton() {
         return statusHeaderButton;
+    }
+
+    public Button getPreviousPageButton() {
+        return previousPageButton;
+    }
+
+    public Button getNextPageButton() {
+        return nextPageButton;
     }
 }

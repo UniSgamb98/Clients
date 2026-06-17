@@ -382,3 +382,14 @@
 .client-profile-primary-check:selected .mark {
     -fx-background-color: #ffffff;
 }
+
+.clients-pagination-bar {
+    -fx-alignment: center-right;
+    -fx-padding: 0 2 0 2;
+}
+
+.clients-pagination-label {
+    -fx-text-fill: #d6d6d6;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}

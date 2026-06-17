@@ -4,7 +4,18 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ClientiPreviewQuery {
-    List<ClientePreviewRecord> findAll();
+    ClientePreviewPage findPage(int page, int pageSize, String orderByColumn, boolean ascending);
+
+    record ClientePreviewPage(
+            List<ClientePreviewRecord> records,
+            int page,
+            int pageSize,
+            long totalRows
+    ) {
+        public ClientePreviewPage {
+            records = List.copyOf(records);
+        }
+    }
 
     record ClientePreviewRecord(
             UUID clienteId,
