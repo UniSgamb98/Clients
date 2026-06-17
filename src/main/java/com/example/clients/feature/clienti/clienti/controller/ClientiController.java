@@ -9,16 +9,21 @@ import com.example.clients.feature.clienti.clienti.service.ClientiService.Client
 import com.example.clients.feature.clienti.clienti.service.ClientiService.SortColumn;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.navigator.ClientiNav;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 
 public class ClientiController {
 
     private static final int PAGE_SIZE = 50;
+    private static final Duration SEARCH_DEBOUNCE = Duration.millis(300);
 
     private final ClientiView view;
     private final ClientiNav clientiNav;
     private final ClientiService service;
+    private final PauseTransition searchDebounce = new PauseTransition(SEARCH_DEBOUNCE);
     private SortColumn currentSortColumn = SortColumn.NAME;
     private boolean ascending = true;
+    private String currentSearchText = "";
     private int currentPage;
     private long loadVersion;
 
@@ -39,10 +44,18 @@ public class ClientiController {
         view.getStatusHeaderButton().setOnAction(event -> sortClienti(SortColumn.STATUS));
         view.getPreviousPageButton().setOnAction(event -> loadPage(currentPage - 1));
         view.getNextPageButton().setOnAction(event -> loadPage(currentPage + 1));
+        view.getSearchField().textProperty().addListener((observable, oldValue, newValue) -> searchClienti(newValue));
     }
 
     public void loadPreviewClientsAsync() {
         loadPage(0);
+    }
+
+    private void searchClienti(String searchText) {
+        currentSearchText = searchText == null ? "" : searchText.trim();
+        searchDebounce.stop();
+        searchDebounce.setOnFinished(event -> loadPage(0));
+        searchDebounce.playFromStart();
     }
 
     private void sortClienti(SortColumn sortColumn) {
@@ -57,7 +70,7 @@ public class ClientiController {
 
     private void loadPage(int page) {
         currentPage = Math.max(0, page);
-        ClientiSearchRequest request = new ClientiSearchRequest(currentPage, PAGE_SIZE, currentSortColumn, ascending);
+        ClientiSearchRequest request = new ClientiSearchRequest(currentPage, PAGE_SIZE, currentSearchText, currentSortColumn, ascending);
         long version = ++loadVersion;
         view.showLoading();
         view.setPaginationDisabled(true);

@@ -23,6 +23,7 @@ public class ClientiService {
         ClientiPreviewQuery.ClientePreviewPage page = clientiPreviewQuery.findPage(
                 request.page(),
                 request.pageSize(),
+                request.searchText(),
                 request.sortColumn().sqlColumn(),
                 request.ascending()
         );
@@ -51,12 +52,12 @@ public class ClientiService {
     }
 
     public enum SortColumn {
-        NAME("RAGIONE_SOCIALE"),
-        TYPE("TIPO_CLIENTE"),
-        CONTACT("RAGIONE_SOCIALE"),
-        PHONE("RAGIONE_SOCIALE"),
-        EMAIL("RAGIONE_SOCIALE"),
-        STATUS("STATO_TRATTATIVA");
+        NAME("C.RAGIONE_SOCIALE"),
+        TYPE("C.TIPO_CLIENTE"),
+        CONTACT("REFERENTE"),
+        PHONE("TELEFONO"),
+        EMAIL("EMAIL"),
+        STATUS("C.STATO_TRATTATIVA");
 
         private final String sqlColumn;
 
@@ -72,12 +73,14 @@ public class ClientiService {
     public record ClientiSearchRequest(
             int page,
             int pageSize,
+            String searchText,
             SortColumn sortColumn,
             boolean ascending
     ) {
         public ClientiSearchRequest {
             page = Math.max(0, page);
             pageSize = Math.max(1, pageSize);
+            searchText = searchText == null ? "" : searchText.trim();
             sortColumn = sortColumn == null ? SortColumn.NAME : sortColumn;
         }
     }

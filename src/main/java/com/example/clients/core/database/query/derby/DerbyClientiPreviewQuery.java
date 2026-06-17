@@ -15,9 +15,12 @@ import java.util.UUID;
 public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
 
     private static final Set<String> ALLOWED_ORDER_COLUMNS = Set.of(
-            "RAGIONE_SOCIALE",
-            "TIPO_CLIENTE",
-            "STATO_TRATTATIVA"
+            "C.RAGIONE_SOCIALE",
+            "C.TIPO_CLIENTE",
+            "REFERENTE",
+            "TELEFONO",
+            "EMAIL",
+            "C.STATO_TRATTATIVA"
     );
 
     private final Database database;
@@ -33,31 +36,38 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
     }
 
     @Override
-    public ClientePreviewPage findPage(int page, int pageSize, String orderByColumn, boolean ascending) {
+    public ClientePreviewPage findPage(int page, int pageSize, String searchText, String orderByColumn, boolean ascending) {
         schemaInitializer.initialize();
 
         int safePage = Math.max(0, page);
         int safePageSize = Math.max(1, pageSize);
         int offset = safePage * safePageSize;
-        long totalRows = countAll();
-        String sql = "SELECT ID, RAGIONE_SOCIALE, TIPO_CLIENTE, STATO_TRATTATIVA FROM CLIENTI "
-                + "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", ID "
+        String cleanSearchText = cleanSearchText(searchText);
+        boolean hasSearch = !cleanSearchText.isBlank();
+        long totalRows = countAll(cleanSearchText);
+        String sql = "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
+                + "COALESCE((SELECT MIN(CC.DESCRIZIONE) FROM CONTATTI_CLIENTE CC WHERE CC.CLIENTE_ID = C.ID), '') AS REFERENTE, "
+                + "COALESCE((SELECT MIN(T.DESCRIZIONE) FROM TELEFONI_CLIENTE T WHERE T.CLIENTE_ID = C.ID), '') AS TELEFONO, "
+                + "COALESCE((SELECT MIN(E.DESCRIZIONE) FROM EMAIL_CLIENTE E WHERE E.CLIENTE_ID = C.ID), '') AS EMAIL "
+                + "FROM CLIENTI C "
+                + searchWhereClause(hasSearch)
+                + "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", C.ID "
                 + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
-            statement.setInt(1, offset);
-            statement.setInt(2, safePageSize);
+            int parameterIndex = bindSearchParameters(statement, cleanSearchText, hasSearch, 1);
+            statement.setInt(parameterIndex, offset);
+            statement.setInt(parameterIndex + 1, safePageSize);
             try (ResultSet resultSet = statement.executeQuery()) {
                 List<ClientePreviewRecord> previews = new ArrayList<>();
                 while (resultSet.next()) {
-                    UUID clienteId = getUuid(resultSet, "ID");
                     previews.add(new ClientePreviewRecord(
-                            clienteId,
+                            getUuid(resultSet, "ID"),
                             valueOrEmpty(resultSet.getString("RAGIONE_SOCIALE")),
                             valueOrEmpty(resultSet.getString("TIPO_CLIENTE")),
-                            firstValue("CONTATTI_CLIENTE", clienteId),
-                            firstValue("TELEFONI_CLIENTE", clienteId),
-                            firstValue("EMAIL_CLIENTE", clienteId),
+                            valueOrEmpty(resultSet.getString("REFERENTE")),
+                            valueOrEmpty(resultSet.getString("TELEFONO")),
+                            valueOrEmpty(resultSet.getString("EMAIL")),
                             valueOrEmpty(resultSet.getString("STATO_TRATTATIVA"))
                     ));
                 }
@@ -68,35 +78,55 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         }
     }
 
-    private long countAll() {
-        String sql = "SELECT COUNT(*) FROM CLIENTI";
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            resultSet.next();
-            return resultSet.getLong(1);
+    private long countAll(String searchText) {
+        boolean hasSearch = !searchText.isBlank();
+        String sql = "SELECT COUNT(*) FROM CLIENTI C " + searchWhereClause(hasSearch);
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            bindSearchParameters(statement, searchText, hasSearch, 1);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getLong(1);
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Errore conteggio clienti.", e);
         }
+    }
+
+    private String searchWhereClause(boolean hasSearch) {
+        if (!hasSearch) {
+            return "";
+        }
+
+        return "WHERE LOWER(C.RAGIONE_SOCIALE) LIKE ? "
+                + "OR LOWER(C.TIPO_CLIENTE) LIKE ? "
+                + "OR LOWER(C.STATO_TRATTATIVA) LIKE ? "
+                + "OR EXISTS (SELECT 1 FROM CONTATTI_CLIENTE CC WHERE CC.CLIENTE_ID = C.ID AND LOWER(CC.DESCRIZIONE) LIKE ?) "
+                + "OR EXISTS (SELECT 1 FROM TELEFONI_CLIENTE T WHERE T.CLIENTE_ID = C.ID AND LOWER(T.DESCRIZIONE) LIKE ?) "
+                + "OR EXISTS (SELECT 1 FROM EMAIL_CLIENTE E WHERE E.CLIENTE_ID = C.ID AND LOWER(E.DESCRIZIONE) LIKE ?) ";
+    }
+
+    private int bindSearchParameters(PreparedStatement statement, String searchText, boolean hasSearch, int startIndex) throws SQLException {
+        if (!hasSearch) {
+            return startIndex;
+        }
+
+        String pattern = "%" + searchText + "%";
+        int parameterIndex = startIndex;
+        for (int i = 0; i < 6; i++) {
+            statement.setString(parameterIndex++, pattern);
+        }
+        return parameterIndex;
+    }
+
+    private String cleanSearchText(String searchText) {
+        return searchText == null ? "" : searchText.trim().toLowerCase();
     }
 
     private String safeOrderColumn(String orderByColumn) {
         if (orderByColumn != null && ALLOWED_ORDER_COLUMNS.contains(orderByColumn)) {
             return orderByColumn;
         }
-        return "RAGIONE_SOCIALE";
-    }
-
-    private String firstValue(String tableName, UUID clienteId) throws SQLException {
-        String sql = "SELECT DESCRIZIONE FROM " + tableName + " WHERE CLIENTE_ID = ? ORDER BY ID FETCH FIRST ROW ONLY";
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
-            statement.setString(1, clienteId.toString());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return valueOrEmpty(resultSet.getString("DESCRIZIONE"));
-                }
-                return "";
-            }
-        }
+        return "C.RAGIONE_SOCIALE";
     }
 
     private UUID getUuid(ResultSet resultSet, String column) throws SQLException {

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ClientiPreviewQuery {
-    ClientePreviewPage findPage(int page, int pageSize, String orderByColumn, boolean ascending);
+    ClientePreviewPage findPage(int page, int pageSize, String searchText, String orderByColumn, boolean ascending);
 
     record ClientePreviewPage(
             List<ClientePreviewRecord> records,
