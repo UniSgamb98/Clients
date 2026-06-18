@@ -6,6 +6,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,6 +27,19 @@ abstract class DerbyRepositorySupport {
     protected UUID getUuid(ResultSet resultSet, String column) throws SQLException {
         String value = resultSet.getString(column);
         return value == null ? null : UUID.fromString(value);
+    }
+
+    protected void setInteger(PreparedStatement statement, int index, Integer value) throws SQLException {
+        if (value == null) {
+            statement.setNull(index, Types.INTEGER);
+        } else {
+            statement.setInt(index, value);
+        }
+    }
+
+    protected Integer getInteger(ResultSet resultSet, String column) throws SQLException {
+        int value = resultSet.getInt(column);
+        return resultSet.wasNull() ? null : value;
     }
 
     protected void setDate(PreparedStatement statement, int index, LocalDate value) throws SQLException {

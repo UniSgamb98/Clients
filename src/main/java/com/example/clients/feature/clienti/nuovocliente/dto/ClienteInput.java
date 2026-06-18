@@ -6,6 +6,7 @@ public record ClienteInput(
         String ragioneSociale,
         String tipoCliente,
         String statoTrattativa,
+        Integer coinvolgimento,
         String partitaIva,
         String codiceFiscale,
         LocalDate acquisizione,

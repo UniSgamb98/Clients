@@ -10,6 +10,7 @@ import com.example.clients.core.database.model.NotaCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
 import com.example.clients.core.database.query.ClienteProfileQuery;
+import com.example.clients.core.database.query.StatoTrattativaQuery;
 import com.example.clients.core.database.query.TipoClienteQuery;
 import com.example.clients.core.database.query.ClienteProfileQuery.AddressRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ClienteProfileRecord;
@@ -17,6 +18,7 @@ import com.example.clients.core.database.query.ClienteProfileQuery.ContactRecord
 import com.example.clients.core.database.query.ClienteProfileQuery.TimelineRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ValueRecord;
 import com.example.clients.core.database.query.derby.DerbyClienteProfileQuery;
+import com.example.clients.core.database.query.derby.DerbyStatoTrattativaQuery;
 import com.example.clients.core.database.query.derby.DerbyTipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
@@ -34,13 +36,14 @@ public class SchedaClienteService {
     private final ClientePersistenceService persistenceService;
     private final CurrentOperatoreService currentOperatoreService;
     private final TipoClienteQuery tipoClienteQuery;
+    private final StatoTrattativaQuery statoTrattativaQuery;
     private ClienteProfile currentProfile;
     private EditProfileDraft editingDraft;
     private UUID currentClienteId;
     private TimelineFilter currentFilter = TimelineFilter.ALL;
 
     public SchedaClienteService(Database database) {
-        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService(), new DerbyTipoClienteQuery(database));
+        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService(), new DerbyTipoClienteQuery(database), new DerbyStatoTrattativaQuery(database));
     }
 
     public SchedaClienteService(
@@ -48,7 +51,7 @@ public class SchedaClienteService {
             ClientePersistenceService persistenceService,
             CurrentOperatoreService currentOperatoreService
     ) {
-        this(profileQuery, persistenceService, currentOperatoreService, null);
+        this(profileQuery, persistenceService, currentOperatoreService, null, null);
     }
 
     public SchedaClienteService(
@@ -57,10 +60,21 @@ public class SchedaClienteService {
             CurrentOperatoreService currentOperatoreService,
             TipoClienteQuery tipoClienteQuery
     ) {
+        this(profileQuery, persistenceService, currentOperatoreService, tipoClienteQuery, null);
+    }
+
+    public SchedaClienteService(
+            ClienteProfileQuery profileQuery,
+            ClientePersistenceService persistenceService,
+            CurrentOperatoreService currentOperatoreService,
+            TipoClienteQuery tipoClienteQuery,
+            StatoTrattativaQuery statoTrattativaQuery
+    ) {
         this.profileQuery = profileQuery;
         this.persistenceService = persistenceService;
         this.currentOperatoreService = currentOperatoreService;
         this.tipoClienteQuery = tipoClienteQuery;
+        this.statoTrattativaQuery = statoTrattativaQuery;
     }
 
     public List<String> getTipiCliente() {
@@ -70,6 +84,17 @@ public class SchedaClienteService {
 
         return tipoClienteQuery.findAll().stream()
                 .map(TipoClienteQuery.TipoClienteRecord::nome)
+                .filter(value -> value != null && !value.isBlank())
+                .toList();
+    }
+
+    public List<String> getStatiTrattativa() {
+        if (statoTrattativaQuery == null) {
+            return List.of();
+        }
+
+        return statoTrattativaQuery.findAll().stream()
+                .map(StatoTrattativaQuery.StatoTrattativaRecord::nome)
                 .filter(value -> value != null && !value.isBlank())
                 .toList();
     }
@@ -92,6 +117,7 @@ public class SchedaClienteService {
                 record.ragioneSociale(),
                 record.tipoCliente(),
                 record.statoTrattativa(),
+                record.coinvolgimento(),
                 record.partitaIva(),
                 record.codiceFiscale(),
                 record.acquisizione(),
@@ -148,6 +174,7 @@ public class SchedaClienteService {
                 "Cliente non trovato",
                 "",
                 "",
+                null,
                 "",
                 "",
                 null,
@@ -202,6 +229,7 @@ public class SchedaClienteService {
                 nullableClean(draft.ragioneSociale()),
                 nullableClean(draft.tipoCliente()),
                 nullableClean(draft.statoTrattativa()),
+                cleanCoinvolgimento(draft.coinvolgimento()),
                 nullableClean(draft.partitaIva()),
                 nullableClean(draft.codiceFiscale()),
                 draft.acquisizione(),
@@ -440,6 +468,13 @@ public class SchedaClienteService {
         return value == null ? "" : value.trim();
     }
 
+    private Integer cleanCoinvolgimento(Integer value) {
+        if (value == null || value < 1 || value > 5) {
+            return null;
+        }
+        return value;
+    }
+
     private String nullableClean(String value) {
         String cleanValue = normalize(value);
         return cleanValue.isBlank() ? null : cleanValue;
@@ -477,6 +512,7 @@ public class SchedaClienteService {
             String ragioneSociale,
             String tipoCliente,
             String statoTrattativa,
+            Integer coinvolgimento,
             String partitaIva,
             String codiceFiscale,
             LocalDate acquisizione,
@@ -498,12 +534,12 @@ public class SchedaClienteService {
         }
 
         private ClienteProfile withFavorite(boolean favorite) {
-            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, partitaIva, codiceFiscale, acquisizione,
+            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
                     favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
         }
 
         private ClienteProfile withInterazioni(List<InteractionPreview> interazioni) {
-            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, partitaIva, codiceFiscale, acquisizione,
+            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
                     favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
         }
     }
@@ -512,6 +548,7 @@ public class SchedaClienteService {
             String ragioneSociale,
             String tipoCliente,
             String statoTrattativa,
+            Integer coinvolgimento,
             String partitaIva,
             String codiceFiscale,
             LocalDate acquisizione,
@@ -564,6 +601,7 @@ public class SchedaClienteService {
                     profile.ragioneSociale(),
                     profile.tipoCliente(),
                     profile.statoTrattativa(),
+                    profile.coinvolgimento(),
                     profile.partitaIva(),
                     profile.codiceFiscale(),
                     profile.acquisizione(),

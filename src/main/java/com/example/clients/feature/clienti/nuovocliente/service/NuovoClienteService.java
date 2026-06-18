@@ -7,6 +7,7 @@ import com.example.clients.core.database.model.EmailCliente;
 import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
+import com.example.clients.core.database.query.StatoTrattativaQuery;
 import com.example.clients.core.database.query.TipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
@@ -30,14 +31,15 @@ public class NuovoClienteService {
     private final ClientePersistenceService persistenceService;
     private final CurrentOperatoreService currentOperatoreService;
     private final TipoClienteQuery tipoClienteQuery;
+    private final StatoTrattativaQuery statoTrattativaQuery;
     private NuovoClienteDraft lastPreparedDraft;
 
     public NuovoClienteService(ClientePersistenceService persistenceService) {
-        this(persistenceService, new CurrentOperatoreService(), null);
+        this(persistenceService, new CurrentOperatoreService(), null, null);
     }
 
     public NuovoClienteService(ClientePersistenceService persistenceService, CurrentOperatoreService currentOperatoreService) {
-        this(persistenceService, currentOperatoreService, null);
+        this(persistenceService, currentOperatoreService, null, null);
     }
 
     public NuovoClienteService(
@@ -45,9 +47,19 @@ public class NuovoClienteService {
             CurrentOperatoreService currentOperatoreService,
             TipoClienteQuery tipoClienteQuery
     ) {
+        this(persistenceService, currentOperatoreService, tipoClienteQuery, null);
+    }
+
+    public NuovoClienteService(
+            ClientePersistenceService persistenceService,
+            CurrentOperatoreService currentOperatoreService,
+            TipoClienteQuery tipoClienteQuery,
+            StatoTrattativaQuery statoTrattativaQuery
+    ) {
         this.persistenceService = persistenceService;
         this.currentOperatoreService = currentOperatoreService;
         this.tipoClienteQuery = tipoClienteQuery;
+        this.statoTrattativaQuery = statoTrattativaQuery;
     }
 
     public List<String> getTipiCliente() {
@@ -57,6 +69,17 @@ public class NuovoClienteService {
 
         return tipoClienteQuery.findAll().stream()
                 .map(TipoClienteQuery.TipoClienteRecord::nome)
+                .filter(value -> value != null && !value.isBlank())
+                .toList();
+    }
+
+    public List<String> getStatiTrattativa() {
+        if (statoTrattativaQuery == null) {
+            return List.of();
+        }
+
+        return statoTrattativaQuery.findAll().stream()
+                .map(StatoTrattativaQuery.StatoTrattativaRecord::nome)
                 .filter(value -> value != null && !value.isBlank())
                 .toList();
     }
@@ -75,6 +98,7 @@ public class NuovoClienteService {
                 clean(request.cliente().ragioneSociale()),
                 clean(request.cliente().tipoCliente()),
                 clean(request.cliente().statoTrattativa()),
+                cleanCoinvolgimento(request.cliente().coinvolgimento()),
                 clean(request.cliente().partitaIva()),
                 clean(request.cliente().codiceFiscale()),
                 request.cliente().acquisizione(),
@@ -198,6 +222,13 @@ public class NuovoClienteService {
                 .filter(value -> value != null)
                 .distinct()
                 .toList();
+    }
+
+    private static Integer cleanCoinvolgimento(Integer value) {
+        if (value == null || value < 1 || value > 5) {
+            return null;
+        }
+        return value;
     }
 
     private static String clean(String value) {

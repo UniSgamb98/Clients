@@ -51,6 +51,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
                         valueOrEmpty(resultSet.getString("RAGIONE_SOCIALE")),
                         valueOrEmpty(resultSet.getString("TIPO_CLIENTE")),
                         valueOrEmpty(resultSet.getString("STATO_TRATTATIVA")),
+                        getInteger(resultSet, "COINVOLGIMENTO"),
                         valueOrEmpty(resultSet.getString("PARTITA_IVA")),
                         valueOrEmpty(resultSet.getString("CODICE_FISCALE")),
                         getDate(resultSet, "ACQUISIZIONE"),
@@ -220,6 +221,11 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
     private UUID getUuid(ResultSet resultSet, String column) throws SQLException {
         String value = resultSet.getString(column);
         return value == null ? null : UUID.fromString(value);
+    }
+
+    private Integer getInteger(ResultSet resultSet, String column) throws SQLException {
+        int value = resultSet.getInt(column);
+        return resultSet.wasNull() ? null : value;
     }
 
     private LocalDate getDate(ResultSet resultSet, String column) throws SQLException {

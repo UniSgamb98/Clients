@@ -20,8 +20,8 @@ public final class DerbyClienteRepository extends DerbyRepositorySupport impleme
 
     @Override
     public void insert(Cliente cliente) {
-        String sql = "INSERT INTO CLIENTI (ID, RAGIONE_SOCIALE, TIPO_CLIENTE, STATO_TRATTATIVA, PARTITA_IVA, CODICE_FISCALE, ACQUISIZIONE, OPERATORE_ID, CREATED_AT, UPDATED_AT) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO CLIENTI (ID, RAGIONE_SOCIALE, TIPO_CLIENTE, STATO_TRATTATIVA, COINVOLGIMENTO, PARTITA_IVA, CODICE_FISCALE, ACQUISIZIONE, OPERATORE_ID, CREATED_AT, UPDATED_AT) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             bindCliente(statement, cliente);
             statement.executeUpdate();
@@ -32,18 +32,19 @@ public final class DerbyClienteRepository extends DerbyRepositorySupport impleme
 
     @Override
     public void update(Cliente cliente) {
-        String sql = "UPDATE CLIENTI SET RAGIONE_SOCIALE = ?, TIPO_CLIENTE = ?, STATO_TRATTATIVA = ?, PARTITA_IVA = ?, CODICE_FISCALE = ?, "
+        String sql = "UPDATE CLIENTI SET RAGIONE_SOCIALE = ?, TIPO_CLIENTE = ?, STATO_TRATTATIVA = ?, COINVOLGIMENTO = ?, PARTITA_IVA = ?, CODICE_FISCALE = ?, "
                 + "ACQUISIZIONE = ?, OPERATORE_ID = ?, UPDATED_AT = ? WHERE ID = ?";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, cliente.ragioneSociale());
             statement.setString(2, cliente.tipoCliente());
             statement.setString(3, cliente.statoTrattativa());
-            statement.setString(4, cliente.partitaIva());
-            statement.setString(5, cliente.codiceFiscale());
-            setDate(statement, 6, cliente.acquisizione());
-            setUuid(statement, 7, cliente.operatoreId());
-            setTimestamp(statement, 8, cliente.updatedAt());
-            setUuid(statement, 9, cliente.id());
+            setInteger(statement, 4, cliente.coinvolgimento());
+            statement.setString(5, cliente.partitaIva());
+            statement.setString(6, cliente.codiceFiscale());
+            setDate(statement, 7, cliente.acquisizione());
+            setUuid(statement, 8, cliente.operatoreId());
+            setTimestamp(statement, 9, cliente.updatedAt());
+            setUuid(statement, 10, cliente.id());
             statement.executeUpdate();
         } catch (SQLException e) {
             throw repositoryException("Errore aggiornamento cliente.", e);
@@ -86,12 +87,13 @@ public final class DerbyClienteRepository extends DerbyRepositorySupport impleme
         statement.setString(2, cliente.ragioneSociale());
         statement.setString(3, cliente.tipoCliente());
         statement.setString(4, cliente.statoTrattativa());
-        statement.setString(5, cliente.partitaIva());
-        statement.setString(6, cliente.codiceFiscale());
-        setDate(statement, 7, cliente.acquisizione());
-        setUuid(statement, 8, cliente.operatoreId());
-        setTimestamp(statement, 9, cliente.createdAt());
-        setTimestamp(statement, 10, cliente.updatedAt());
+        setInteger(statement, 5, cliente.coinvolgimento());
+        statement.setString(6, cliente.partitaIva());
+        statement.setString(7, cliente.codiceFiscale());
+        setDate(statement, 8, cliente.acquisizione());
+        setUuid(statement, 9, cliente.operatoreId());
+        setTimestamp(statement, 10, cliente.createdAt());
+        setTimestamp(statement, 11, cliente.updatedAt());
     }
 
     private Cliente mapCliente(ResultSet resultSet) throws SQLException {
@@ -100,6 +102,7 @@ public final class DerbyClienteRepository extends DerbyRepositorySupport impleme
                 resultSet.getString("RAGIONE_SOCIALE"),
                 resultSet.getString("TIPO_CLIENTE"),
                 resultSet.getString("STATO_TRATTATIVA"),
+                getInteger(resultSet, "COINVOLGIMENTO"),
                 resultSet.getString("PARTITA_IVA"),
                 resultSet.getString("CODICE_FISCALE"),
                 getDate(resultSet, "ACQUISIZIONE"),

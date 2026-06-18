@@ -18,6 +18,7 @@ public interface ClienteProfileQuery {
             String ragioneSociale,
             String tipoCliente,
             String statoTrattativa,
+            Integer coinvolgimento,
             String partitaIva,
             String codiceFiscale,
             LocalDate acquisizione,

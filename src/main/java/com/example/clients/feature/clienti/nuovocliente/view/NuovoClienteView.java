@@ -25,7 +25,8 @@ public class NuovoClienteView extends BorderPane {
     private final AppSidebar sidebar;
     private final TextField nameField;
     private final ChoiceBox<String> typeChoiceBox;
-    private final TextField statusField;
+    private final ChoiceBox<String> statusChoiceBox;
+    private final ChoiceBox<Integer> involvementChoiceBox;
     private final TextField vatField;
     private final TextField fiscalCodeField;
     private final TextField acquisitionField;
@@ -70,7 +71,8 @@ public class NuovoClienteView extends BorderPane {
 
         nameField = createTextField("Ragione sociale");
         typeChoiceBox = createChoiceBox();
-        statusField = createTextField("Stato trattativa");
+        statusChoiceBox = createChoiceBox();
+        involvementChoiceBox = createIntegerChoiceBox(List.of(1, 2, 3, 4, 5));
         vatField = createTextField("Partita IVA");
         fiscalCodeField = createTextField("Codice fiscale");
         acquisitionField = createTextField("Data acquisizione");
@@ -176,7 +178,8 @@ public class NuovoClienteView extends BorderPane {
         fields.getChildren().addAll(
                 createFieldGroup("Ragione sociale", nameField),
                 createChoiceGroup("Tipo cliente", typeChoiceBox),
-                createFieldGroup("Stato trattativa", statusField),
+                createChoiceGroup("Stato trattativa", statusChoiceBox),
+                createIntegerChoiceGroup("Coinvolgimento", involvementChoiceBox),
                 createFieldGroup("Partita IVA", vatField),
                 createFieldGroup("Codice fiscale", fiscalCodeField),
                 createFieldGroup("Acquisizione", acquisitionField),
@@ -243,6 +246,15 @@ public class NuovoClienteView extends BorderPane {
     }
 
     private VBox createFieldGroup(String labelText, TextField field) {
+        VBox group = new VBox(6);
+        Label label = new Label(labelText);
+        label.getStyleClass().add("new-client-field-label");
+        field.setMaxWidth(Double.MAX_VALUE);
+        group.getChildren().addAll(label, field);
+        return group;
+    }
+
+    private VBox createIntegerChoiceGroup(String labelText, ChoiceBox<Integer> field) {
         VBox group = new VBox(6);
         Label label = new Label(labelText);
         label.getStyleClass().add("new-client-field-label");
@@ -325,6 +337,13 @@ public class NuovoClienteView extends BorderPane {
         textField.setPromptText(prompt);
         textField.getStyleClass().add("clients-search-field");
         return textField;
+    }
+
+    private ChoiceBox<Integer> createIntegerChoiceBox(List<Integer> options) {
+        ChoiceBox<Integer> choiceBox = new ChoiceBox<>();
+        choiceBox.getStyleClass().add("new-client-choice-box");
+        choiceBox.getItems().setAll(options);
+        return choiceBox;
     }
 
     private ChoiceBox<String> createChoiceBox() {
@@ -466,8 +485,20 @@ public class NuovoClienteView extends BorderPane {
         }
     }
 
-    public TextField getStatusField() {
-        return statusField;
+    public ChoiceBox<String> getStatusChoiceBox() {
+        return statusChoiceBox;
+    }
+
+    public ChoiceBox<Integer> getInvolvementChoiceBox() {
+        return involvementChoiceBox;
+    }
+
+    public void setStatoTrattativaOptions(List<String> options) {
+        String selected = statusChoiceBox.getValue();
+        statusChoiceBox.getItems().setAll(options == null ? List.of() : options);
+        if (selected != null && statusChoiceBox.getItems().contains(selected)) {
+            statusChoiceBox.setValue(selected);
+        }
     }
 
     public TextField getVatField() {

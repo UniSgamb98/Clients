@@ -1,6 +1,7 @@
 package com.example.clients.app;
 
 import com.example.clients.core.async.BackgroundExecutor;
+import com.example.clients.core.database.query.derby.DerbyStatoTrattativaQuery;
 import com.example.clients.core.database.query.derby.DerbyTipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
@@ -107,7 +108,8 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
                 new NuovoClienteService(
                         new ClientePersistenceService(app.database),
                         new CurrentOperatoreService(),
-                        new DerbyTipoClienteQuery(app.database)
+                        new DerbyTipoClienteQuery(app.database),
+                        new DerbyStatoTrattativaQuery(app.database)
                 )
         );
 

@@ -34,6 +34,7 @@ public class NuovoClienteController {
 
     private void configureActions() {
         view.setTipoClienteOptions(service.getTipiCliente());
+        view.setStatoTrattativaOptions(service.getStatiTrattativa());
         view.getCancelButton().setOnAction(event -> clientiNav.showClienti());
         view.getSaveButton().setOnAction(event -> {
             try {
@@ -89,7 +90,8 @@ public class NuovoClienteController {
                 new ClienteInput(
                         text(view.getNameField()),
                         choiceText(view.getTypeChoiceBox()),
-                        text(view.getStatusField()),
+                        choiceText(view.getStatusChoiceBox()),
+                        view.getInvolvementChoiceBox().getValue(),
                         text(view.getVatField()),
                         text(view.getFiscalCodeField()),
                         parseDate(text(view.getAcquisitionField())),

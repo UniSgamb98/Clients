@@ -46,6 +46,7 @@ public class SchedaClienteController {
         view.hideNoteEditor();
         applyTimelineFilter(TimelineFilter.ALL);
         view.setTipoClienteOptions(service.getTipiCliente());
+        view.setStatoTrattativaOptions(service.getStatiTrattativa());
         view.renderEditableProfile(service.startEdit());
     }
 

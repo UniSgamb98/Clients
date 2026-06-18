@@ -72,7 +72,9 @@ public class SchedaClienteView extends BorderPane {
     private TextField ragioneSocialeEditField;
     private ChoiceBox<String> tipoClienteEditField;
     private List<String> tipoClienteOptions = List.of();
-    private TextField statoTrattativaEditField;
+    private ChoiceBox<String> statoTrattativaEditField;
+    private ChoiceBox<Integer> coinvolgimentoEditField;
+    private List<String> statoTrattativaOptions = List.of();
     private TextField partitaIvaEditField;
     private TextField codiceFiscaleEditField;
     private DatePicker acquisizioneEditPicker;
@@ -242,6 +244,7 @@ public class SchedaClienteView extends BorderPane {
                 "Ragione sociale: " + emptyFallback(profile.ragioneSociale()),
                 "Tipo cliente: " + emptyFallback(profile.tipoCliente()),
                 "Stato trattativa: " + emptyFallback(profile.statoTrattativa()),
+                "Coinvolgimento: " + emptyFallback(profile.coinvolgimento()),
                 "Partita IVA: " + emptyFallback(profile.partitaIva()),
                 "Codice fiscale: " + emptyFallback(profile.codiceFiscale()),
                 "Acquisizione: " + formatDate(profile.acquisizione()),
@@ -272,7 +275,8 @@ public class SchedaClienteView extends BorderPane {
         return new EditProfileDraft(
                 valueOf(ragioneSocialeEditField),
                 choiceValueOf(tipoClienteEditField),
-                valueOf(statoTrattativaEditField),
+                choiceValueOf(statoTrattativaEditField),
+                coinvolgimentoEditField == null ? null : coinvolgimentoEditField.getValue(),
                 valueOf(partitaIvaEditField),
                 valueOf(codiceFiscaleEditField),
                 acquisizioneEditPicker.getValue(),
@@ -297,7 +301,8 @@ public class SchedaClienteView extends BorderPane {
         customerDataList.getChildren().clear();
         ragioneSocialeEditField = createTextField(draft.ragioneSociale(), "Ragione sociale");
         tipoClienteEditField = createChoiceBox(draft.tipoCliente());
-        statoTrattativaEditField = createTextField(draft.statoTrattativa(), "Stato trattativa");
+        statoTrattativaEditField = createChoiceBox(draft.statoTrattativa(), statoTrattativaOptions);
+        coinvolgimentoEditField = createIntegerChoiceBox(draft.coinvolgimento());
         partitaIvaEditField = createTextField(draft.partitaIva(), "Partita IVA");
         codiceFiscaleEditField = createTextField(draft.codiceFiscale(), "Codice fiscale");
         acquisizioneEditPicker = new DatePicker(draft.acquisizione());
@@ -306,7 +311,8 @@ public class SchedaClienteView extends BorderPane {
         customerDataList.getChildren().addAll(
                 createFieldRow("Ragione sociale", ragioneSocialeEditField),
                 createChoiceRow("Tipo cliente", tipoClienteEditField),
-                createFieldRow("Stato trattativa", statoTrattativaEditField),
+                createChoiceRow("Stato trattativa", statoTrattativaEditField),
+                createIntegerChoiceRow("Coinvolgimento", coinvolgimentoEditField),
                 createFieldRow("Partita IVA", partitaIvaEditField),
                 createFieldRow("Codice fiscale", codiceFiscaleEditField),
                 createDateRow("Acquisizione", acquisizioneEditPicker),
@@ -582,6 +588,15 @@ public class SchedaClienteView extends BorderPane {
                 .forEach(checkBox -> checkBox.setSelected(false));
     }
 
+    private HBox createIntegerChoiceRow(String labelText, ChoiceBox<Integer> field) {
+        HBox row = new HBox(8);
+        row.getStyleClass().add("client-profile-edit-row");
+        Label label = createEditLabel(labelText);
+        HBox.setHgrow(field, Priority.ALWAYS);
+        row.getChildren().addAll(label, field);
+        return row;
+    }
+
     private HBox createChoiceRow(String labelText, ChoiceBox<String> field) {
         HBox row = new HBox(8);
         row.getStyleClass().add("client-profile-edit-row");
@@ -609,11 +624,26 @@ public class SchedaClienteView extends BorderPane {
         return row;
     }
 
+    private ChoiceBox<Integer> createIntegerChoiceBox(Integer selectedValue) {
+        ChoiceBox<Integer> choiceBox = new ChoiceBox<>();
+        choiceBox.getStyleClass().add("client-profile-edit-choice-box");
+        choiceBox.setMaxWidth(Double.MAX_VALUE);
+        choiceBox.getItems().setAll(1, 2, 3, 4, 5);
+        if (selectedValue != null && selectedValue >= 1 && selectedValue <= 5) {
+            choiceBox.setValue(selectedValue);
+        }
+        return choiceBox;
+    }
+
     private ChoiceBox<String> createChoiceBox(String selectedValue) {
+        return createChoiceBox(selectedValue, tipoClienteOptions);
+    }
+
+    private ChoiceBox<String> createChoiceBox(String selectedValue, List<String> sourceOptions) {
         ChoiceBox<String> choiceBox = new ChoiceBox<>();
         choiceBox.getStyleClass().add("client-profile-edit-choice-box");
         choiceBox.setMaxWidth(Double.MAX_VALUE);
-        List<String> options = new ArrayList<>(tipoClienteOptions);
+        List<String> options = new ArrayList<>(sourceOptions);
         String cleanSelectedValue = emptyFallbackForEdit(selectedValue);
         if (!cleanSelectedValue.isBlank() && !options.contains(cleanSelectedValue)) {
             options.add(0, cleanSelectedValue);
@@ -862,12 +892,20 @@ public class SchedaClienteView extends BorderPane {
         return value == null || value.isBlank() ? "-" : value;
     }
 
+    private String emptyFallback(Integer value) {
+        return value == null ? "-" : value.toString();
+    }
+
     private String emptyFallbackForEdit(String value) {
         return value == null ? "" : value;
     }
 
     public void setTipoClienteOptions(List<String> options) {
         tipoClienteOptions = options == null ? List.of() : List.copyOf(options);
+    }
+
+    public void setStatoTrattativaOptions(List<String> options) {
+        statoTrattativaOptions = options == null ? List.of() : List.copyOf(options);
     }
 
     private String valueOf(TextField field) {
