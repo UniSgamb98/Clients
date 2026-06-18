@@ -445,3 +445,19 @@
     -fx-font-size: 12px;
     -fx-font-weight: 600;
 }
+
+.client-profile-involvement-box {
+    -fx-alignment: center;
+    -fx-spacing: 8;
+}
+
+.client-profile-involvement-label,
+.client-profile-involvement-value {
+    -fx-text-fill: #d4d4d4;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.client-profile-involvement-slider {
+    -fx-pref-width: 140;
+}

@@ -198,6 +198,32 @@ public class SchedaClienteService {
         return loadProfile(currentClienteId);
     }
 
+    public ClienteProfile updateCoinvolgimento(Integer coinvolgimento) {
+        ensureProfileLoaded();
+        if (currentClienteId == null) {
+            return filteredProfile();
+        }
+
+        Integer cleanCoinvolgimento = cleanCoinvolgimento(coinvolgimento);
+        LocalDateTime now = LocalDateTime.now();
+        Cliente cliente = new Cliente(
+                currentClienteId,
+                nullableClean(currentProfile.ragioneSociale()),
+                nullableClean(currentProfile.tipoCliente()),
+                nullableClean(currentProfile.statoTrattativa()),
+                cleanCoinvolgimento,
+                nullableClean(currentProfile.partitaIva()),
+                nullableClean(currentProfile.codiceFiscale()),
+                currentProfile.acquisizione(),
+                currentOperatoreService.currentOperatoreId(),
+                null,
+                now
+        );
+        persistenceService.updateCliente(cliente);
+        currentProfile = currentProfile.withCoinvolgimento(cleanCoinvolgimento);
+        return filteredProfile();
+    }
+
     public ClienteProfile setTimelineFilter(TimelineFilter filter) {
         ensureProfileLoaded();
         currentFilter = filter == null ? TimelineFilter.ALL : filter;
@@ -531,6 +557,11 @@ public class SchedaClienteService {
             indirizzi = List.copyOf(indirizzi);
             contatti = List.copyOf(contatti);
             interazioni = List.copyOf(interazioni);
+        }
+
+        private ClienteProfile withCoinvolgimento(Integer coinvolgimento) {
+            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
         }
 
         private ClienteProfile withFavorite(boolean favorite) {

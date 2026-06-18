@@ -121,6 +121,10 @@ public class ClientePersistenceService {
         }
     }
 
+    public void updateCliente(Cliente cliente) {
+        schemaInitializer.initialize();
+        clienteRepository.update(cliente);
+    }
 
     public void updateClienteProfile(
             Cliente cliente,

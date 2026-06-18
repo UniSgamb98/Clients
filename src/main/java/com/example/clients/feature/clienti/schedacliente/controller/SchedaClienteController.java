@@ -30,6 +30,12 @@ public class SchedaClienteController {
 
     private void configureActions() {
         view.getFavoriteButton().setOnAction(event -> runAndRender("Aggiornamento preferito non riuscito", service::toggleFavorite));
+        view.getInvolvementSlider().valueProperty().addListener((observable, oldValue, newValue) -> updateCoinvolgimentoFromSlider());
+        view.getInvolvementSlider().valueChangingProperty().addListener((observable, wasChanging, isChanging) -> {
+            if (!isChanging) {
+                updateCoinvolgimentoFromSlider();
+            }
+        });
         view.getEditProfileButton().setOnAction(event -> openProfileEditor());
         view.getCancelProfileEditButton().setOnAction(event -> runAndRender("Annullamento modifica non riuscito", service::cancelEdit));
         view.getSaveProfileEditButton().setOnAction(event -> runAndRender("Salvataggio scheda non riuscito", () -> service.saveEdit(view.collectEditDraft())));
@@ -40,6 +46,17 @@ public class SchedaClienteController {
         view.getCallsFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.CALLS));
         view.getCancelNoteButton().setOnAction(event -> view.hideNoteEditor());
         view.getSaveNoteButton().setOnAction(event -> saveEditorContent());
+    }
+
+    private void updateCoinvolgimentoFromSlider() {
+        if (view.isUpdatingInvolvementSlider() || view.getInvolvementSlider().isValueChanging()) {
+            return;
+        }
+
+        runAndRender(
+                "Aggiornamento coinvolgimento non riuscito",
+                () -> service.updateCoinvolgimento(view.involvementSliderValue())
+        );
     }
 
     private void openProfileEditor() {

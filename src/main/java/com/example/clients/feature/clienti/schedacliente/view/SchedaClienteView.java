@@ -22,6 +22,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
@@ -45,6 +46,8 @@ public class SchedaClienteView extends BorderPane {
     private final Label acquisitionLabel;
     private final Label lastInteractionLabel;
     private final Label nextInteractionLabel;
+    private final Slider involvementSlider;
+    private final Label involvementSliderValueLabel;
     private final Button favoriteButton;
     private final Button editProfileButton;
     private final Button saveProfileEditButton;
@@ -78,6 +81,7 @@ public class SchedaClienteView extends BorderPane {
     private TextField partitaIvaEditField;
     private TextField codiceFiscaleEditField;
     private DatePicker acquisizioneEditPicker;
+    private boolean updatingInvolvementSlider;
 
     public SchedaClienteView() {
         header = new AppHeader("Scheda cliente");
@@ -89,6 +93,15 @@ public class SchedaClienteView extends BorderPane {
         acquisitionLabel = createBadgeLabel();
         lastInteractionLabel = createBadgeLabel();
         nextInteractionLabel = createBadgeLabel();
+        involvementSlider = new Slider(1, 5, 1);
+        involvementSlider.setMajorTickUnit(1);
+        involvementSlider.setMinorTickCount(0);
+        involvementSlider.setShowTickMarks(true);
+        involvementSlider.setShowTickLabels(true);
+        involvementSlider.setSnapToTicks(true);
+        involvementSlider.getStyleClass().add("client-profile-involvement-slider");
+        involvementSliderValueLabel = new Label("-");
+        involvementSliderValueLabel.getStyleClass().add("client-profile-involvement-value");
         favoriteButton = new Button("☆");
         favoriteButton.getStyleClass().add("client-profile-favorite-button");
         editProfileButton = new Button("Modifica");
@@ -155,7 +168,7 @@ public class SchedaClienteView extends BorderPane {
         titleBox.getChildren().addAll(titleLabel, subtitleLabel);
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        titleRow.getChildren().addAll(titleBox, spacer, favoriteButton, editProfileButton, saveProfileEditButton, cancelProfileEditButton);
+        titleRow.getChildren().addAll(titleBox, spacer, createInvolvementSliderBox(), favoriteButton, editProfileButton, saveProfileEditButton, cancelProfileEditButton);
 
         HBox callBadges = new HBox(10);
         callBadges.getStyleClass().add("client-profile-badges");
@@ -220,6 +233,15 @@ public class SchedaClienteView extends BorderPane {
         return actions;
     }
 
+    private HBox createInvolvementSliderBox() {
+        HBox box = new HBox(8);
+        box.getStyleClass().add("client-profile-involvement-box");
+        Label label = new Label("Coinvolgimento");
+        label.getStyleClass().add("client-profile-involvement-label");
+        box.getChildren().addAll(label, involvementSlider, involvementSliderValueLabel);
+        return box;
+    }
+
     private Button createTimelineFilterButton(String text) {
         Button button = new Button(text);
         button.getStyleClass().add("client-profile-small-filter-button");
@@ -240,6 +262,7 @@ public class SchedaClienteView extends BorderPane {
         lastInteractionLabel.setText("Ultima chiamata " + lastCallText(profile.interazioni()));
         nextInteractionLabel.setText("Prossima chiamata " + nextCallText(profile.interazioni()));
         setFavorite(profile.favorite());
+        setInvolvementSliderValue(profile.coinvolgimento());
         renderList(customerDataList, List.of(
                 "Ragione sociale: " + emptyFallback(profile.ragioneSociale()),
                 "Tipo cliente: " + emptyFallback(profile.tipoCliente()),
@@ -712,6 +735,7 @@ public class SchedaClienteView extends BorderPane {
         saveProfileEditButton.setManaged(editMode);
         cancelProfileEditButton.setVisible(editMode);
         cancelProfileEditButton.setManaged(editMode);
+        involvementSlider.setDisable(editMode);
         favoriteButton.setDisable(editMode);
         newNoteButton.setDisable(editMode);
         newCallButton.setDisable(editMode);
@@ -956,6 +980,26 @@ public class SchedaClienteView extends BorderPane {
 
     public AppSidebar getSidebar() {
         return sidebar;
+    }
+
+    public Slider getInvolvementSlider() {
+        return involvementSlider;
+    }
+
+    public boolean isUpdatingInvolvementSlider() {
+        return updatingInvolvementSlider;
+    }
+
+    public int involvementSliderValue() {
+        return (int) Math.round(involvementSlider.getValue());
+    }
+
+    public void setInvolvementSliderValue(Integer value) {
+        updatingInvolvementSlider = true;
+        int safeValue = value == null || value < 1 || value > 5 ? 1 : value;
+        involvementSlider.setValue(safeValue);
+        involvementSliderValueLabel.setText(value == null ? "-" : String.valueOf(safeValue));
+        updatingInvolvementSlider = false;
     }
 
     public Button getFavoriteButton() {
