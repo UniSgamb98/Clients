@@ -1,7 +1,9 @@
 package com.example.clients.app;
 
 import com.example.clients.core.async.BackgroundExecutor;
+import com.example.clients.core.database.query.derby.DerbyTipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
+import com.example.clients.core.database.service.CurrentOperatoreService;
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.feature.auth.login.controller.LoginController;
 import com.example.clients.feature.auth.login.navigator.LoginNav;
@@ -99,7 +101,15 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         NuovoClienteView view = new NuovoClienteView();
         configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
-        new NuovoClienteController(view, this, new NuovoClienteService(new ClientePersistenceService(app.database)));
+        new NuovoClienteController(
+                view,
+                this,
+                new NuovoClienteService(
+                        new ClientePersistenceService(app.database),
+                        new CurrentOperatoreService(),
+                        new DerbyTipoClienteQuery(app.database)
+                )
+        );
 
         stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
         stage.setTitle("Clients - Nuovo cliente");

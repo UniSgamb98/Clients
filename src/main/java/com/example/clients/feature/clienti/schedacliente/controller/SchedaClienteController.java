@@ -45,6 +45,7 @@ public class SchedaClienteController {
     private void openProfileEditor() {
         view.hideNoteEditor();
         applyTimelineFilter(TimelineFilter.ALL);
+        view.setTipoClienteOptions(service.getTipiCliente());
         view.renderEditableProfile(service.startEdit());
     }
 

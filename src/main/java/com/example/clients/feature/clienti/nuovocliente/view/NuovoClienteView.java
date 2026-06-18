@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -23,7 +24,7 @@ public class NuovoClienteView extends BorderPane {
     private final AppHeader header;
     private final AppSidebar sidebar;
     private final TextField nameField;
-    private final TextField typeField;
+    private final ChoiceBox<String> typeChoiceBox;
     private final TextField statusField;
     private final TextField vatField;
     private final TextField fiscalCodeField;
@@ -68,7 +69,7 @@ public class NuovoClienteView extends BorderPane {
         sidebar = new AppSidebar();
 
         nameField = createTextField("Ragione sociale");
-        typeField = createTextField("Tipo cliente");
+        typeChoiceBox = createChoiceBox();
         statusField = createTextField("Stato trattativa");
         vatField = createTextField("Partita IVA");
         fiscalCodeField = createTextField("Codice fiscale");
@@ -174,7 +175,7 @@ public class NuovoClienteView extends BorderPane {
         VBox fields = new VBox(10);
         fields.getChildren().addAll(
                 createFieldGroup("Ragione sociale", nameField),
-                createFieldGroup("Tipo cliente", typeField),
+                createChoiceGroup("Tipo cliente", typeChoiceBox),
                 createFieldGroup("Stato trattativa", statusField),
                 createFieldGroup("Partita IVA", vatField),
                 createFieldGroup("Codice fiscale", fiscalCodeField),
@@ -250,6 +251,15 @@ public class NuovoClienteView extends BorderPane {
         return group;
     }
 
+    private VBox createChoiceGroup(String labelText, ChoiceBox<String> field) {
+        VBox group = new VBox(6);
+        Label label = new Label(labelText);
+        label.getStyleClass().add("new-client-field-label");
+        field.setMaxWidth(Double.MAX_VALUE);
+        group.getChildren().addAll(label, field);
+        return group;
+    }
+
     private VBox createComboGroup(String labelText, ComboBox<String> field) {
         VBox group = new VBox(6);
         Label label = new Label(labelText);
@@ -315,6 +325,12 @@ public class NuovoClienteView extends BorderPane {
         textField.setPromptText(prompt);
         textField.getStyleClass().add("clients-search-field");
         return textField;
+    }
+
+    private ChoiceBox<String> createChoiceBox() {
+        ChoiceBox<String> choiceBox = new ChoiceBox<>();
+        choiceBox.getStyleClass().add("new-client-choice-box");
+        return choiceBox;
     }
 
     private ComboBox<String> createLinkedComboBox(String prompt) {
@@ -438,8 +454,16 @@ public class NuovoClienteView extends BorderPane {
         return nameField;
     }
 
-    public TextField getTypeField() {
-        return typeField;
+    public ChoiceBox<String> getTypeChoiceBox() {
+        return typeChoiceBox;
+    }
+
+    public void setTipoClienteOptions(List<String> options) {
+        String selected = typeChoiceBox.getValue();
+        typeChoiceBox.getItems().setAll(options == null ? List.of() : options);
+        if (selected != null && typeChoiceBox.getItems().contains(selected)) {
+            typeChoiceBox.setValue(selected);
+        }
     }
 
     public TextField getStatusField() {

@@ -7,6 +7,7 @@ import com.example.clients.core.database.model.EmailCliente;
 import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
+import com.example.clients.core.database.query.TipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
 import com.example.clients.feature.clienti.nuovocliente.dto.ContattoClienteInput;
@@ -28,15 +29,36 @@ public class NuovoClienteService {
 
     private final ClientePersistenceService persistenceService;
     private final CurrentOperatoreService currentOperatoreService;
+    private final TipoClienteQuery tipoClienteQuery;
     private NuovoClienteDraft lastPreparedDraft;
 
     public NuovoClienteService(ClientePersistenceService persistenceService) {
-        this(persistenceService, new CurrentOperatoreService());
+        this(persistenceService, new CurrentOperatoreService(), null);
     }
 
     public NuovoClienteService(ClientePersistenceService persistenceService, CurrentOperatoreService currentOperatoreService) {
+        this(persistenceService, currentOperatoreService, null);
+    }
+
+    public NuovoClienteService(
+            ClientePersistenceService persistenceService,
+            CurrentOperatoreService currentOperatoreService,
+            TipoClienteQuery tipoClienteQuery
+    ) {
         this.persistenceService = persistenceService;
         this.currentOperatoreService = currentOperatoreService;
+        this.tipoClienteQuery = tipoClienteQuery;
+    }
+
+    public List<String> getTipiCliente() {
+        if (tipoClienteQuery == null) {
+            return List.of();
+        }
+
+        return tipoClienteQuery.findAll().stream()
+                .map(TipoClienteQuery.TipoClienteRecord::nome)
+                .filter(value -> value != null && !value.isBlank())
+                .toList();
     }
 
     public NuovoClienteDraft saveCliente(NuovoClienteRequest request) {

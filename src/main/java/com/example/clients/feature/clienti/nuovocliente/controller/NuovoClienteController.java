@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 
@@ -32,6 +33,7 @@ public class NuovoClienteController {
     }
 
     private void configureActions() {
+        view.setTipoClienteOptions(service.getTipiCliente());
         view.getCancelButton().setOnAction(event -> clientiNav.showClienti());
         view.getSaveButton().setOnAction(event -> {
             try {
@@ -86,7 +88,7 @@ public class NuovoClienteController {
         return new NuovoClienteRequest(
                 new ClienteInput(
                         text(view.getNameField()),
-                        text(view.getTypeField()),
+                        choiceText(view.getTypeChoiceBox()),
                         text(view.getStatusField()),
                         text(view.getVatField()),
                         text(view.getFiscalCodeField()),
@@ -176,6 +178,11 @@ public class NuovoClienteController {
 
     private static String text(TextField field) {
         return field.getText() == null ? "" : field.getText().trim();
+    }
+
+    private static String choiceText(ChoiceBox<String> choiceBox) {
+        String value = choiceBox.getValue();
+        return value == null ? "" : value.trim();
     }
 
     private static String comboText(ComboBox<String> comboBox) {

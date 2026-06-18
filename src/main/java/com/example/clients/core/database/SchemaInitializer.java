@@ -41,7 +41,7 @@ public final class SchemaInitializer {
             try (Statement statement = connection.createStatement()) {
                 statement.executeUpdate(statementSql);
             } catch (SQLException e) {
-                if (!isAlreadyExistingObject(e)) {
+                if (!isAlreadyExistingObject(e) && !isDuplicateSeed(e)) {
                     throw e;
                 }
             }
@@ -76,6 +76,10 @@ public final class SchemaInitializer {
             statements.add(current.toString());
         }
         return statements;
+    }
+
+    private boolean isDuplicateSeed(SQLException e) {
+        return "23505".equals(e.getSQLState());
     }
 
     private boolean isAlreadyExistingObject(SQLException e) {

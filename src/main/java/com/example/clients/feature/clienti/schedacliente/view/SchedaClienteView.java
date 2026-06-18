@@ -17,6 +17,7 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -69,7 +70,8 @@ public class SchedaClienteView extends BorderPane {
     private final List<AddressEditControls> addressEditControls = new ArrayList<>();
     private final List<TimelineEditField> timelineEditFields = new ArrayList<>();
     private TextField ragioneSocialeEditField;
-    private TextField tipoClienteEditField;
+    private ChoiceBox<String> tipoClienteEditField;
+    private List<String> tipoClienteOptions = List.of();
     private TextField statoTrattativaEditField;
     private TextField partitaIvaEditField;
     private TextField codiceFiscaleEditField;
@@ -269,7 +271,7 @@ public class SchedaClienteView extends BorderPane {
     public EditProfileDraft collectEditDraft() {
         return new EditProfileDraft(
                 valueOf(ragioneSocialeEditField),
-                valueOf(tipoClienteEditField),
+                choiceValueOf(tipoClienteEditField),
                 valueOf(statoTrattativaEditField),
                 valueOf(partitaIvaEditField),
                 valueOf(codiceFiscaleEditField),
@@ -294,7 +296,7 @@ public class SchedaClienteView extends BorderPane {
     private void renderCustomerDataEditor(EditProfileDraft draft) {
         customerDataList.getChildren().clear();
         ragioneSocialeEditField = createTextField(draft.ragioneSociale(), "Ragione sociale");
-        tipoClienteEditField = createTextField(draft.tipoCliente(), "Tipo cliente");
+        tipoClienteEditField = createChoiceBox(draft.tipoCliente());
         statoTrattativaEditField = createTextField(draft.statoTrattativa(), "Stato trattativa");
         partitaIvaEditField = createTextField(draft.partitaIva(), "Partita IVA");
         codiceFiscaleEditField = createTextField(draft.codiceFiscale(), "Codice fiscale");
@@ -303,7 +305,7 @@ public class SchedaClienteView extends BorderPane {
 
         customerDataList.getChildren().addAll(
                 createFieldRow("Ragione sociale", ragioneSocialeEditField),
-                createFieldRow("Tipo cliente", tipoClienteEditField),
+                createChoiceRow("Tipo cliente", tipoClienteEditField),
                 createFieldRow("Stato trattativa", statoTrattativaEditField),
                 createFieldRow("Partita IVA", partitaIvaEditField),
                 createFieldRow("Codice fiscale", codiceFiscaleEditField),
@@ -580,6 +582,15 @@ public class SchedaClienteView extends BorderPane {
                 .forEach(checkBox -> checkBox.setSelected(false));
     }
 
+    private HBox createChoiceRow(String labelText, ChoiceBox<String> field) {
+        HBox row = new HBox(8);
+        row.getStyleClass().add("client-profile-edit-row");
+        Label label = createEditLabel(labelText);
+        HBox.setHgrow(field, Priority.ALWAYS);
+        row.getChildren().addAll(label, field);
+        return row;
+    }
+
     private HBox createFieldRow(String labelText, TextField field) {
         HBox row = new HBox(8);
         row.getStyleClass().add("client-profile-edit-row");
@@ -596,6 +607,22 @@ public class SchedaClienteView extends BorderPane {
         HBox.setHgrow(picker, Priority.ALWAYS);
         row.getChildren().addAll(label, picker);
         return row;
+    }
+
+    private ChoiceBox<String> createChoiceBox(String selectedValue) {
+        ChoiceBox<String> choiceBox = new ChoiceBox<>();
+        choiceBox.getStyleClass().add("client-profile-edit-choice-box");
+        choiceBox.setMaxWidth(Double.MAX_VALUE);
+        List<String> options = new ArrayList<>(tipoClienteOptions);
+        String cleanSelectedValue = emptyFallbackForEdit(selectedValue);
+        if (!cleanSelectedValue.isBlank() && !options.contains(cleanSelectedValue)) {
+            options.add(0, cleanSelectedValue);
+        }
+        choiceBox.getItems().setAll(options);
+        if (!cleanSelectedValue.isBlank()) {
+            choiceBox.setValue(cleanSelectedValue);
+        }
+        return choiceBox;
     }
 
     private TextField createTextField(String value, String prompt) {
@@ -839,8 +866,17 @@ public class SchedaClienteView extends BorderPane {
         return value == null ? "" : value;
     }
 
+    public void setTipoClienteOptions(List<String> options) {
+        tipoClienteOptions = options == null ? List.of() : List.copyOf(options);
+    }
+
     private String valueOf(TextField field) {
         return field == null ? "" : field.getText();
+    }
+
+    private String choiceValueOf(ChoiceBox<String> choiceBox) {
+        String value = choiceBox == null ? null : choiceBox.getValue();
+        return value == null ? "" : value;
     }
 
     private List<ValueEditInput> valuesOf(List<TextField> fields) {

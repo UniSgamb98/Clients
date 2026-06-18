@@ -215,6 +215,17 @@
     -fx-pref-width: 320;
 }
 
+.new-client-choice-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d0d0d0;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.new-client-choice-box > .label {
+    -fx-text-fill: #202020;
+}
+
 .new-client-linked-combo {
     -fx-background-color: #ffffff;
     -fx-border-color: #d0d0d0;
@@ -333,6 +344,18 @@
     -fx-text-fill: #d4d4d4;
     -fx-font-size: 12px;
     -fx-font-weight: 700;
+}
+
+.client-profile-edit-choice-box {
+    -fx-background-color: #1f1f1f;
+    -fx-mark-color: #ffffff;
+    -fx-border-color: #3c3c3c;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.client-profile-edit-choice-box > .label {
+    -fx-text-fill: #ffffff;
 }
 
 .client-profile-edit-field {

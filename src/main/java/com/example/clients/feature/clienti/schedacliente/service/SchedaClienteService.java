@@ -10,12 +10,14 @@ import com.example.clients.core.database.model.NotaCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
 import com.example.clients.core.database.query.ClienteProfileQuery;
+import com.example.clients.core.database.query.TipoClienteQuery;
 import com.example.clients.core.database.query.ClienteProfileQuery.AddressRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ClienteProfileRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ContactRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.TimelineRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ValueRecord;
 import com.example.clients.core.database.query.derby.DerbyClienteProfileQuery;
+import com.example.clients.core.database.query.derby.DerbyTipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
 
@@ -31,13 +33,14 @@ public class SchedaClienteService {
     private final ClienteProfileQuery profileQuery;
     private final ClientePersistenceService persistenceService;
     private final CurrentOperatoreService currentOperatoreService;
+    private final TipoClienteQuery tipoClienteQuery;
     private ClienteProfile currentProfile;
     private EditProfileDraft editingDraft;
     private UUID currentClienteId;
     private TimelineFilter currentFilter = TimelineFilter.ALL;
 
     public SchedaClienteService(Database database) {
-        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService());
+        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService(), new DerbyTipoClienteQuery(database));
     }
 
     public SchedaClienteService(
@@ -45,9 +48,30 @@ public class SchedaClienteService {
             ClientePersistenceService persistenceService,
             CurrentOperatoreService currentOperatoreService
     ) {
+        this(profileQuery, persistenceService, currentOperatoreService, null);
+    }
+
+    public SchedaClienteService(
+            ClienteProfileQuery profileQuery,
+            ClientePersistenceService persistenceService,
+            CurrentOperatoreService currentOperatoreService,
+            TipoClienteQuery tipoClienteQuery
+    ) {
         this.profileQuery = profileQuery;
         this.persistenceService = persistenceService;
         this.currentOperatoreService = currentOperatoreService;
+        this.tipoClienteQuery = tipoClienteQuery;
+    }
+
+    public List<String> getTipiCliente() {
+        if (tipoClienteQuery == null) {
+            return List.of();
+        }
+
+        return tipoClienteQuery.findAll().stream()
+                .map(TipoClienteQuery.TipoClienteRecord::nome)
+                .filter(value -> value != null && !value.isBlank())
+                .toList();
     }
 
     public ClienteProfile loadProfile(UUID clienteId) {
