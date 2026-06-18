@@ -29,8 +29,8 @@ public class ClientiController {
     private boolean ascending = true;
     private String currentSearchText = "";
     private OperatoreFilter currentOperatoreFilter = OperatoreFilter.empty();
-    private TextFilter currentTipoClienteFilter = TextFilter.empty("Tutti i tipi cliente");
-    private TextFilter currentStatoTrattativaFilter = TextFilter.empty("Tutti gli stati trattativa");
+    private TextFilter currentTipoClienteFilter = TextFilter.empty("Tutti");
+    private TextFilter currentStatoTrattativaFilter = TextFilter.empty("Tutti");
     private int currentPage;
     private long loadVersion;
 
@@ -96,12 +96,12 @@ public class ClientiController {
     }
 
     private void filterByTipoCliente(TextFilter filter) {
-        currentTipoClienteFilter = filter == null ? TextFilter.empty("Tutti i tipi cliente") : filter;
+        currentTipoClienteFilter = filter == null ? TextFilter.empty("Tutti") : filter;
         loadPage(0);
     }
 
     private void filterByStatoTrattativa(TextFilter filter) {
-        currentStatoTrattativaFilter = filter == null ? TextFilter.empty("Tutti gli stati trattativa") : filter;
+        currentStatoTrattativaFilter = filter == null ? TextFilter.empty("Tutti") : filter;
         loadPage(0);
     }
 

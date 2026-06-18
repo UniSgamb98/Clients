@@ -204,7 +204,7 @@ public class ClientiService {
 
     public record OperatoreFilter(UUID id, String label) {
         public static OperatoreFilter empty() {
-            return new OperatoreFilter(null, "Tutti gli operatori");
+            return new OperatoreFilter(null, "Tutti");
         }
 
         @Override

@@ -62,8 +62,8 @@ public class ClientiView extends BorderPane {
         operatorFilterChoiceBox.getStyleClass().add("clients-operator-filter-choice");
         operatorFilterChoiceBox.getItems().add(OperatoreFilter.empty());
         operatorFilterChoiceBox.getSelectionModel().selectFirst();
-        typeFilterChoiceBox = createTextFilterChoiceBox("Tutti i tipi cliente");
-        statusFilterChoiceBox = createTextFilterChoiceBox("Tutti gli stati trattativa");
+        typeFilterChoiceBox = createTextFilterChoiceBox("Tutti");
+        statusFilterChoiceBox = createTextFilterChoiceBox("Tutti");
 
         nameHeaderButton = createHeaderButton("Nome", NAME_COLUMN_WIDTH);
         typeHeaderButton = createHeaderButton("Tipo", TYPE_COLUMN_WIDTH);
@@ -305,11 +305,11 @@ public class ClientiView extends BorderPane {
     }
 
     public void setTypeFilters(List<TextFilter> types) {
-        setTextFilters(typeFilterChoiceBox, TextFilter.empty("Tutti i tipi cliente"), types);
+        setTextFilters(typeFilterChoiceBox, TextFilter.empty("Tutti"), types);
     }
 
     public void setStatusFilters(List<TextFilter> statuses) {
-        setTextFilters(statusFilterChoiceBox, TextFilter.empty("Tutti gli stati trattativa"), statuses);
+        setTextFilters(statusFilterChoiceBox, TextFilter.empty("Tutti"), statuses);
     }
 
     private void setTextFilters(ChoiceBox<TextFilter> choiceBox, TextFilter emptyFilter, List<TextFilter> filters) {

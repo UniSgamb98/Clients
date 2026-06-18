@@ -51,7 +51,7 @@
     -fx-background-color: #3f3f46;
     -fx-mark-color: #f0f0f0;
     -fx-background-radius: 8;
-    -fx-pref-width: 220;
+    -fx-pref-width: 150;
 }
 
 .clients-operator-filter-choice > .label {
