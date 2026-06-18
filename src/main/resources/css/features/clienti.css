@@ -226,6 +226,18 @@
     -fx-text-fill: #202020;
 }
 
+.new-client-choice-box .context-menu .menu-item .label,
+.client-profile-edit-choice-box .context-menu .menu-item .label,
+.context-menu .menu-item .label {
+    -fx-text-fill: #202020;
+}
+
+.new-client-choice-box .context-menu .menu-item:focused .label,
+.client-profile-edit-choice-box .context-menu .menu-item:focused .label,
+.context-menu .menu-item:focused .label {
+    -fx-text-fill: #ffffff;
+}
+
 .new-client-linked-combo {
     -fx-background-color: #ffffff;
     -fx-border-color: #d0d0d0;
