@@ -36,7 +36,7 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
     }
 
     @Override
-    public ClientePreviewPage findPage(int page, int pageSize, String searchText, String orderByColumn, boolean ascending) {
+    public ClientePreviewPage findPage(int page, int pageSize, String searchText, UUID operatoreId, String orderByColumn, boolean ascending) {
         schemaInitializer.initialize();
 
         int safePage = Math.max(0, page);
@@ -44,7 +44,7 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         int offset = safePage * safePageSize;
         String cleanSearchText = cleanSearchText(searchText);
         boolean hasSearch = !cleanSearchText.isBlank();
-        long totalRows = countAll(cleanSearchText);
+        long totalRows = countAll(cleanSearchText, operatoreId);
         String sql = "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
                 + "COALESCE(R.REFERENTE, '') AS REFERENTE, "
                 + "COALESCE(T.TELEFONO, '') AS TELEFONO, "
@@ -53,12 +53,12 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                 + previewAggregateJoin("CONTATTI_CLIENTE", "R", "REFERENTE")
                 + previewAggregateJoin("TELEFONI_CLIENTE", "T", "TELEFONO")
                 + previewAggregateJoin("EMAIL_CLIENTE", "E", "EMAIL")
-                + searchWhereClause(hasSearch)
+                + filterWhereClause(hasSearch, operatoreId != null)
                 + "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", C.ID "
                 + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
-            int parameterIndex = bindSearchParameters(statement, cleanSearchText, hasSearch, 1);
+            int parameterIndex = bindFilterParameters(statement, cleanSearchText, hasSearch, operatoreId, 1);
             statement.setInt(parameterIndex, offset);
             statement.setInt(parameterIndex + 1, safePageSize);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -89,11 +89,11 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                 + ") " + alias + " ON " + alias + ".CLIENTE_ID = C.ID ";
     }
 
-    private long countAll(String searchText) {
+    private long countAll(String searchText, UUID operatoreId) {
         boolean hasSearch = !searchText.isBlank();
-        String sql = "SELECT COUNT(*) FROM CLIENTI C " + searchWhereClause(hasSearch);
+        String sql = "SELECT COUNT(*) FROM CLIENTI C " + filterWhereClause(hasSearch, operatoreId != null);
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
-            bindSearchParameters(statement, searchText, hasSearch, 1);
+            bindFilterParameters(statement, searchText, hasSearch, operatoreId, 1);
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
                 return resultSet.getLong(1);
@@ -103,26 +103,38 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         }
     }
 
-    private String searchWhereClause(boolean hasSearch) {
-        if (!hasSearch) {
+    private String filterWhereClause(boolean hasSearch, boolean hasOperatoreFilter) {
+        if (!hasSearch && !hasOperatoreFilter) {
             return "";
         }
 
-        return "WHERE LOWER(C.RAGIONE_SOCIALE) LIKE ? "
-                + "OR LOWER(C.TIPO_CLIENTE) LIKE ? "
-                + "OR LOWER(C.STATO_TRATTATIVA) LIKE ? "
-                + "OR EXISTS (SELECT 1 FROM CONTATTI_CLIENTE CC WHERE CC.CLIENTE_ID = C.ID AND LOWER(CC.DESCRIZIONE) LIKE ?) "
-                + "OR EXISTS (SELECT 1 FROM TELEFONI_CLIENTE T WHERE T.CLIENTE_ID = C.ID AND LOWER(T.DESCRIZIONE) LIKE ?) "
-                + "OR EXISTS (SELECT 1 FROM EMAIL_CLIENTE E WHERE E.CLIENTE_ID = C.ID AND LOWER(E.DESCRIZIONE) LIKE ?) ";
+        List<String> conditions = new ArrayList<>();
+        if (hasOperatoreFilter) {
+            conditions.add("C.OPERATORE_ID = ?");
+        }
+        if (hasSearch) {
+            conditions.add("("
+                    + "LOWER(C.RAGIONE_SOCIALE) LIKE ? "
+                    + "OR LOWER(C.TIPO_CLIENTE) LIKE ? "
+                    + "OR LOWER(C.STATO_TRATTATIVA) LIKE ? "
+                    + "OR EXISTS (SELECT 1 FROM CONTATTI_CLIENTE CC WHERE CC.CLIENTE_ID = C.ID AND LOWER(CC.DESCRIZIONE) LIKE ?) "
+                    + "OR EXISTS (SELECT 1 FROM TELEFONI_CLIENTE T WHERE T.CLIENTE_ID = C.ID AND LOWER(T.DESCRIZIONE) LIKE ?) "
+                    + "OR EXISTS (SELECT 1 FROM EMAIL_CLIENTE E WHERE E.CLIENTE_ID = C.ID AND LOWER(E.DESCRIZIONE) LIKE ?)"
+                    + ")");
+        }
+        return "WHERE " + String.join(" AND ", conditions) + " ";
     }
 
-    private int bindSearchParameters(PreparedStatement statement, String searchText, boolean hasSearch, int startIndex) throws SQLException {
+    private int bindFilterParameters(PreparedStatement statement, String searchText, boolean hasSearch, UUID operatoreId, int startIndex) throws SQLException {
+        int parameterIndex = startIndex;
+        if (operatoreId != null) {
+            statement.setString(parameterIndex++, operatoreId.toString());
+        }
         if (!hasSearch) {
-            return startIndex;
+            return parameterIndex;
         }
 
         String pattern = "%" + searchText + "%";
-        int parameterIndex = startIndex;
         for (int i = 0; i < 6; i++) {
             statement.setString(parameterIndex++, pattern);
         }

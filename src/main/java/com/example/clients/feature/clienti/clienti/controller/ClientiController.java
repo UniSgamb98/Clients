@@ -6,11 +6,14 @@ import com.example.clients.feature.clienti.clienti.service.ClientiService.Client
 import com.example.clients.feature.clienti.clienti.service.ClientiService.ClientePreviewRow;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.ClientiPage;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.ClientiSearchRequest;
+import com.example.clients.feature.clienti.clienti.service.ClientiService.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.SortColumn;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.navigator.ClientiNav;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
+
+import java.util.List;
 
 public class ClientiController {
 
@@ -24,6 +27,7 @@ public class ClientiController {
     private SortColumn currentSortColumn = SortColumn.NAME;
     private boolean ascending = true;
     private String currentSearchText = "";
+    private OperatoreFilter currentOperatoreFilter = OperatoreFilter.empty();
     private int currentPage;
     private long loadVersion;
 
@@ -45,10 +49,21 @@ public class ClientiController {
         view.getPreviousPageButton().setOnAction(event -> loadPage(currentPage - 1));
         view.getNextPageButton().setOnAction(event -> loadPage(currentPage + 1));
         view.getSearchField().textProperty().addListener((observable, oldValue, newValue) -> searchClienti(newValue));
+        view.getOperatorFilterChoiceBox().getSelectionModel().selectedItemProperty()
+                .addListener((observable, oldValue, newValue) -> filterByOperatore(newValue));
     }
 
     public void loadPreviewClientsAsync() {
+        loadOperatorFiltersAsync();
         loadPage(0);
+    }
+
+    private void loadOperatorFiltersAsync() {
+        AsyncLoader.run(
+                service::getOperatorFilters,
+                view::setOperatorFilters,
+                error -> view.setOperatorFilters(List.of())
+        );
     }
 
     private void searchClienti(String searchText) {
@@ -56,6 +71,11 @@ public class ClientiController {
         searchDebounce.stop();
         searchDebounce.setOnFinished(event -> loadPage(0));
         searchDebounce.playFromStart();
+    }
+
+    private void filterByOperatore(OperatoreFilter operatoreFilter) {
+        currentOperatoreFilter = operatoreFilter == null ? OperatoreFilter.empty() : operatoreFilter;
+        loadPage(0);
     }
 
     private void sortClienti(SortColumn sortColumn) {
@@ -70,7 +90,14 @@ public class ClientiController {
 
     private void loadPage(int page) {
         currentPage = Math.max(0, page);
-        ClientiSearchRequest request = new ClientiSearchRequest(currentPage, PAGE_SIZE, currentSearchText, currentSortColumn, ascending);
+        ClientiSearchRequest request = new ClientiSearchRequest(
+                currentPage,
+                PAGE_SIZE,
+                currentSearchText,
+                currentOperatoreFilter.id(),
+                currentSortColumn,
+                ascending
+        );
         long version = ++loadVersion;
         view.showLoading();
         view.setPaginationDisabled(true);

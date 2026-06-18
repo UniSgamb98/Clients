@@ -41,6 +41,23 @@
     -fx-padding: 7 12;
 }
 
+.clients-filter-label {
+    -fx-text-fill: #d6d6d6;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.clients-operator-filter-choice {
+    -fx-background-color: #3f3f46;
+    -fx-mark-color: #f0f0f0;
+    -fx-background-radius: 8;
+    -fx-pref-width: 220;
+}
+
+.clients-operator-filter-choice > .label {
+    -fx-text-fill: #f0f0f0;
+}
+
 .clients-table {
     -fx-background-color: #252526;
     -fx-background-radius: 10;

@@ -4,18 +4,28 @@ import com.example.clients.core.database.Database;
 import com.example.clients.core.database.query.ClientiPreviewQuery;
 import com.example.clients.core.database.query.derby.DerbyClientiPreviewQuery;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class ClientiService {
 
+    private final Database database;
     private final ClientiPreviewQuery clientiPreviewQuery;
 
     public ClientiService(Database database) {
-        this(new DerbyClientiPreviewQuery(database));
+        this(database, new DerbyClientiPreviewQuery(database));
     }
 
     public ClientiService(ClientiPreviewQuery clientiPreviewQuery) {
+        this(null, clientiPreviewQuery);
+    }
+
+    public ClientiService(Database database, ClientiPreviewQuery clientiPreviewQuery) {
+        this.database = database;
         this.clientiPreviewQuery = clientiPreviewQuery;
     }
 
@@ -24,6 +34,7 @@ public class ClientiService {
                 request.page(),
                 request.pageSize(),
                 request.searchText(),
+                request.operatoreId(),
                 request.sortColumn().sqlColumn(),
                 request.ascending()
         );
@@ -35,6 +46,44 @@ public class ClientiService {
                 page.pageSize(),
                 page.totalRows()
         );
+    }
+
+    public List<OperatoreFilter> getOperatorFilters() {
+        if (database == null) {
+            return List.of();
+        }
+
+        String sql = "SELECT ID, NOME, COGNOME, USERNAME FROM OPERATORI WHERE ATTIVO = 1 ORDER BY USERNAME";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            List<OperatoreFilter> operators = new ArrayList<>();
+            while (resultSet.next()) {
+                operators.add(new OperatoreFilter(
+                        UUID.fromString(resultSet.getString("ID")),
+                        operatorLabel(
+                                resultSet.getString("NOME"),
+                                resultSet.getString("COGNOME"),
+                                resultSet.getString("USERNAME")
+                        )
+                ));
+            }
+            return operators;
+        } catch (SQLException e) {
+            throw new RuntimeException("Errore caricamento operatori.", e);
+        }
+    }
+
+    private String operatorLabel(String nome, String cognome, String username) {
+        String fullName = String.join(" ", valueOrEmpty(nome), valueOrEmpty(cognome)).trim();
+        String cleanUsername = valueOrEmpty(username);
+        if (fullName.isBlank()) {
+            return cleanUsername;
+        }
+        return cleanUsername.isBlank() ? fullName : fullName + " (" + cleanUsername + ")";
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private ClientePreviewRow toPreviewRow(ClientiPreviewQuery.ClientePreviewRecord record) {
@@ -74,6 +123,7 @@ public class ClientiService {
             int page,
             int pageSize,
             String searchText,
+            UUID operatoreId,
             SortColumn sortColumn,
             boolean ascending
     ) {
@@ -108,6 +158,17 @@ public class ClientiService {
 
         public boolean hasNextPage() {
             return page + 1 < totalPages();
+        }
+    }
+
+    public record OperatoreFilter(UUID id, String label) {
+        public static OperatoreFilter empty() {
+            return new OperatoreFilter(null, "Tutti gli operatori");
+        }
+
+        @Override
+        public String toString() {
+            return label;
         }
     }
 

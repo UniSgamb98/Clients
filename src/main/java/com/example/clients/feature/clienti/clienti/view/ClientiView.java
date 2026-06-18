@@ -2,8 +2,10 @@ package com.example.clients.feature.clienti.clienti.view;
 
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
+import com.example.clients.feature.clienti.clienti.service.ClientiService.OperatoreFilter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
@@ -11,6 +13,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+
+import java.util.List;
 
 public class ClientiView extends BorderPane {
 
@@ -25,10 +29,7 @@ public class ClientiView extends BorderPane {
     private final AppSidebar sidebar;
     private final TextField searchField;
     private final Button newClientButton;
-    private final Button allFilterButton;
-    private final Button activeFilterButton;
-    private final Button prospectFilterButton;
-    private final Button inactiveFilterButton;
+    private final ChoiceBox<OperatoreFilter> operatorFilterChoiceBox;
     private final Button nameHeaderButton;
     private final Button typeHeaderButton;
     private final Button contactHeaderButton;
@@ -54,10 +55,10 @@ public class ClientiView extends BorderPane {
         newClientButton = new Button("+ Nuovo cliente");
         newClientButton.getStyleClass().add("clients-primary-button");
 
-        allFilterButton = createFilterButton("Tutti");
-        activeFilterButton = createFilterButton("Attivi");
-        prospectFilterButton = createFilterButton("Prospect");
-        inactiveFilterButton = createFilterButton("Inattivi");
+        operatorFilterChoiceBox = new ChoiceBox<>();
+        operatorFilterChoiceBox.getStyleClass().add("clients-operator-filter-choice");
+        operatorFilterChoiceBox.getItems().add(OperatoreFilter.empty());
+        operatorFilterChoiceBox.getSelectionModel().selectFirst();
 
         nameHeaderButton = createHeaderButton("Nome", NAME_COLUMN_WIDTH);
         typeHeaderButton = createHeaderButton("Tipo", TYPE_COLUMN_WIDTH);
@@ -112,7 +113,9 @@ public class ClientiView extends BorderPane {
 
         HBox filters = new HBox(8);
         filters.getStyleClass().add("clients-filter-bar");
-        filters.getChildren().addAll(allFilterButton, activeFilterButton, prospectFilterButton, inactiveFilterButton);
+        Label operatorFilterLabel = new Label("Operatore");
+        operatorFilterLabel.getStyleClass().add("clients-filter-label");
+        filters.getChildren().addAll(operatorFilterLabel, operatorFilterChoiceBox);
 
         initializeTable();
         VBox.setVgrow(table, javafx.scene.layout.Priority.ALWAYS);
@@ -265,20 +268,22 @@ public class ClientiView extends BorderPane {
         return newClientButton;
     }
 
-    public Button getAllFilterButton() {
-        return allFilterButton;
+    public ChoiceBox<OperatoreFilter> getOperatorFilterChoiceBox() {
+        return operatorFilterChoiceBox;
     }
 
-    public Button getActiveFilterButton() {
-        return activeFilterButton;
-    }
+    public void setOperatorFilters(List<OperatoreFilter> operators) {
+        OperatoreFilter selected = operatorFilterChoiceBox.getSelectionModel().getSelectedItem();
+        operatorFilterChoiceBox.getItems().setAll(OperatoreFilter.empty());
+        if (operators != null) {
+            operatorFilterChoiceBox.getItems().addAll(operators);
+        }
 
-    public Button getProspectFilterButton() {
-        return prospectFilterButton;
-    }
-
-    public Button getInactiveFilterButton() {
-        return inactiveFilterButton;
+        if (selected != null && operatorFilterChoiceBox.getItems().contains(selected)) {
+            operatorFilterChoiceBox.getSelectionModel().select(selected);
+        } else {
+            operatorFilterChoiceBox.getSelectionModel().selectFirst();
+        }
     }
 
     public Button getNameHeaderButton() {
