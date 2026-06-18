@@ -35,6 +35,8 @@ public class ClientiService {
                 request.pageSize(),
                 request.searchText(),
                 request.operatoreId(),
+                request.tipoCliente(),
+                request.statoTrattativa(),
                 request.sortColumn().sqlColumn(),
                 request.ascending()
         );
@@ -53,7 +55,10 @@ public class ClientiService {
             return List.of();
         }
 
-        String sql = "SELECT ID, NOME, COGNOME, USERNAME FROM OPERATORI WHERE ATTIVO = 1 ORDER BY USERNAME";
+        String sql = "SELECT DISTINCT O.ID, O.NOME, O.COGNOME, O.USERNAME "
+                + "FROM CLIENTI C "
+                + "JOIN OPERATORI O ON O.ID = C.OPERATORE_ID "
+                + "ORDER BY O.USERNAME";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
             List<OperatoreFilter> operators = new ArrayList<>();
@@ -70,6 +75,38 @@ public class ClientiService {
             return operators;
         } catch (SQLException e) {
             throw new RuntimeException("Errore caricamento operatori.", e);
+        }
+    }
+
+    public List<TextFilter> getTipoClienteFilters() {
+        return getDistinctClientValues("TIPO_CLIENTE").stream()
+                .map(value -> new TextFilter(value, value))
+                .toList();
+    }
+
+    public List<TextFilter> getStatoTrattativaFilters() {
+        return getDistinctClientValues("STATO_TRATTATIVA").stream()
+                .map(value -> new TextFilter(value, value))
+                .toList();
+    }
+
+    private List<String> getDistinctClientValues(String columnName) {
+        if (database == null) {
+            return List.of();
+        }
+
+        String sql = "SELECT DISTINCT " + columnName + " FROM CLIENTI "
+                + "WHERE " + columnName + " IS NOT NULL AND TRIM(" + columnName + ") <> '' "
+                + "ORDER BY " + columnName;
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            List<String> values = new ArrayList<>();
+            while (resultSet.next()) {
+                values.add(valueOrEmpty(resultSet.getString(1)));
+            }
+            return values;
+        } catch (SQLException e) {
+            throw new RuntimeException("Errore caricamento filtri clienti.", e);
         }
     }
 
@@ -124,6 +161,8 @@ public class ClientiService {
             int pageSize,
             String searchText,
             UUID operatoreId,
+            String tipoCliente,
+            String statoTrattativa,
             SortColumn sortColumn,
             boolean ascending
     ) {
@@ -131,6 +170,8 @@ public class ClientiService {
             page = Math.max(0, page);
             pageSize = Math.max(1, pageSize);
             searchText = searchText == null ? "" : searchText.trim();
+            tipoCliente = tipoCliente == null ? "" : tipoCliente.trim();
+            statoTrattativa = statoTrattativa == null ? "" : statoTrattativa.trim();
             sortColumn = sortColumn == null ? SortColumn.NAME : sortColumn;
         }
     }
@@ -164,6 +205,21 @@ public class ClientiService {
     public record OperatoreFilter(UUID id, String label) {
         public static OperatoreFilter empty() {
             return new OperatoreFilter(null, "Tutti gli operatori");
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    public record TextFilter(String value, String label) {
+        public static TextFilter empty(String label) {
+            return new TextFilter("", label);
+        }
+
+        public boolean isEmptyOption() {
+            return value == null || value.isBlank();
         }
 
         @Override

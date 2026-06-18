@@ -8,6 +8,7 @@ import com.example.clients.feature.clienti.clienti.service.ClientiService.Client
 import com.example.clients.feature.clienti.clienti.service.ClientiService.ClientiSearchRequest;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.SortColumn;
+import com.example.clients.feature.clienti.clienti.service.ClientiService.TextFilter;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.navigator.ClientiNav;
 import javafx.animation.PauseTransition;
@@ -28,6 +29,8 @@ public class ClientiController {
     private boolean ascending = true;
     private String currentSearchText = "";
     private OperatoreFilter currentOperatoreFilter = OperatoreFilter.empty();
+    private TextFilter currentTipoClienteFilter = TextFilter.empty("Tutti i tipi cliente");
+    private TextFilter currentStatoTrattativaFilter = TextFilter.empty("Tutti gli stati trattativa");
     private int currentPage;
     private long loadVersion;
 
@@ -51,18 +54,32 @@ public class ClientiController {
         view.getSearchField().textProperty().addListener((observable, oldValue, newValue) -> searchClienti(newValue));
         view.getOperatorFilterChoiceBox().getSelectionModel().selectedItemProperty()
                 .addListener((observable, oldValue, newValue) -> filterByOperatore(newValue));
+        view.getTypeFilterChoiceBox().getSelectionModel().selectedItemProperty()
+                .addListener((observable, oldValue, newValue) -> filterByTipoCliente(newValue));
+        view.getStatusFilterChoiceBox().getSelectionModel().selectedItemProperty()
+                .addListener((observable, oldValue, newValue) -> filterByStatoTrattativa(newValue));
     }
 
     public void loadPreviewClientsAsync() {
-        loadOperatorFiltersAsync();
+        loadFiltersAsync();
         loadPage(0);
     }
 
-    private void loadOperatorFiltersAsync() {
+    private void loadFiltersAsync() {
         AsyncLoader.run(
                 service::getOperatorFilters,
                 view::setOperatorFilters,
                 error -> view.setOperatorFilters(List.of())
+        );
+        AsyncLoader.run(
+                service::getTipoClienteFilters,
+                view::setTypeFilters,
+                error -> view.setTypeFilters(List.of())
+        );
+        AsyncLoader.run(
+                service::getStatoTrattativaFilters,
+                view::setStatusFilters,
+                error -> view.setStatusFilters(List.of())
         );
     }
 
@@ -75,6 +92,16 @@ public class ClientiController {
 
     private void filterByOperatore(OperatoreFilter operatoreFilter) {
         currentOperatoreFilter = operatoreFilter == null ? OperatoreFilter.empty() : operatoreFilter;
+        loadPage(0);
+    }
+
+    private void filterByTipoCliente(TextFilter filter) {
+        currentTipoClienteFilter = filter == null ? TextFilter.empty("Tutti i tipi cliente") : filter;
+        loadPage(0);
+    }
+
+    private void filterByStatoTrattativa(TextFilter filter) {
+        currentStatoTrattativaFilter = filter == null ? TextFilter.empty("Tutti gli stati trattativa") : filter;
         loadPage(0);
     }
 
@@ -95,6 +122,8 @@ public class ClientiController {
                 PAGE_SIZE,
                 currentSearchText,
                 currentOperatoreFilter.id(),
+                filterValue(currentTipoClienteFilter),
+                filterValue(currentStatoTrattativaFilter),
                 currentSortColumn,
                 ascending
         );
@@ -116,6 +145,10 @@ public class ClientiController {
                     }
                 }
         );
+    }
+
+    private String filterValue(TextFilter filter) {
+        return filter == null || filter.isEmptyOption() ? "" : filter.value();
     }
 
     private void renderClienti(ClientiPage page) {

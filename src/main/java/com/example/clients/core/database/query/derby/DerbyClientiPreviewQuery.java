@@ -36,7 +36,7 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
     }
 
     @Override
-    public ClientePreviewPage findPage(int page, int pageSize, String searchText, UUID operatoreId, String orderByColumn, boolean ascending) {
+    public ClientePreviewPage findPage(int page, int pageSize, String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa, String orderByColumn, boolean ascending) {
         schemaInitializer.initialize();
 
         int safePage = Math.max(0, page);
@@ -44,7 +44,9 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         int offset = safePage * safePageSize;
         String cleanSearchText = cleanSearchText(searchText);
         boolean hasSearch = !cleanSearchText.isBlank();
-        long totalRows = countAll(cleanSearchText, operatoreId);
+        String cleanTipoCliente = cleanFilterText(tipoCliente);
+        String cleanStatoTrattativa = cleanFilterText(statoTrattativa);
+        long totalRows = countAll(cleanSearchText, operatoreId, cleanTipoCliente, cleanStatoTrattativa);
         String sql = "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
                 + "COALESCE(R.REFERENTE, '') AS REFERENTE, "
                 + "COALESCE(T.TELEFONO, '') AS TELEFONO, "
@@ -53,12 +55,12 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                 + previewAggregateJoin("CONTATTI_CLIENTE", "R", "REFERENTE")
                 + previewAggregateJoin("TELEFONI_CLIENTE", "T", "TELEFONO")
                 + previewAggregateJoin("EMAIL_CLIENTE", "E", "EMAIL")
-                + filterWhereClause(hasSearch, operatoreId != null)
+                + filterWhereClause(hasSearch, operatoreId != null, !cleanTipoCliente.isBlank(), !cleanStatoTrattativa.isBlank())
                 + "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", C.ID "
                 + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
-            int parameterIndex = bindFilterParameters(statement, cleanSearchText, hasSearch, operatoreId, 1);
+            int parameterIndex = bindFilterParameters(statement, cleanSearchText, hasSearch, operatoreId, cleanTipoCliente, cleanStatoTrattativa, 1);
             statement.setInt(parameterIndex, offset);
             statement.setInt(parameterIndex + 1, safePageSize);
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -89,11 +91,11 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                 + ") " + alias + " ON " + alias + ".CLIENTE_ID = C.ID ";
     }
 
-    private long countAll(String searchText, UUID operatoreId) {
+    private long countAll(String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa) {
         boolean hasSearch = !searchText.isBlank();
-        String sql = "SELECT COUNT(*) FROM CLIENTI C " + filterWhereClause(hasSearch, operatoreId != null);
+        String sql = "SELECT COUNT(*) FROM CLIENTI C " + filterWhereClause(hasSearch, operatoreId != null, !tipoCliente.isBlank(), !statoTrattativa.isBlank());
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
-            bindFilterParameters(statement, searchText, hasSearch, operatoreId, 1);
+            bindFilterParameters(statement, searchText, hasSearch, operatoreId, tipoCliente, statoTrattativa, 1);
             try (ResultSet resultSet = statement.executeQuery()) {
                 resultSet.next();
                 return resultSet.getLong(1);
@@ -103,14 +105,20 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         }
     }
 
-    private String filterWhereClause(boolean hasSearch, boolean hasOperatoreFilter) {
-        if (!hasSearch && !hasOperatoreFilter) {
+    private String filterWhereClause(boolean hasSearch, boolean hasOperatoreFilter, boolean hasTipoClienteFilter, boolean hasStatoTrattativaFilter) {
+        if (!hasSearch && !hasOperatoreFilter && !hasTipoClienteFilter && !hasStatoTrattativaFilter) {
             return "";
         }
 
         List<String> conditions = new ArrayList<>();
         if (hasOperatoreFilter) {
             conditions.add("C.OPERATORE_ID = ?");
+        }
+        if (hasTipoClienteFilter) {
+            conditions.add("C.TIPO_CLIENTE = ?");
+        }
+        if (hasStatoTrattativaFilter) {
+            conditions.add("C.STATO_TRATTATIVA = ?");
         }
         if (hasSearch) {
             conditions.add("("
@@ -125,10 +133,16 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         return "WHERE " + String.join(" AND ", conditions) + " ";
     }
 
-    private int bindFilterParameters(PreparedStatement statement, String searchText, boolean hasSearch, UUID operatoreId, int startIndex) throws SQLException {
+    private int bindFilterParameters(PreparedStatement statement, String searchText, boolean hasSearch, UUID operatoreId, String tipoCliente, String statoTrattativa, int startIndex) throws SQLException {
         int parameterIndex = startIndex;
         if (operatoreId != null) {
             statement.setString(parameterIndex++, operatoreId.toString());
+        }
+        if (!tipoCliente.isBlank()) {
+            statement.setString(parameterIndex++, tipoCliente);
+        }
+        if (!statoTrattativa.isBlank()) {
+            statement.setString(parameterIndex++, statoTrattativa);
         }
         if (!hasSearch) {
             return parameterIndex;
@@ -143,6 +157,10 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
 
     private String cleanSearchText(String searchText) {
         return searchText == null ? "" : searchText.trim().toLowerCase();
+    }
+
+    private String cleanFilterText(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private String safeOrderColumn(String orderByColumn) {

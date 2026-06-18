@@ -3,6 +3,7 @@ package com.example.clients.feature.clienti.clienti.view;
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.service.ClientiService.OperatoreFilter;
+import com.example.clients.feature.clienti.clienti.service.ClientiService.TextFilter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
@@ -30,6 +31,8 @@ public class ClientiView extends BorderPane {
     private final TextField searchField;
     private final Button newClientButton;
     private final ChoiceBox<OperatoreFilter> operatorFilterChoiceBox;
+    private final ChoiceBox<TextFilter> typeFilterChoiceBox;
+    private final ChoiceBox<TextFilter> statusFilterChoiceBox;
     private final Button nameHeaderButton;
     private final Button typeHeaderButton;
     private final Button contactHeaderButton;
@@ -59,6 +62,8 @@ public class ClientiView extends BorderPane {
         operatorFilterChoiceBox.getStyleClass().add("clients-operator-filter-choice");
         operatorFilterChoiceBox.getItems().add(OperatoreFilter.empty());
         operatorFilterChoiceBox.getSelectionModel().selectFirst();
+        typeFilterChoiceBox = createTextFilterChoiceBox("Tutti i tipi cliente");
+        statusFilterChoiceBox = createTextFilterChoiceBox("Tutti gli stati trattativa");
 
         nameHeaderButton = createHeaderButton("Nome", NAME_COLUMN_WIDTH);
         typeHeaderButton = createHeaderButton("Tipo", TYPE_COLUMN_WIDTH);
@@ -113,9 +118,14 @@ public class ClientiView extends BorderPane {
 
         HBox filters = new HBox(8);
         filters.getStyleClass().add("clients-filter-bar");
-        Label operatorFilterLabel = new Label("Operatore");
-        operatorFilterLabel.getStyleClass().add("clients-filter-label");
-        filters.getChildren().addAll(operatorFilterLabel, operatorFilterChoiceBox);
+        Label operatorFilterLabel = createFilterLabel("Operatore");
+        Label typeFilterLabel = createFilterLabel("Tipo cliente");
+        Label statusFilterLabel = createFilterLabel("Stato trattativa");
+        filters.getChildren().addAll(
+                operatorFilterLabel, operatorFilterChoiceBox,
+                typeFilterLabel, typeFilterChoiceBox,
+                statusFilterLabel, statusFilterChoiceBox
+        );
 
         initializeTable();
         VBox.setVgrow(table, javafx.scene.layout.Priority.ALWAYS);
@@ -153,6 +163,20 @@ public class ClientiView extends BorderPane {
         HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
         pagination.getChildren().addAll(spacer, previousPageButton, pageLabel, nextPageButton);
         return pagination;
+    }
+
+    private Label createFilterLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("clients-filter-label");
+        return label;
+    }
+
+    private ChoiceBox<TextFilter> createTextFilterChoiceBox(String emptyLabel) {
+        ChoiceBox<TextFilter> choiceBox = new ChoiceBox<>();
+        choiceBox.getStyleClass().add("clients-operator-filter-choice");
+        choiceBox.getItems().add(TextFilter.empty(emptyLabel));
+        choiceBox.getSelectionModel().selectFirst();
+        return choiceBox;
     }
 
     private HBox createEmptyRow() {
@@ -270,6 +294,36 @@ public class ClientiView extends BorderPane {
 
     public ChoiceBox<OperatoreFilter> getOperatorFilterChoiceBox() {
         return operatorFilterChoiceBox;
+    }
+
+    public ChoiceBox<TextFilter> getTypeFilterChoiceBox() {
+        return typeFilterChoiceBox;
+    }
+
+    public ChoiceBox<TextFilter> getStatusFilterChoiceBox() {
+        return statusFilterChoiceBox;
+    }
+
+    public void setTypeFilters(List<TextFilter> types) {
+        setTextFilters(typeFilterChoiceBox, TextFilter.empty("Tutti i tipi cliente"), types);
+    }
+
+    public void setStatusFilters(List<TextFilter> statuses) {
+        setTextFilters(statusFilterChoiceBox, TextFilter.empty("Tutti gli stati trattativa"), statuses);
+    }
+
+    private void setTextFilters(ChoiceBox<TextFilter> choiceBox, TextFilter emptyFilter, List<TextFilter> filters) {
+        TextFilter selected = choiceBox.getSelectionModel().getSelectedItem();
+        choiceBox.getItems().setAll(emptyFilter);
+        if (filters != null) {
+            choiceBox.getItems().addAll(filters);
+        }
+
+        if (selected != null && choiceBox.getItems().contains(selected)) {
+            choiceBox.getSelectionModel().select(selected);
+        } else {
+            choiceBox.getSelectionModel().selectFirst();
+        }
     }
 
     public void setOperatorFilters(List<OperatoreFilter> operators) {
