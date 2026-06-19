@@ -9,9 +9,9 @@ Operatori distinti: 5
 Statement generati:
 - operatori: 5
 - clienti: 1107
-- contatti: 698
+- contatti: 699
 - indirizzi: 1100
-- telefoni: 1031
-- email: 1049
-- siti: 411
-- note_interazioni: 6734
+- telefoni: 1030
+- email: 1047
+- siti: 410
+- note_interazioni: 6733

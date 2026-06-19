@@ -43,6 +43,8 @@ FIELDS = [
     "volte_contattati", "ultima_chiamata", "prossima_chiamata", "coinvolgimento", "acquisizione", "checkpoint",
     "telefono2", "cellulare",
 ]
+NOTE_ID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+NOTE_ID_FIELD_INDEX = FIELDS.index("note_id")
 
 @dataclass
 class Call:
@@ -112,12 +114,33 @@ def parse_clients() -> list[Client]:
     for rownum, line in enumerate(CLIENTS_FILE.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
-        parts = line.split(";")
+        parts = normalize_client_parts(line.split(";"))
         if len(parts) < len(FIELDS):
             parts += [""] * (len(FIELDS) - len(parts))
         raw = {field: clean(parts[index]) for index, field in enumerate(FIELDS)}
         clients.append(Client(rownum=rownum, raw=raw))
     return clients
+
+
+def normalize_client_parts(parts: list[str]) -> list[str]:
+    note_indexes = [index for index, value in enumerate(parts) if NOTE_ID_RE.fullmatch(value.strip())]
+    if not note_indexes:
+        return parts
+
+    note_index = note_indexes[0]
+    prefix = parts[:note_index]
+    suffix = parts[note_index:]
+
+    if len(prefix) == NOTE_ID_FIELD_INDEX + 2 and len(prefix) >= 18:
+        prefix = [
+            prefix[0],
+            ";".join(prefix[1:3]),
+            *prefix[3:16],
+            ";".join(prefix[16:18]),
+            *prefix[18:],
+        ]
+
+    return [*prefix, *suffix]
 
 
 def parse_notes() -> dict[str, list[Call]]:
