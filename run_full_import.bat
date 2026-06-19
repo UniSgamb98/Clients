@@ -56,15 +56,19 @@ if not "%PY_EXIT%"=="0" (
   exit /b %PY_EXIT%
 )
 
-echo [3/3] Apro Derby IJ ed eseguo "%IMPORT_SQL%"...
+echo [3/3] Apro Derby IJ, apro la connessione ed eseguo "%IMPORT_SQL%"...
 set "PS1=%TEMP%\ij_import_all.ps1"
+set "IJ_SQL=%TEMP%\ij_import_all.sql"
+
+(
+  echo connect '%DERBY_URL%';
+  echo run 'import all.sql';
+) > "%IJ_SQL%"
 
 (
   echo $ErrorActionPreference = 'Stop'
-  echo $props = Join-Path $env:TEMP 'ij-auto.properties'
-  echo Set-Content -Path $props -Value 'ij.database=%DERBY_URL%' -Encoding ASCII
   echo Set-Location '%SCRIPTS_DIR%'
-  echo java -jar '%DERBY_JAR%' ij -p $props 'import all.sql'
+  echo java -jar '%DERBY_JAR%' ij '%IJ_SQL%'
 ) > "%PS1%"
 
 start "Derby IJ import all" powershell -NoExit -ExecutionPolicy Bypass -File "%PS1%"
