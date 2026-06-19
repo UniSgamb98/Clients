@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate Derby SQL import scripts from legacy CRM exports.
 
-By default input files are searched in ../txt data, relative to this script:
+By default input files are read from ../txt data and SQL files are written to ../import scripts, relative to this script:
 - clients.txt: semicolon-separated customer rows
 - tutte_le_note.txt: concatenated XML note documents delimited by FILE/END FILE markers
 """
@@ -29,7 +29,7 @@ ROOT = find_project_root()
 DEFAULT_IMPORT_DIR = (SCRIPT_DIR / "../txt data").resolve()
 LEGACY_IMPORT_DIR = ROOT / "src/main/resources/importa"
 IMPORT_DIR = DEFAULT_IMPORT_DIR if DEFAULT_IMPORT_DIR.is_dir() else LEGACY_IMPORT_DIR
-OUT_DIR = ROOT / "src/main/resources/importa/generated"
+OUT_DIR = (SCRIPT_DIR / "../import scripts").resolve()
 CLIENTS_FILE = IMPORT_DIR / "clients.txt"
 NOTES_FILE = IMPORT_DIR / "tutte_le_note.txt"
 
