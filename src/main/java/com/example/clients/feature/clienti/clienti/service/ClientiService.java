@@ -1,32 +1,27 @@
 package com.example.clients.feature.clienti.clienti.service;
 
 import com.example.clients.core.database.Database;
+import com.example.clients.core.database.query.ClientiFilterQuery;
 import com.example.clients.core.database.query.ClientiPreviewQuery;
+import com.example.clients.core.database.query.derby.DerbyClientiFilterQuery;
 import com.example.clients.core.database.query.derby.DerbyClientiPreviewQuery;
+import com.example.clients.core.database.query.record.OperatoreClienteFilterRecord;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class ClientiService {
 
-    private final Database database;
     private final ClientiPreviewQuery clientiPreviewQuery;
+    private final ClientiFilterQuery clientiFilterQuery;
 
     public ClientiService(Database database) {
-        this(database, new DerbyClientiPreviewQuery(database));
+        this(new DerbyClientiPreviewQuery(database), new DerbyClientiFilterQuery(database));
     }
 
-    public ClientiService(ClientiPreviewQuery clientiPreviewQuery) {
-        this(null, clientiPreviewQuery);
-    }
-
-    public ClientiService(Database database, ClientiPreviewQuery clientiPreviewQuery) {
-        this.database = database;
+    public ClientiService(ClientiPreviewQuery clientiPreviewQuery, ClientiFilterQuery clientiFilterQuery) {
         this.clientiPreviewQuery = clientiPreviewQuery;
+        this.clientiFilterQuery = clientiFilterQuery;
     }
 
     public ClientiPage getClientiPreview(ClientiSearchRequest request) {
@@ -51,63 +46,28 @@ public class ClientiService {
     }
 
     public List<OperatoreFilter> getOperatorFilters() {
-        if (database == null) {
-            return List.of();
-        }
-
-        String sql = "SELECT DISTINCT O.ID, O.NOME, O.COGNOME, O.USERNAME "
-                + "FROM CLIENTI C "
-                + "JOIN OPERATORI O ON O.ID = C.OPERATORE_ID "
-                + "ORDER BY O.USERNAME";
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            List<OperatoreFilter> operators = new ArrayList<>();
-            while (resultSet.next()) {
-                operators.add(new OperatoreFilter(
-                        UUID.fromString(resultSet.getString("ID")),
-                        operatorLabel(
-                                resultSet.getString("NOME"),
-                                resultSet.getString("COGNOME"),
-                                resultSet.getString("USERNAME")
-                        )
-                ));
-            }
-            return operators;
-        } catch (SQLException e) {
-            throw new RuntimeException("Errore caricamento operatori.", e);
-        }
+        return clientiFilterQuery.findOperatoriConClienti().stream()
+                .map(this::toOperatoreFilter)
+                .toList();
     }
 
     public List<TextFilter> getTipoClienteFilters() {
-        return getDistinctClientValues("TIPO_CLIENTE").stream()
+        return clientiFilterQuery.findTipiCliente().stream()
                 .map(value -> new TextFilter(value, value))
                 .toList();
     }
 
     public List<TextFilter> getStatoTrattativaFilters() {
-        return getDistinctClientValues("STATO_TRATTATIVA").stream()
+        return clientiFilterQuery.findStatiTrattativa().stream()
                 .map(value -> new TextFilter(value, value))
                 .toList();
     }
 
-    private List<String> getDistinctClientValues(String columnName) {
-        if (database == null) {
-            return List.of();
-        }
-
-        String sql = "SELECT DISTINCT " + columnName + " FROM CLIENTI "
-                + "WHERE " + columnName + " IS NOT NULL AND TRIM(" + columnName + ") <> '' "
-                + "ORDER BY " + columnName;
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            List<String> values = new ArrayList<>();
-            while (resultSet.next()) {
-                values.add(valueOrEmpty(resultSet.getString(1)));
-            }
-            return values;
-        } catch (SQLException e) {
-            throw new RuntimeException("Errore caricamento filtri clienti.", e);
-        }
+    private OperatoreFilter toOperatoreFilter(OperatoreClienteFilterRecord record) {
+        return new OperatoreFilter(
+                record.id(),
+                operatorLabel(record.nome(), record.cognome(), record.username())
+        );
     }
 
     private String operatorLabel(String nome, String cognome, String username) {
