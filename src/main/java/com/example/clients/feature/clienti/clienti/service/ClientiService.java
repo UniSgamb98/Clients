@@ -6,9 +6,14 @@ import com.example.clients.core.database.query.ClientiPreviewQuery;
 import com.example.clients.core.database.query.derby.DerbyClientiFilterQuery;
 import com.example.clients.core.database.query.derby.DerbyClientiPreviewQuery;
 import com.example.clients.core.database.query.result.OperatoreClienteFilterResult;
+import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
+import com.example.clients.feature.clienti.clienti.dto.ClientePreviewRow;
+import com.example.clients.feature.clienti.clienti.dto.ClientiPage;
+import com.example.clients.feature.clienti.clienti.dto.ClientiSearchRequest;
+import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
+import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 
 import java.util.List;
-import java.util.UUID;
 
 public class ClientiService {
 
@@ -97,110 +102,4 @@ public class ClientiService {
         );
     }
 
-    public enum SortColumn {
-        NAME("C.RAGIONE_SOCIALE"),
-        TYPE("C.TIPO_CLIENTE"),
-        CONTACT("REFERENTE"),
-        PHONE("TELEFONO"),
-        EMAIL("EMAIL"),
-        STATUS("C.STATO_TRATTATIVA");
-
-        private final String sqlColumn;
-
-        SortColumn(String sqlColumn) {
-            this.sqlColumn = sqlColumn;
-        }
-
-        private String sqlColumn() {
-            return sqlColumn;
-        }
-    }
-
-    public record ClientiSearchRequest(
-            int page,
-            int pageSize,
-            String searchText,
-            UUID operatoreId,
-            String tipoCliente,
-            String statoTrattativa,
-            SortColumn sortColumn,
-            boolean ascending
-    ) {
-        public ClientiSearchRequest {
-            page = Math.max(0, page);
-            pageSize = Math.max(1, pageSize);
-            searchText = searchText == null ? "" : searchText.trim();
-            tipoCliente = tipoCliente == null ? "" : tipoCliente.trim();
-            statoTrattativa = statoTrattativa == null ? "" : statoTrattativa.trim();
-            sortColumn = sortColumn == null ? SortColumn.NAME : sortColumn;
-        }
-    }
-
-    public record ClientiPage(
-            List<ClientePreviewRow> rows,
-            int page,
-            int pageSize,
-            long totalRows
-    ) {
-        public ClientiPage {
-            rows = List.copyOf(rows);
-        }
-
-        public int totalPages() {
-            if (totalRows == 0) {
-                return 0;
-            }
-            return (int) Math.ceil((double) totalRows / pageSize);
-        }
-
-        public boolean hasPreviousPage() {
-            return page > 0;
-        }
-
-        public boolean hasNextPage() {
-            return page + 1 < totalPages();
-        }
-    }
-
-    public record OperatoreFilter(UUID id, String label) {
-        public static OperatoreFilter empty() {
-            return new OperatoreFilter(null, "Tutti");
-        }
-
-        @Override
-        public String toString() {
-            return label;
-        }
-    }
-
-    public record TextFilter(String value, String label) {
-        public static TextFilter empty(String label) {
-            return new TextFilter("", label);
-        }
-
-        public boolean isEmptyOption() {
-            return value == null || value.isBlank();
-        }
-
-        @Override
-        public String toString() {
-            return label;
-        }
-    }
-
-    public record ClientePreviewRow(
-            UUID clienteId,
-            ClientePreview preview
-    ) {
-    }
-
-    public record ClientePreview(
-            String name,
-            String type,
-            String contact,
-            String phone,
-            String email,
-            String status
-    ) {
-    }
 }

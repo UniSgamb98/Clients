@@ -2,8 +2,8 @@ package com.example.clients.feature.clienti.clienti.view;
 
 import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
-import com.example.clients.feature.clienti.clienti.service.ClientiService.OperatoreFilter;
-import com.example.clients.feature.clienti.clienti.service.ClientiService.TextFilter;
+import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
+import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
