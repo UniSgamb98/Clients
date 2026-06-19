@@ -122,7 +122,9 @@ def parse_clients() -> list[Client]:
 
 def parse_notes() -> dict[str, list[Call]]:
     text = NOTES_FILE.read_text(encoding="utf-8")
-    pattern = re.compile(r"===== FILE: ([^.]+)\.xml\.txt =====\s*(.*?)\s*===== END FILE:", re.S)
+    # Legacy exports can use either `.xml` or `.xml.txt` in FILE markers.
+    # Accept both forms so note documents are detected and NOTE_CLIENTE inserts are generated.
+    pattern = re.compile(r"===== FILE: ([^.]+)\.xml(?:\.txt)? =====\s*(.*?)\s*===== END FILE:", re.S)
     notes: dict[str, list[Call]] = {}
     for note_id, xml_text in pattern.findall(text):
         try:
