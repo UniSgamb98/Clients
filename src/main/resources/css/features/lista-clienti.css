@@ -1,0 +1,69 @@
+/* ==== Lista clienti ==== */
+.clients-table {
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+}
+
+.clients-table-row,
+.clients-empty-row {
+    -fx-padding: 12;
+    -fx-spacing: 8;
+}
+
+.clients-table-header {
+    -fx-background-color: -app-surface-alt;
+    -fx-background-radius: 10 10 0 0;
+}
+
+.clients-table-cell {
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.clients-empty-label {
+    -fx-text-fill: -app-text-placeholder;
+    -fx-font-size: 13px;
+}
+
+.clients-data-row {
+    -fx-border-color: -app-row-border;
+    -fx-border-width: 1 0 0 0;
+}
+
+.clients-data-row:hover {
+    -fx-background-color: -app-row-hover;
+}
+
+.clients-table-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.clients-table-header-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-alignment: center-left;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.clients-table-header-button:hover {
+    -fx-text-fill: -app-text;
+}
+
+.clients-pagination-bar {
+    -fx-alignment: center-right;
+    -fx-padding: 0 2 0 2;
+}
+
+.clients-pagination-label {
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}

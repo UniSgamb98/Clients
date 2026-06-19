@@ -7,14 +7,50 @@ eredita tutti i parametri da ButtonBase, Labeled, Control, Region, Parent, Node.
 In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 */
 .root {
+    -app-bg: #2b2b2b;
+    -app-surface: #252526;
+    -app-surface-alt: #1f1f1f;
+    -app-sidebar-bg: #1e1e1e;
+    -app-card-bg: #202124;
+    -app-field-bg: #3a3a3a;
+    -app-control-bg: #3f3f46;
+    -app-control-alt-bg: #2f2f33;
+    -app-row-hover: #303033;
+    -app-row-border: #333333;
+    -app-border: #3c3c3c;
+    -app-border-soft: #4b5563;
+    -app-primary: #007acc;
+    -app-primary-hover: #1490df;
+    -app-primary-dark: #0e639c;
+    -app-danger-bg: #5f2727;
+    -app-warning: #facc15;
+    -app-badge-bg: #1f2937;
+    -app-light-bg: #ffffff;
+    -app-light-border: #d0d0d0;
+    -app-text: #ffffff;
+    -app-text-soft: #f0f0f0;
+    -app-text-muted: #d6d6d6;
+    -app-text-muted-2: #d4d4d4;
+    -app-text-subtle: #bdbdbd;
+    -app-text-placeholder: #9a9a9a;
+    -app-text-placeholder-2: #8b8b8b;
+    -app-text-secondary-dark: #777777;
+    -app-text-dark: #202020;
+    -app-error: #ff7b72;
+    -app-login-gradient-start: #1f2933;
+    -app-login-gradient-end: #111827;
+    -app-login-subtitle: #c9d1d9;
+    -app-login-label: #d7dde4;
+    -app-login-prompt: #8b949e;
+
     -fx-font-family: "Segoe UI", "Roboto", sans-serif;
-    -fx-background-color: #2b2b2b;
-    -fx-text-fill: #f0f0f0;
+    -fx-background-color: -app-bg;
+    -fx-text-fill: -app-text-soft;
 }
 
 .button {
     -fx-background-color: #444;
-    -fx-text-fill: #fff;
+    -fx-text-fill: -app-text;
     -fx-font-weight: bold;
     -fx-background-radius: 8;
     -fx-padding: 6 12;
@@ -25,20 +61,20 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 }
 
 .list-view {
-    -fx-background-color: #3a3a3a;
-    -fx-control-inner-background: #3a3a3a;
+    -fx-background-color: -app-field-bg;
+    -fx-control-inner-background: -app-field-bg;
     -fx-cell-hover-color: #555;
-    -fx-text-fill: white;
+    -fx-text-fill: -app-text;
 }
 
 .label {
-    -fx-text-fill: white;
+    -fx-text-fill: -app-text;
 }
 
 .title {
     -fx-font-size: 20px;
     -fx-font-weight: bold;
-    -fx-text-fill: #f0f0f0;
+    -fx-text-fill: -app-text-soft;
 }
 
 .container {
@@ -49,7 +85,7 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 
 /* ==== Header Bar ==== */
 .header-bar {
-    -fx-background-color: #252526;
+    -fx-background-color: -app-surface;
     -fx-padding: 10 20;
     -fx-alignment: center-left;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 6, 0.3, 0, 2);
@@ -58,31 +94,25 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 .header-title {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-text-fill: #ffffff;
+    -fx-text-fill: -app-text;
 }
 
 .header-button {
-    -fx-background-color: #007acc;
-    -fx-text-fill: white;
+    -fx-background-color: -app-primary;
+    -fx-text-fill: -app-text;
     -fx-background-radius: 6;
     -fx-font-weight: 600;
     -fx-padding: 5 12;
 }
 
 .header-button:hover {
-    -fx-background-color: #1490df;
+    -fx-background-color: -app-primary-hover;
 }
-
 
 /* ==== Sidebar Layout ==== */
-.header-bar {
-    -fx-background-color: #252526;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 6, 0.3, 0, 2);
-}
-
 .menu-button {
     -fx-background-color: transparent;
-    -fx-text-fill: white;
+    -fx-text-fill: -app-text;
     -fx-font-size: 18px;
     -fx-cursor: hand;
     -fx-padding: 5 10;
@@ -93,8 +123,8 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 }
 
 .sidebar {
-    -fx-background-color: #1e1e1e;
-    -fx-border-color: #3c3c3c;
+    -fx-background-color: -app-sidebar-bg;
+    -fx-border-color: -app-border;
     -fx-border-width: 0 1 0 0;
 }
 
@@ -109,107 +139,18 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 }
 
 .sidebar-button:hover {
-    -fx-background-color: #007acc;
-    -fx-text-fill: white;
-}
-
-/* Popup con bordi arrotondati */
-.rounded-popup {
-    -fx-background-color: white;
-    -fx-background-radius: 20;
-    -fx-border-radius: 20;
-    -fx-border-color: #cccccc;
-    -fx-border-width: 1;
-
-    /* Ombra moderna */
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 16, 0.22, 0, 3);
-}
-
-/* Riga inventario compatta */
-.inventory-item-row {
-    -fx-background-color: transparent;
-    -fx-text-fill: #333;
-    -fx-font-size: 13px;
-    -fx-background-radius: 6;
-    -fx-transition: all 0.15s ease-in-out;
-}
-
-/* Hover ben visibile */
-.inventory-item-row:hover {
-    -fx-background-color: #e0e0e0; /* molto più evidente */
-    -fx-text-fill: black;
-    -fx-cursor: hand;
-}
-
-.popup-title {
-    -fx-font-weight: bold;
-    -fx-font-size: 14px;
-    -fx-text-fill: #222;
-    -fx-padding: 0 0 4 0;
-}
-
-/* contenuto interno del popup */
-.popup-content {
-    -fx-padding: 10;
-    -fx-background-color: white;
-    -fx-border-color: #cccccc;
-    -fx-border-width: 1;
-    -fx-background-radius: 12;
-    -fx-border-radius: 12;
-}
-.popup-content .label {
-     -fx-text-fill: #333333;
- }
-
- .popup-lot-row {
-     -fx-text-fill: #333;
-     -fx-font-size: 13px;
-     -fx-padding: 2 0;
- }
-
- .popup-lot-row:hover {
-     -fx-background-color: #efefef;
-     -fx-background-radius: 4;
- }
-
- .layer-editor {
-     -fx-background-color: white;
-     -fx-border-color: #cccccc;
-     -fx-border-radius: 8;
-     -fx-background-radius: 8;
- }
-
- .layer-editor .label {
-     -fx-text-fill: #333333;
- }
-
- .layer-title {
-     -fx-font-weight: bold;
-     -fx-font-size: 14px;
-     -fx-text-fill: #222222;
- }
-
-.ingredient-row {
-    -fx-padding: 4 0;
-}
-
-.ingredient-row .label {
-    -fx-text-fill: #333333;
-}
-
-.ingredient-row .text-field {
-    -fx-text-fill: #222;
-    -fx-background-color: #f7f7f7;
+    -fx-background-color: -app-primary;
+    -fx-text-fill: -app-text;
 }
 
 /* ==== Dashboard ==== */
 .dashboard-content {
-    -fx-background-color: #2b2b2b;
+    -fx-background-color: -app-bg;
 }
 
 /* ==== Login ==== */
 .login-root {
-    -fx-background-color: linear-gradient(to bottom right, #1f2933, #111827);
+    -fx-background-color: linear-gradient(to bottom right, -app-login-gradient-start, -app-login-gradient-end);
 }
 
 .login-wrapper {
@@ -217,9 +158,9 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 }
 
 .login-card {
-    -fx-background-color: #252526;
+    -fx-background-color: -app-surface;
     -fx-background-radius: 18;
-    -fx-border-color: #3c3c3c;
+    -fx-border-color: -app-border;
     -fx-border-radius: 18;
     -fx-padding: 32;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 18, 0.3, 0, 6);
@@ -232,12 +173,12 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 .login-title {
     -fx-font-size: 28px;
     -fx-font-weight: 700;
-    -fx-text-fill: #ffffff;
+    -fx-text-fill: -app-text;
 }
 
 .login-subtitle {
     -fx-font-size: 14px;
-    -fx-text-fill: #c9d1d9;
+    -fx-text-fill: -app-login-subtitle;
 }
 
 .login-form {
@@ -247,37 +188,37 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
 .login-field-label {
     -fx-font-size: 13px;
     -fx-font-weight: 600;
-    -fx-text-fill: #d7dde4;
+    -fx-text-fill: -app-login-label;
 }
 
 .login-field {
-    -fx-background-color: #1e1e1e;
-    -fx-border-color: #4b5563;
+    -fx-background-color: -app-sidebar-bg;
+    -fx-border-color: -app-border-soft;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
-    -fx-text-fill: #ffffff;
-    -fx-prompt-text-fill: #8b949e;
+    -fx-text-fill: -app-text;
+    -fx-prompt-text-fill: -app-login-prompt;
     -fx-padding: 10 12;
 }
 
 .login-field:focused {
-    -fx-border-color: #1490df;
+    -fx-border-color: -app-primary-hover;
 }
 
 .login-primary-button {
-    -fx-background-color: #007acc;
-    -fx-text-fill: white;
+    -fx-background-color: -app-primary;
+    -fx-text-fill: -app-text;
     -fx-font-weight: 700;
     -fx-background-radius: 8;
     -fx-padding: 10 22;
 }
 
 .login-primary-button:hover {
-    -fx-background-color: #1490df;
+    -fx-background-color: -app-primary-hover;
 }
 
 .login-error {
-    -fx-text-fill: #ff7b72;
+    -fx-text-fill: -app-error;
     -fx-font-size: 13px;
     -fx-font-weight: 600;
 }

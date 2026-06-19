@@ -1,0 +1,200 @@
+/* ==== Scheda cliente ==== */
+.client-profile-hero {
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 18;
+}
+
+.client-profile-column {
+    -fx-min-width: 320;
+    -fx-pref-width: 420;
+}
+
+.client-profile-favorite-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-placeholder;
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 8;
+}
+
+.client-profile-favorite-active {
+    -fx-text-fill: -app-warning;
+}
+
+.client-profile-badges,
+.client-profile-timeline-actions {
+    -fx-alignment: center-left;
+}
+
+.client-profile-badge {
+    -fx-background-color: -app-badge-bg;
+    -fx-background-radius: 999;
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 11px;
+    -fx-padding: 5 10;
+}
+
+.client-profile-info-label {
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 12px;
+}
+
+.client-profile-timeline-card,
+.client-profile-note-editor {
+    -fx-background-color: -app-card-bg;
+    -fx-background-radius: 8;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+}
+
+.client-profile-timeline-title {
+    -fx-text-fill: -app-text;
+    -fx-font-weight: 700;
+}
+
+.client-profile-note-area {
+    -fx-background-color: -app-surface-alt;
+    -fx-control-inner-background: -app-surface-alt;
+    -fx-text-fill: -app-text;
+    -fx-prompt-text-fill: -app-text-placeholder-2;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-min-height: 110;
+}
+
+.client-profile-timeline-filter-bar {
+    -fx-alignment: center-left;
+}
+
+.client-profile-small-filter-button {
+    -fx-background-color: -app-surface-alt;
+    -fx-text-fill: -app-text-muted-2;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 999;
+    -fx-background-radius: 999;
+    -fx-font-size: 10px;
+    -fx-padding: 3 8;
+}
+
+.client-profile-small-filter-active {
+    -fx-background-color: -app-primary-dark;
+    -fx-border-color: -app-primary-dark;
+    -fx-text-fill: -app-text;
+}
+
+.client-profile-call-date-picker {
+    -fx-background-color: -app-surface-alt;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.client-profile-edit-row {
+    -fx-alignment: center-left;
+}
+
+.client-profile-edit-label {
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.client-profile-edit-choice-box {
+    -fx-background-color: -app-surface-alt;
+    -fx-mark-color: -app-text;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.client-profile-edit-choice-box > .label {
+    -fx-text-fill: -app-text;
+}
+
+.client-profile-edit-field {
+    -fx-background-color: -app-surface-alt;
+    -fx-text-fill: -app-text;
+    -fx-prompt-text-fill: -app-text-placeholder-2;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.client-profile-edit-section-title {
+    -fx-text-fill: -app-text;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-padding: 8 0 0 0;
+}
+
+.client-profile-edit-values-section {
+    -fx-padding: 4 0 0 0;
+}
+
+.client-profile-linked-combo {
+    -fx-background-color: -app-surface-alt;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.client-profile-linked-combo .text-field {
+    -fx-background-color: -app-surface-alt;
+    -fx-text-fill: -app-text;
+    -fx-prompt-text-fill: -app-text-placeholder-2;
+}
+
+.client-profile-linked-combo .arrow-button {
+    -fx-background-color: -app-control-alt-bg;
+    -fx-background-radius: 0 8 8 0;
+}
+
+.client-profile-linked-combo .arrow {
+    -fx-background-color: -app-text-muted-2;
+}
+
+.client-profile-primary-check {
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 4 0 4 0;
+}
+
+.client-profile-primary-check .box {
+    -fx-background-color: -app-surface-alt;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.client-profile-primary-check:selected .box {
+    -fx-background-color: -app-primary-dark;
+    -fx-border-color: -app-primary-dark;
+}
+
+.client-profile-primary-check:selected .mark {
+    -fx-background-color: -app-text;
+}
+
+.client-profile-involvement-box {
+    -fx-alignment: center;
+    -fx-spacing: 8;
+}
+
+.client-profile-involvement-label,
+.client-profile-involvement-value {
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.client-profile-involvement-slider {
+    -fx-pref-width: 140;
+}

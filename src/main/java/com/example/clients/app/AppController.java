@@ -92,7 +92,11 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         configureSidebar(view.getSidebar());
         ClientiController controller = new ClientiController(view, this, new ClientiService(app.database));
 
-        stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
+        stage.setScene(createSceneWithCSS(
+                view,
+                "/css/features/clienti.css",
+                "/css/features/lista-clienti.css"
+        ));
         stage.setTitle("Clients - Clienti");
         controller.loadPreviewClientsAsync();
     }
@@ -113,7 +117,11 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
                 )
         );
 
-        stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
+        stage.setScene(createSceneWithCSS(
+                view,
+                "/css/features/clienti.css",
+                "/css/features/nuovo-cliente.css"
+        ));
         stage.setTitle("Clients - Nuovo cliente");
     }
 
@@ -124,7 +132,11 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         configureSidebar(view.getSidebar());
         new SchedaClienteController(view, this, new SchedaClienteService(app.database), clienteId);
 
-        stage.setScene(createSceneWithCSS(view, "/css/features/clienti.css"));
+        stage.setScene(createSceneWithCSS(
+                view,
+                "/css/features/clienti.css",
+                "/css/features/scheda-cliente.css"
+        ));
         stage.setTitle("Clients - Scheda cliente");
     }
 
