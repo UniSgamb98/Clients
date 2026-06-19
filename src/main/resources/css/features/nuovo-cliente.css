@@ -78,17 +78,6 @@
     -fx-pref-width: 320;
 }
 
-.new-client-choice-box {
-    -fx-background-color: -app-light-bg;
-    -fx-border-color: -app-light-border;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
-}
-
-.new-client-choice-box > .label {
-    -fx-text-fill: -app-text-dark;
-}
-
 .new-client-linked-combo {
     -fx-background-color: -app-light-bg;
     -fx-border-color: -app-light-border;

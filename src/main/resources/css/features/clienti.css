@@ -57,14 +57,12 @@
 }
 
 .clients-operator-filter-choice {
-    -fx-background-color: -app-control-bg;
-    -fx-mark-color: -app-text-soft;
-    -fx-background-radius: 8;
     -fx-pref-width: 150;
 }
 
-.clients-operator-filter-choice > .label {
-    -fx-text-fill: -app-text-soft;
+.new-client-choice-box,
+.client-profile-edit-choice-box {
+    -fx-background-radius: 8;
 }
 
 .new-client-scroll {
@@ -85,16 +83,4 @@
     -fx-text-fill: -app-text;
     -fx-font-size: 15px;
     -fx-font-weight: 700;
-}
-
-.new-client-choice-box .context-menu .menu-item .label,
-.client-profile-edit-choice-box .context-menu .menu-item .label,
-.context-menu .menu-item .label {
-    -fx-text-fill: -app-text-dark;
-}
-
-.new-client-choice-box .context-menu .menu-item:focused .label,
-.client-profile-edit-choice-box .context-menu .menu-item:focused .label,
-.context-menu .menu-item:focused .label {
-    -fx-text-fill: -app-text;
 }

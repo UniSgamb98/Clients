@@ -106,18 +106,6 @@
     -fx-font-weight: 700;
 }
 
-.client-profile-edit-choice-box {
-    -fx-background-color: -app-surface-alt;
-    -fx-mark-color: -app-text;
-    -fx-border-color: -app-border;
-    -fx-border-radius: 8;
-    -fx-background-radius: 8;
-}
-
-.client-profile-edit-choice-box > .label {
-    -fx-text-fill: -app-text;
-}
-
 .client-profile-edit-field {
     -fx-background-color: -app-surface-alt;
     -fx-text-fill: -app-text;

@@ -71,6 +71,36 @@ In ogni caso se leggete bene potete risalire a tutta la scala gerarchica.
     -fx-text-fill: -app-text;
 }
 
+/* ==== ChoiceBox ==== */
+.choice-box {
+    -fx-background-color: -app-control-bg;
+    -fx-mark-color: -app-text-soft;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.choice-box > .label {
+    -fx-text-fill: -app-text-soft;
+}
+
+.choice-box .context-menu {
+    -fx-background-color: -app-surface;
+    -fx-border-color: -app-border;
+}
+
+.choice-box .context-menu .menu-item .label {
+    -fx-text-fill: -app-text-soft;
+}
+
+.choice-box .context-menu .menu-item:focused {
+    -fx-background-color: -app-primary;
+}
+
+.choice-box .context-menu .menu-item:focused .label {
+    -fx-text-fill: -app-text;
+}
+
 .title {
     -fx-font-size: 20px;
     -fx-font-weight: bold;
