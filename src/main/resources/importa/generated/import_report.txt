@@ -1,0 +1,16 @@
+Import legacy CRM
+Clienti letti: 1107
+Documenti note letti: 929
+Documenti note collegati: 901
+Chiamate XML importate: 3322
+Operatori distinti: 5
+
+Statement generati:
+- operatori: 5
+- clienti: 1107
+- contatti: 698
+- indirizzi: 1100
+- telefoni: 1031
+- email: 1049
+- siti: 411
+- note_interazioni: 6734
