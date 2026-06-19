@@ -5,7 +5,7 @@ import com.example.clients.core.database.query.ClientiFilterQuery;
 import com.example.clients.core.database.query.ClientiPreviewQuery;
 import com.example.clients.core.database.query.derby.DerbyClientiFilterQuery;
 import com.example.clients.core.database.query.derby.DerbyClientiPreviewQuery;
-import com.example.clients.core.database.query.record.OperatoreClienteFilterRecord;
+import com.example.clients.core.database.query.result.OperatoreClienteFilterResult;
 
 import java.util.List;
 import java.util.UUID;
@@ -63,10 +63,10 @@ public class ClientiService {
                 .toList();
     }
 
-    private OperatoreFilter toOperatoreFilter(OperatoreClienteFilterRecord record) {
+    private OperatoreFilter toOperatoreFilter(OperatoreClienteFilterResult result) {
         return new OperatoreFilter(
-                record.id(),
-                operatorLabel(record.nome(), record.cognome(), record.username())
+                result.id(),
+                operatorLabel(result.nome(), result.cognome(), result.username())
         );
     }
 

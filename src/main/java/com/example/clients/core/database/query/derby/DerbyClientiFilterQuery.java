@@ -2,7 +2,8 @@ package com.example.clients.core.database.query.derby;
 
 import com.example.clients.core.database.Database;
 import com.example.clients.core.database.query.ClientiFilterQuery;
-import com.example.clients.core.database.query.record.OperatoreClienteFilterRecord;
+import com.example.clients.core.database.SchemaInitializer;
+import com.example.clients.core.database.query.result.OperatoreClienteFilterResult;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,23 +15,31 @@ import java.util.UUID;
 public final class DerbyClientiFilterQuery implements ClientiFilterQuery {
 
     private final Database database;
+    private final SchemaInitializer schemaInitializer;
 
     public DerbyClientiFilterQuery(Database database) {
+        this(database, new SchemaInitializer(database));
+    }
+
+    public DerbyClientiFilterQuery(Database database, SchemaInitializer schemaInitializer) {
         this.database = database;
+        this.schemaInitializer = schemaInitializer;
     }
 
     @Override
-    public List<OperatoreClienteFilterRecord> findOperatoriConClienti() {
+    public List<OperatoreClienteFilterResult> findOperatoriConClienti() {
+        schemaInitializer.initialize();
+
         String sql = "SELECT DISTINCT O.ID, O.NOME, O.COGNOME, O.USERNAME "
                 + "FROM CLIENTI C "
                 + "JOIN OPERATORI O ON O.ID = C.OPERATORE_ID "
                 + "ORDER BY O.USERNAME";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
-            List<OperatoreClienteFilterRecord> operators = new ArrayList<>();
+            List<OperatoreClienteFilterResult> operators = new ArrayList<>();
             while (resultSet.next()) {
-                operators.add(new OperatoreClienteFilterRecord(
-                        UUID.fromString(resultSet.getString("ID")),
+                operators.add(new OperatoreClienteFilterResult(
+                        getUuid(resultSet, "ID"),
                         resultSet.getString("NOME"),
                         resultSet.getString("COGNOME"),
                         resultSet.getString("USERNAME")
@@ -53,6 +62,8 @@ public final class DerbyClientiFilterQuery implements ClientiFilterQuery {
     }
 
     private List<String> findDistinctClientValues(String columnName) {
+        schemaInitializer.initialize();
+
         String sql = "SELECT DISTINCT " + columnName + " FROM CLIENTI "
                 + "WHERE " + columnName + " IS NOT NULL AND TRIM(" + columnName + ") <> '' "
                 + "ORDER BY " + columnName;
@@ -66,6 +77,11 @@ public final class DerbyClientiFilterQuery implements ClientiFilterQuery {
         } catch (SQLException e) {
             throw new RuntimeException("Errore caricamento filtri clienti.", e);
         }
+    }
+
+    private UUID getUuid(ResultSet resultSet, String column) throws SQLException {
+        String value = resultSet.getString(column);
+        return value == null ? null : UUID.fromString(value);
     }
 
     private String valueOrEmpty(String value) {

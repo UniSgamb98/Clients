@@ -1,8 +1,8 @@
-package com.example.clients.core.database.query.record;
+package com.example.clients.core.database.query.result;
 
 import java.util.UUID;
 
-public record OperatoreClienteFilterRecord(
+public record OperatoreClienteFilterResult(
         UUID id,
         String nome,
         String cognome,
