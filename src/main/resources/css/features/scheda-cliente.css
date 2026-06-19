@@ -176,13 +176,6 @@
     -fx-spacing: 8;
 }
 
-.client-profile-involvement-label,
-.client-profile-involvement-value {
-    -fx-text-fill: -app-text-muted-2;
-    -fx-font-size: 12px;
-    -fx-font-weight: 700;
-}
-
 .client-profile-involvement-slider {
     -fx-pref-width: 140;
 }

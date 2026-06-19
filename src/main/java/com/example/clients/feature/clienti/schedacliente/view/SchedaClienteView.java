@@ -47,7 +47,6 @@ public class SchedaClienteView extends BorderPane {
     private final Label lastInteractionLabel;
     private final Label nextInteractionLabel;
     private final Slider involvementSlider;
-    private final Label involvementSliderValueLabel;
     private final Button favoriteButton;
     private final Button editProfileButton;
     private final Button saveProfileEditButton;
@@ -100,8 +99,6 @@ public class SchedaClienteView extends BorderPane {
         involvementSlider.setShowTickLabels(true);
         involvementSlider.setSnapToTicks(true);
         involvementSlider.getStyleClass().add("client-profile-involvement-slider");
-        involvementSliderValueLabel = new Label("-");
-        involvementSliderValueLabel.getStyleClass().add("client-profile-involvement-value");
         favoriteButton = new Button("☆");
         favoriteButton.getStyleClass().add("client-profile-favorite-button");
         editProfileButton = new Button("Modifica");
@@ -236,9 +233,7 @@ public class SchedaClienteView extends BorderPane {
     private HBox createInvolvementSliderBox() {
         HBox box = new HBox(8);
         box.getStyleClass().add("client-profile-involvement-box");
-        Label label = new Label("Coinvolgimento");
-        label.getStyleClass().add("client-profile-involvement-label");
-        box.getChildren().addAll(label, involvementSlider, involvementSliderValueLabel);
+        box.getChildren().add(involvementSlider);
         return box;
     }
 
@@ -998,7 +993,6 @@ public class SchedaClienteView extends BorderPane {
         updatingInvolvementSlider = true;
         int safeValue = value == null || value < 1 || value > 5 ? 1 : value;
         involvementSlider.setValue(safeValue);
-        involvementSliderValueLabel.setText(value == null ? "-" : String.valueOf(safeValue));
         updatingInvolvementSlider = false;
     }
 
