@@ -1,0 +1,21 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Clients:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Clients_jar</output-path>
+    <root id="archive" name="Clients.jar">
+      <element id="module-output" name="Clients" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/derby/derby/10.17.1.0/derby-10.17.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/openjfx/javafx-controls/21.0.6/javafx-controls-21.0.6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/openjfx/javafx-fxml/21.0.6/javafx-fxml-21.0.6-win.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/derby/derbyclient/10.17.1.0/derbyclient-10.17.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/derby/derbynet/10.17.1.0/derbynet-10.17.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/openjfx/javafx-graphics/21.0.6/javafx-graphics-21.0.6-win.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/derby/derbyshared/10.17.1.0/derbyshared-10.17.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/openjfx/javafx-base/21.0.6/javafx-base-21.0.6-win.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/openjfx/javafx-fxml/21.0.6/javafx-fxml-21.0.6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/openjfx/javafx-controls/21.0.6/javafx-controls-21.0.6-win.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/openjfx/javafx-graphics/21.0.6/javafx-graphics-21.0.6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/derby/derbytools/10.17.1.0/derbytools-10.17.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/openjfx/javafx-base/21.0.6/javafx-base-21.0.6.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
