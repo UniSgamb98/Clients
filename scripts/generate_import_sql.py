@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate Derby SQL import scripts from legacy CRM exports.
 
-Input files are expected in src/main/resources/importa:
+By default input files are searched in ../txt data, relative to this script:
 - clients.txt: semicolon-separated customer rows
 - tutte_le_note.txt: concatenated XML note documents delimited by FILE/END FILE markers
 """
@@ -15,9 +15,21 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Iterable
 
-ROOT = Path(__file__).resolve().parents[1]
-IMPORT_DIR = ROOT / "src/main/resources/importa"
-OUT_DIR = IMPORT_DIR / "generated"
+SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def find_project_root() -> Path:
+    for candidate in (SCRIPT_DIR, *SCRIPT_DIR.parents):
+        if (candidate / "pom.xml").is_file():
+            return candidate
+    return SCRIPT_DIR.parent
+
+
+ROOT = find_project_root()
+DEFAULT_IMPORT_DIR = (SCRIPT_DIR / "../txt data").resolve()
+LEGACY_IMPORT_DIR = ROOT / "src/main/resources/importa"
+IMPORT_DIR = DEFAULT_IMPORT_DIR if DEFAULT_IMPORT_DIR.is_dir() else LEGACY_IMPORT_DIR
+OUT_DIR = ROOT / "src/main/resources/importa/generated"
 CLIENTS_FILE = IMPORT_DIR / "clients.txt"
 NOTES_FILE = IMPORT_DIR / "tutte_le_note.txt"
 
@@ -249,6 +261,7 @@ def main() -> None:
 
     report = [
         "Import legacy CRM\n",
+        f"Cartella sorgente: {IMPORT_DIR}\n",
         f"Clienti letti: {len(clients)}\n",
         f"Documenti note letti: {len(notes)}\n",
         f"Documenti note collegati: {sum(1 for c in clients if c.calls)}\n",

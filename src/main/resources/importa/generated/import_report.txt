@@ -1,4 +1,5 @@
 Import legacy CRM
+Cartella sorgente: /workspace/Clients/src/main/resources/importa
 Clienti letti: 1107
 Documenti note letti: 929
 Documenti note collegati: 901
