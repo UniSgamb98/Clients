@@ -1,0 +1,6 @@
+Controllo tracciato clients.txt
+Campi attesi per riga: 29
+Righe anomale: 1
+
+Riga;Campi trovati;Campi attesi;Delta;Ragione sociale;Nota
+874;31;29;+2;APEX;+2 campi rispetto al tracciato

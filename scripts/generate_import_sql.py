@@ -46,6 +46,15 @@ FIELDS = [
 NOTE_ID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 NOTE_ID_FIELD_INDEX = FIELDS.index("note_id")
 
+
+@dataclass
+class RowAnomaly:
+    rownum: int
+    field_count: int
+    expected_count: int
+    ragione_sociale: str
+    note: str
+
 @dataclass
 class Call:
     note_id: str
@@ -111,15 +120,32 @@ def parse_coinvolgimento(value: str | None) -> int | None:
 
 def parse_clients() -> list[Client]:
     clients: list[Client] = []
+    anomalies: list[RowAnomaly] = []
     for rownum, line in enumerate(CLIENTS_FILE.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
-        parts = normalize_client_parts(line.split(";"))
+        parts = trim_trailing_record_separator(line.split(";"))
+        if len(parts) != len(FIELDS):
+            anomalies.append(RowAnomaly(
+                rownum=rownum,
+                field_count=len(parts),
+                expected_count=len(FIELDS),
+                ragione_sociale=parts[0].strip() if parts else "",
+                note=f"{len(parts) - len(FIELDS):+d} campi rispetto al tracciato",
+            ))
+        parts = normalize_client_parts(parts)
         if len(parts) < len(FIELDS):
             parts += [""] * (len(FIELDS) - len(parts))
         raw = {field: clean(parts[index]) for index, field in enumerate(FIELDS)}
         clients.append(Client(rownum=rownum, raw=raw))
+    write_anomaly_report(anomalies)
     return clients
+
+
+def trim_trailing_record_separator(parts: list[str]) -> list[str]:
+    if len(parts) > len(FIELDS) and parts[-1] == "":
+        return parts[:-1]
+    return parts
 
 
 def normalize_client_parts(parts: list[str]) -> list[str]:
@@ -141,6 +167,27 @@ def normalize_client_parts(parts: list[str]) -> list[str]:
         ]
 
     return [*prefix, *suffix]
+
+
+def write_anomaly_report(anomalies: list[RowAnomaly]) -> None:
+    content = [
+        "Controllo tracciato clients.txt\n",
+        f"Campi attesi per riga: {len(FIELDS)}\n",
+        f"Righe anomale: {len(anomalies)}\n",
+        "\n",
+    ]
+    if anomalies:
+        content.append("Riga;Campi trovati;Campi attesi;Delta;Ragione sociale;Nota\n")
+        for anomaly in anomalies:
+            content.append(
+                f"{anomaly.rownum};{anomaly.field_count};{anomaly.expected_count};"
+                f"{anomaly.field_count - anomaly.expected_count:+d};"
+                f"{anomaly.ragione_sociale};{anomaly.note}\n"
+            )
+    else:
+        content.append("Nessuna anomalia rilevata.\n")
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    (OUT_DIR / "import_anomalie.txt").write_text("".join(content), encoding="utf-8")
 
 
 def parse_notes() -> dict[str, list[Call]]:
@@ -290,6 +337,7 @@ def main() -> None:
         f"Documenti note collegati: {sum(1 for c in clients if c.calls)}\n",
         f"Chiamate XML importate: {sum(len(c.calls) for c in clients)}\n",
         f"Operatori distinti: {counts['operatori']}\n",
+        "Report anomalie: import_anomalie.txt\n",
         "\nStatement generati:\n",
     ]
     report.extend(f"- {name}: {count}\n" for name, count in counts.items())

@@ -5,6 +5,7 @@ Documenti note letti: 929
 Documenti note collegati: 901
 Chiamate XML importate: 3322
 Operatori distinti: 5
+Report anomalie: import_anomalie.txt
 
 Statement generati:
 - operatori: 5
