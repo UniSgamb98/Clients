@@ -14,12 +14,12 @@
 
 .client-profile-side-column {
     -fx-min-width: 330;
-    -fx-pref-width: 360;
-    -fx-max-width: 430;
+    -fx-pref-width: 420;
+    -fx-max-width: 620;
 }
 
 .client-profile-main-column {
-    -fx-pref-width: 620;
+    -fx-pref-width: 640;
 }
 
 .client-profile-data-grid {

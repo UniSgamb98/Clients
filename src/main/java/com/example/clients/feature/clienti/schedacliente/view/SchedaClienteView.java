@@ -26,7 +26,6 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Pane;
@@ -191,7 +190,7 @@ public class SchedaClienteView extends BorderPane {
         leftColumn.getStyleClass().addAll("client-profile-column", "client-profile-side-column");
         rightColumn.getStyleClass().addAll("client-profile-column", "client-profile-main-column");
         leftColumn.setMinWidth(330);
-        leftColumn.setMaxWidth(430);
+        leftColumn.setMaxWidth(620);
         rightColumn.setMaxWidth(Double.MAX_VALUE);
         leftColumn.getChildren().addAll(
                 createSection("Dati cliente", customerDataList),
@@ -285,14 +284,14 @@ public class SchedaClienteView extends BorderPane {
 
     private void renderCustomerData(ClienteProfile profile) {
         customerDataList.getChildren().clear();
-        GridPane grid = createCustomerDataGrid();
-        addGridNode(grid, createInfoLabel("Ragione sociale: " + emptyFallback(profile.ragioneSociale())), 0, 0);
-        addGridNode(grid, createInfoLabel("Tipo cliente: " + emptyFallback(profile.tipoCliente())), 1, 0);
-        addGridNode(grid, createInfoLabel("Stato trattativa: " + emptyFallback(profile.statoTrattativa())), 0, 1);
-        addGridNode(grid, createInfoLabel("Coinvolgimento: " + emptyFallback(profile.coinvolgimento())), 1, 1);
-        addGridNode(grid, createInfoLabel("Partita IVA: " + emptyFallback(profile.partitaIva())), 0, 2);
-        addGridNode(grid, createInfoLabel("Codice fiscale: " + emptyFallback(profile.codiceFiscale())), 1, 2);
-        addGridNode(grid, createInfoLabel("Acquisizione: " + formatDate(profile.acquisizione())), 0, 3);
+        TilePane grid = createCustomerDataGrid();
+        addCustomerDataNode(grid, createInfoLabel("Ragione sociale: " + emptyFallback(profile.ragioneSociale())));
+        addCustomerDataNode(grid, createInfoLabel("Tipo cliente: " + emptyFallback(profile.tipoCliente())));
+        addCustomerDataNode(grid, createInfoLabel("Stato trattativa: " + emptyFallback(profile.statoTrattativa())));
+        addCustomerDataNode(grid, createInfoLabel("Coinvolgimento: " + emptyFallback(profile.coinvolgimento())));
+        addCustomerDataNode(grid, createInfoLabel("Partita IVA: " + emptyFallback(profile.partitaIva())));
+        addCustomerDataNode(grid, createInfoLabel("Codice fiscale: " + emptyFallback(profile.codiceFiscale())));
+        addCustomerDataNode(grid, createInfoLabel("Acquisizione: " + formatDate(profile.acquisizione())));
         customerDataList.getChildren().addAll(
                 grid,
                 createInfoLabel("Telefoni azienda: " + joinProfileValues(profile.telefoni())),
@@ -352,14 +351,14 @@ public class SchedaClienteView extends BorderPane {
         acquisizioneEditPicker = new DatePicker(draft.acquisizione());
         acquisizioneEditPicker.getStyleClass().add("client-profile-call-date-picker");
 
-        GridPane grid = createCustomerDataGrid();
-        addGridNode(grid, createFieldRow("Ragione sociale", ragioneSocialeEditField), 0, 0);
-        addGridNode(grid, createChoiceRow("Tipo cliente", tipoClienteEditField), 1, 0);
-        addGridNode(grid, createChoiceRow("Stato trattativa", statoTrattativaEditField), 0, 1);
-        addGridNode(grid, createIntegerChoiceRow("Coinvolgimento", coinvolgimentoEditField), 1, 1);
-        addGridNode(grid, createFieldRow("Partita IVA", partitaIvaEditField), 0, 2);
-        addGridNode(grid, createFieldRow("Codice fiscale", codiceFiscaleEditField), 1, 2);
-        addGridNode(grid, createDateRow("Acquisizione", acquisizioneEditPicker), 0, 3);
+        TilePane grid = createCustomerDataGrid();
+        addCustomerDataNode(grid, createFieldRow("Ragione sociale", ragioneSocialeEditField));
+        addCustomerDataNode(grid, createChoiceRow("Tipo cliente", tipoClienteEditField));
+        addCustomerDataNode(grid, createChoiceRow("Stato trattativa", statoTrattativaEditField));
+        addCustomerDataNode(grid, createIntegerChoiceRow("Coinvolgimento", coinvolgimentoEditField));
+        addCustomerDataNode(grid, createFieldRow("Partita IVA", partitaIvaEditField));
+        addCustomerDataNode(grid, createFieldRow("Codice fiscale", codiceFiscaleEditField));
+        addCustomerDataNode(grid, createDateRow("Acquisizione", acquisizioneEditPicker));
 
         customerDataList.getChildren().addAll(
                 grid,
@@ -370,17 +369,20 @@ public class SchedaClienteView extends BorderPane {
     }
 
 
-    private GridPane createCustomerDataGrid() {
-        GridPane grid = new GridPane();
+    private TilePane createCustomerDataGrid() {
+        TilePane grid = new TilePane(12, 10);
         grid.getStyleClass().add("client-profile-data-grid");
-        grid.setHgap(12);
-        grid.setVgap(10);
+        grid.setPrefColumns(2);
+        grid.setPrefTileWidth(260);
         return grid;
     }
 
-    private void addGridNode(GridPane grid, Node node, int column, int row) {
-        GridPane.setHgrow(node, Priority.ALWAYS);
-        grid.add(node, column, row);
+    private void addCustomerDataNode(TilePane grid, Node node) {
+        if (node instanceof javafx.scene.layout.Region region) {
+            region.setMaxWidth(Double.MAX_VALUE);
+            region.setPrefWidth(260);
+        }
+        grid.getChildren().add(node);
     }
 
     private VBox createEditableValuesSection(String title, List<TextField> target, List<ValueEditInput> values, String prompt) {
