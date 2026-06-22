@@ -195,7 +195,7 @@ public class SchedaClienteView extends BorderPane {
         rightColumn.setMaxWidth(Double.MAX_VALUE);
         VBox contactsSection = createSection("Contatti", contactsList);
         VBox addressesSection = createSection("Indirizzi", addressesList);
-        TilePane relatedSections = createRelatedSectionsGrid(contactsSection, addressesSection);
+        HBox relatedSections = createRelatedSectionsRow(contactsSection, addressesSection);
         leftColumn.getChildren().addAll(
                 createSection("Dati cliente", customerDataList),
                 relatedSections
@@ -232,27 +232,16 @@ public class SchedaClienteView extends BorderPane {
         return section;
     }
 
-    private TilePane createRelatedSectionsGrid(VBox... sections) {
-        double gap = 12;
-        TilePane grid = new TilePane(gap, gap);
-        grid.getStyleClass().add("client-profile-related-sections-grid");
-        grid.setPrefColumns(2);
-        grid.setPrefTileWidth(270);
-        grid.widthProperty().addListener((observable, oldWidth, newWidth) -> resizeRelatedSectionTiles(grid, newWidth.doubleValue(), gap));
+    private HBox createRelatedSectionsRow(VBox... sections) {
+        HBox row = new HBox(12);
+        row.getStyleClass().add("client-profile-related-sections-row");
         for (VBox section : sections) {
+            section.setMinWidth(0);
             section.setMaxWidth(Double.MAX_VALUE);
-            grid.getChildren().add(section);
+            HBox.setHgrow(section, Priority.ALWAYS);
+            row.getChildren().add(section);
         }
-        return grid;
-    }
-
-    private void resizeRelatedSectionTiles(TilePane grid, double width, double gap) {
-        if (width <= 0) {
-            return;
-        }
-        double twoColumnBreakpoint = 560;
-        double tileWidth = width >= twoColumnBreakpoint ? (width - gap) / 2 : width;
-        grid.setPrefTileWidth(tileWidth);
+        return row;
     }
 
     private VBox createNoteEditor() {
