@@ -234,6 +234,7 @@ public class SchedaClienteView extends BorderPane {
         TilePane grid = new TilePane(12, 12);
         grid.getStyleClass().add("client-profile-card-grid");
         grid.setPrefColumns(2);
+        grid.setPrefTileWidth(240);
         return grid;
     }
 
@@ -443,7 +444,7 @@ public class SchedaClienteView extends BorderPane {
 
     private void addContactEditor(ContactEditInput value) {
         VBox card = new VBox(8);
-        card.setPrefWidth(300);
+        card.setPrefWidth(240);
         card.setMaxWidth(Double.MAX_VALUE);
         card.getStyleClass().add("client-profile-timeline-card");
         TextField descriptionField = createTextField(value.descrizione(), "Nome referente / contatto");
@@ -486,7 +487,7 @@ public class SchedaClienteView extends BorderPane {
 
     private void addAddressEditor(AddressEditInput value) {
         VBox card = new VBox(8);
-        card.setPrefWidth(300);
+        card.setPrefWidth(240);
         card.setMaxWidth(Double.MAX_VALUE);
         card.getStyleClass().add("client-profile-timeline-card");
         TextField countryField = createTextField(value.paese(), "Paese");
