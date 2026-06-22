@@ -66,7 +66,7 @@
     -fx-border-color: -app-border;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
-    -fx-min-height: 110;
+    -fx-min-height: 140;
 }
 
 .client-profile-timeline-filter-bar {
@@ -193,7 +193,7 @@
     -fx-background-radius: 8;
     -fx-font-size: 13px;
     -fx-font-weight: 800;
-    -fx-padding: 6 10;
+    -fx-padding: 6 0;
     -fx-cursor: hand;
 }
 

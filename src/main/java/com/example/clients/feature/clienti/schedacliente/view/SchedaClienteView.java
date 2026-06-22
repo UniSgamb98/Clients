@@ -145,6 +145,7 @@ public class SchedaClienteView extends BorderPane {
 
         ScrollPane scrollPane = new ScrollPane(body);
         scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.getStyleClass().add("new-client-scroll");
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         content.getChildren().add(scrollPane);
@@ -691,13 +692,27 @@ public class SchedaClienteView extends BorderPane {
 
     private HBox createEditableInteractionActions(DatePicker nextCallPicker) {
         HBox actions = new HBox(8);
+        actions.setMaxWidth(Double.MAX_VALUE);
         actions.getStyleClass().add("client-profile-edit-interaction-actions");
+        nextCallPicker.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(nextCallPicker, Priority.ALWAYS);
         Button deleteButton = new Button("🗑");
         deleteButton.setAccessibleText("Elimina interazione");
+        deleteButton.setMinWidth(36);
+        deleteButton.setPrefWidth(36);
         deleteButton.getStyleClass().add("client-profile-delete-interaction-button");
         actions.getChildren().addAll(nextCallPicker, deleteButton);
         return actions;
+    }
+
+    private void configureEditableInteractionTextArea(TextArea textArea) {
+        textArea.getStyleClass().add("client-profile-note-area");
+        textArea.setWrapText(true);
+        textArea.setMaxWidth(Double.MAX_VALUE);
+        textArea.setMaxHeight(Double.MAX_VALUE);
+        textArea.setMinHeight(140);
+        textArea.setPrefRowCount(5);
+        VBox.setVgrow(textArea, Priority.ALWAYS);
     }
 
     private void renderEditableTimeline(List<InteractionEditInput> interactions) {
@@ -709,6 +724,7 @@ public class SchedaClienteView extends BorderPane {
         }
         for (InteractionEditInput interaction : interactions) {
             VBox card = new VBox(8);
+            card.setMaxWidth(Double.MAX_VALUE);
             card.getStyleClass().add("client-profile-timeline-card");
             Label title = createInfoLabel(DATE_FORMATTER.format(interaction.data()) + " · " + interaction.type().label());
             title.getStyleClass().add("client-profile-timeline-title");
@@ -722,8 +738,7 @@ public class SchedaClienteView extends BorderPane {
                 card.getChildren().add(title);
             }
             TextArea textArea = new TextArea(interaction.testo());
-            textArea.getStyleClass().add("client-profile-note-area");
-            textArea.setPrefRowCount(3);
+            configureEditableInteractionTextArea(textArea);
             card.getChildren().add(textArea);
             timelineList.getChildren().add(card);
             timelineEditFields.add(new TimelineEditField(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea));
