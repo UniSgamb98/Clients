@@ -190,6 +190,7 @@ public class SchedaClienteView extends BorderPane {
         leftColumn.getStyleClass().addAll("client-profile-column", "client-profile-side-column");
         rightColumn.getStyleClass().addAll("client-profile-column", "client-profile-main-column");
         leftColumn.setMinWidth(330);
+        leftColumn.setPrefWidth(560);
         leftColumn.setMaxWidth(620);
         rightColumn.setMaxWidth(Double.MAX_VALUE);
         leftColumn.getChildren().addAll(
@@ -198,7 +199,7 @@ public class SchedaClienteView extends BorderPane {
                 createSection("Indirizzi", addressesList)
         );
         rightColumn.getChildren().add(createTimelineSection());
-        HBox.setHgrow(leftColumn, Priority.SOMETIMES);
+        HBox.setHgrow(leftColumn, Priority.ALWAYS);
         HBox.setHgrow(rightColumn, Priority.ALWAYS);
         columns.getChildren().addAll(leftColumn, rightColumn);
         return columns;
@@ -372,15 +373,16 @@ public class SchedaClienteView extends BorderPane {
     private TilePane createCustomerDataGrid() {
         TilePane grid = new TilePane(12, 10);
         grid.getStyleClass().add("client-profile-data-grid");
+        grid.setMaxWidth(Double.MAX_VALUE);
         grid.setPrefColumns(2);
-        grid.setPrefTileWidth(260);
+        grid.setPrefTileWidth(240);
         return grid;
     }
 
     private void addCustomerDataNode(TilePane grid, Node node) {
         if (node instanceof javafx.scene.layout.Region region) {
             region.setMaxWidth(Double.MAX_VALUE);
-            region.setPrefWidth(260);
+            region.setPrefWidth(240);
         }
         grid.getChildren().add(node);
     }

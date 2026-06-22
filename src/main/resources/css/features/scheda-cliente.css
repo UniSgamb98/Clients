@@ -14,7 +14,7 @@
 
 .client-profile-side-column {
     -fx-min-width: 330;
-    -fx-pref-width: 420;
+    -fx-pref-width: 560;
     -fx-max-width: 620;
 }
 
