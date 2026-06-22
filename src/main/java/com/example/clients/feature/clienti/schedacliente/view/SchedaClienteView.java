@@ -233,16 +233,26 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private TilePane createRelatedSectionsGrid(VBox... sections) {
-        TilePane grid = new TilePane(12, 12);
+        double gap = 12;
+        TilePane grid = new TilePane(gap, gap);
         grid.getStyleClass().add("client-profile-related-sections-grid");
         grid.setPrefColumns(2);
         grid.setPrefTileWidth(270);
+        grid.widthProperty().addListener((observable, oldWidth, newWidth) -> resizeRelatedSectionTiles(grid, newWidth.doubleValue(), gap));
         for (VBox section : sections) {
-            section.setPrefWidth(270);
             section.setMaxWidth(Double.MAX_VALUE);
             grid.getChildren().add(section);
         }
         return grid;
+    }
+
+    private void resizeRelatedSectionTiles(TilePane grid, double width, double gap) {
+        if (width <= 0) {
+            return;
+        }
+        double twoColumnBreakpoint = 560;
+        double tileWidth = width >= twoColumnBreakpoint ? (width - gap) / 2 : width;
+        grid.setPrefTileWidth(tileWidth);
     }
 
     private VBox createNoteEditor() {
