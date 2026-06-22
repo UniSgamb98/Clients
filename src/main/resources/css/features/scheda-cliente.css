@@ -179,3 +179,25 @@
 .client-profile-involvement-slider {
     -fx-pref-width: 140;
 }
+
+.client-profile-edit-interaction-actions {
+    -fx-alignment: center-left;
+    -fx-spacing: 8;
+}
+
+.client-profile-delete-interaction-button {
+    -fx-background-color: rgba(127, 29, 29, 0.65);
+    -fx-text-fill: #fecaca;
+    -fx-border-color: rgba(248, 113, 113, 0.35);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-padding: 6 10;
+    -fx-cursor: hand;
+}
+
+.client-profile-delete-interaction-button:hover {
+    -fx-background-color: rgba(153, 27, 27, 0.9);
+    -fx-text-fill: -app-text;
+}

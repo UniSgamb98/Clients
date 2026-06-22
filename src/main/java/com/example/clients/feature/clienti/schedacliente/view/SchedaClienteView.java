@@ -689,6 +689,17 @@ public class SchedaClienteView extends BorderPane {
         return label;
     }
 
+    private HBox createEditableInteractionActions(DatePicker nextCallPicker) {
+        HBox actions = new HBox(8);
+        actions.getStyleClass().add("client-profile-edit-interaction-actions");
+        HBox.setHgrow(nextCallPicker, Priority.ALWAYS);
+        Button deleteButton = new Button("🗑");
+        deleteButton.setAccessibleText("Elimina interazione");
+        deleteButton.getStyleClass().add("client-profile-delete-interaction-button");
+        actions.getChildren().addAll(nextCallPicker, deleteButton);
+        return actions;
+    }
+
     private void renderEditableTimeline(List<InteractionEditInput> interactions) {
         timelineList.getChildren().clear();
         timelineEditFields.clear();
@@ -706,7 +717,7 @@ public class SchedaClienteView extends BorderPane {
                 nextCallPicker = new DatePicker(interaction.prossimoContatto());
                 nextCallPicker.setPromptText("Prossima chiamata");
                 nextCallPicker.getStyleClass().add("client-profile-call-date-picker");
-                card.getChildren().addAll(title, nextCallPicker);
+                card.getChildren().addAll(title, createEditableInteractionActions(nextCallPicker));
             } else {
                 card.getChildren().add(title);
             }
