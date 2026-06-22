@@ -1,6 +1,5 @@
 package com.example.clients.feature.clienti.nuovocliente.view;
 
-import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,7 +20,6 @@ import javafx.scene.layout.VBox;
 
 public class NuovoClienteView extends BorderPane {
 
-    private final AppHeader header;
     private final AppSidebar sidebar;
     private final TextField nameField;
     private final ChoiceBox<String> typeChoiceBox;
@@ -66,7 +64,6 @@ public class NuovoClienteView extends BorderPane {
     private final List<TextField> extraAddressFields;
 
     public NuovoClienteView() {
-        header = new AppHeader("Nuovo cliente");
         sidebar = new AppSidebar();
 
         nameField = createTextField("Ragione sociale");
@@ -123,7 +120,6 @@ public class NuovoClienteView extends BorderPane {
         cancelButton = new Button("Annulla");
         cancelButton.getStyleClass().add("clients-filter-button");
 
-        setTop(header);
         setLeft(sidebar);
         setCenter(createContent());
     }
@@ -461,9 +457,6 @@ public class NuovoClienteView extends BorderPane {
         contactEmailFields.forEach(field -> field.getItems().setAll(emails));
     }
 
-    public AppHeader getHeader() {
-        return header;
-    }
 
     public AppSidebar getSidebar() {
         return sidebar;

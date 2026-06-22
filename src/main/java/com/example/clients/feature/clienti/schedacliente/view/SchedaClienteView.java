@@ -1,6 +1,5 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
-import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.AddressEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.AddressItem;
@@ -39,7 +38,6 @@ public class SchedaClienteView extends BorderPane {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final AppHeader header;
     private final AppSidebar sidebar;
     private final Label titleLabel;
     private final Label subtitleLabel;
@@ -83,7 +81,6 @@ public class SchedaClienteView extends BorderPane {
     private boolean updatingInvolvementSlider;
 
     public SchedaClienteView() {
-        header = new AppHeader("Scheda cliente");
         sidebar = new AppSidebar();
         titleLabel = new Label("Cliente");
         titleLabel.getStyleClass().add("clients-title");
@@ -134,7 +131,6 @@ public class SchedaClienteView extends BorderPane {
         setEditMode(false);
         hideNoteEditor();
 
-        setTop(header);
         setLeft(sidebar);
         setCenter(createContent());
     }
@@ -969,9 +965,6 @@ public class SchedaClienteView extends BorderPane {
         return value == null ? "" : value.trim();
     }
 
-    public AppHeader getHeader() {
-        return header;
-    }
 
     public AppSidebar getSidebar() {
         return sidebar;

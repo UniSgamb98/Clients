@@ -1,6 +1,5 @@
 package com.example.clients.feature.clienti.clienti.view;
 
-import com.example.clients.core.ui.AppHeader;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
@@ -26,7 +25,6 @@ public class ClientiView extends BorderPane {
     private static final double EMAIL_COLUMN_WIDTH = 175;
     private static final double STATUS_COLUMN_WIDTH = 75;
 
-    private final AppHeader header;
     private final AppSidebar sidebar;
     private final TextField searchField;
     private final Button newClientButton;
@@ -48,7 +46,6 @@ public class ClientiView extends BorderPane {
     private final Label pageLabel;
 
     public ClientiView() {
-        header = new AppHeader("Clienti");
         sidebar = new AppSidebar();
 
         searchField = new TextField();
@@ -86,7 +83,6 @@ public class ClientiView extends BorderPane {
         pageLabel.getStyleClass().add("clients-pagination-label");
         setPaginationDisabled(true);
 
-        setTop(header);
         setLeft(sidebar);
         setCenter(createContent());
     }
@@ -276,9 +272,6 @@ public class ClientiView extends BorderPane {
         region.setMaxWidth(width);
     }
 
-    public AppHeader getHeader() {
-        return header;
-    }
 
     public AppSidebar getSidebar() {
         return sidebar;

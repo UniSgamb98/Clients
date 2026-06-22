@@ -5,12 +5,12 @@ import com.example.clients.core.database.query.derby.DerbyStatoTrattativaQuery;
 import com.example.clients.core.database.query.derby.DerbyTipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
-import com.example.clients.core.ui.AppHeader;
 import com.example.clients.feature.auth.login.controller.LoginController;
 import com.example.clients.feature.auth.login.navigator.LoginNav;
 import com.example.clients.feature.auth.login.service.LoginService;
 import com.example.clients.feature.auth.login.view.LoginView;
 import com.example.clients.core.ui.AppSidebar;
+import com.example.clients.feature.calendario.view.CalendarioView;
 import com.example.clients.feature.clienti.clienti.controller.ClientiController;
 import com.example.clients.feature.clienti.clienti.service.ClientiService;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
@@ -52,8 +52,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     /*
     -------------------------------------------------------------------------------------------------------------------
     Implemento i metodi di navigazione che verranno passati
-    Creo un metodo per ogni view che devo mostrare. Ogni metodo chiama configureHeader per assegnare le funzioni dei
-    tasti dello header qua e non nei singoli controller di tutte le view.
+    Creo un metodo per ogni view che devo mostrare. Ogni metodo configura la sidebar centralizzando la navigazione.
      */
 
     public void showLogin() {
@@ -79,7 +78,6 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     @Override
     public void showDashboard() {
         DashboardView view = new DashboardView();
-        configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
         new DashboardController(view, this, new DashboardService());
 
@@ -90,7 +88,6 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     @Override
     public void showClienti() {
         ClientiView view = new ClientiView();
-        configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
         ClientiController controller = new ClientiController(view, this, new ClientiService(app.database));
 
@@ -106,7 +103,6 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     @Override
     public void showNuovoCliente() {
         NuovoClienteView view = new NuovoClienteView();
-        configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
         new NuovoClienteController(
                 view,
@@ -130,7 +126,6 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     @Override
     public void showSchedaCliente(UUID clienteId) {
         SchedaClienteView view = new SchedaClienteView();
-        configureHeader(view.getHeader());
         configureSidebar(view.getSidebar());
         new SchedaClienteController(view, this, new SchedaClienteService(app.database), clienteId);
 
@@ -142,14 +137,15 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         stage.setTitle("Clients - Scheda cliente");
     }
 
-    public void showLaboratory() {
-        /*
-        LaboratoryView view = new LaboratoryView();
-        configureHeader(view.getHeader());
-        new LaboratoryController(view, this);
+    public void showCalendario() {
+        CalendarioView view = new CalendarioView();
+        configureSidebar(view.getSidebar());
 
-        stage.setScene(createSceneWithCSS(view));
-        stage.setTitle("Clients - Laboratorio");*/
+        showView(
+                view,
+                "/css/features/calendario.css"
+        );
+        stage.setTitle("Clients - Calendario");
     }
 
     // La Scene viene creata solo al primo caricamento: durante la navigazione cambia solo il root.
@@ -181,14 +177,10 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         return e.getMessage() == null || e.getMessage().isBlank() ? "errore imprevisto." : e.getMessage();
     }
 
-    private void configureHeader(AppHeader header) {
-        header.getHomeButton().setOnAction(e -> showDashboard());
-        header.getLaboratoryButton().setOnAction(e -> showLaboratory());
-    }
-
     private void configureSidebar(AppSidebar sidebar) {
         sidebar.getDashboardButton().setOnAction(e -> showDashboard());
         sidebar.getClientsButton().setOnAction(e -> showClienti());
+        sidebar.getCalendarButton().setOnAction(e -> showCalendario());
     }
 
     public void shutdown() {

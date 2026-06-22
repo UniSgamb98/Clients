@@ -1,0 +1,130 @@
+/* ==== Calendario CRM ==== */
+.calendar-content {
+    -fx-background-color: -app-bg;
+}
+
+.calendar-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -app-text;
+}
+
+.calendar-subtitle,
+.calendar-agenda-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: -app-text-subtle;
+}
+
+.calendar-toolbar,
+.calendar-panel,
+.calendar-agenda-panel {
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 12;
+    -fx-padding: 14;
+}
+
+.calendar-period-label {
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -app-text;
+}
+
+.calendar-primary-button,
+.calendar-secondary-button,
+.calendar-toggle-button {
+    -fx-background-radius: 8;
+    -fx-font-weight: 700;
+    -fx-padding: 7 12;
+}
+
+.calendar-primary-button {
+    -fx-background-color: -app-primary;
+    -fx-text-fill: -app-text;
+}
+
+.calendar-primary-button:hover {
+    -fx-background-color: -app-primary-hover;
+}
+
+.calendar-secondary-button,
+.calendar-toggle-button {
+    -fx-background-color: -app-control-alt-bg;
+    -fx-text-fill: -app-text-muted;
+}
+
+.calendar-secondary-button:hover,
+.calendar-toggle-button:hover,
+.calendar-toggle-selected {
+    -fx-background-color: -app-primary-dark;
+    -fx-text-fill: -app-text;
+}
+
+.calendar-month-grid {
+    -fx-padding: 4;
+}
+
+.calendar-day-header {
+    -fx-min-width: 84;
+    -fx-pref-width: 84;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -app-text-muted;
+}
+
+.calendar-day-cell {
+    -fx-min-width: 84;
+    -fx-pref-width: 84;
+    -fx-min-height: 82;
+    -fx-background-color: -app-surface-alt;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-padding: 8;
+}
+
+.calendar-day-today {
+    -fx-border-color: -app-primary;
+    -fx-border-width: 2;
+}
+
+.calendar-day-number {
+    -fx-font-size: 13px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -app-text;
+}
+
+.calendar-activity-chip {
+    -fx-background-color: -app-badge-bg;
+    -fx-background-radius: 999;
+    -fx-padding: 3 7;
+    -fx-font-size: 10px;
+    -fx-text-fill: -app-text-muted;
+}
+
+.calendar-agenda-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -app-text;
+}
+
+.calendar-agenda-item {
+    -fx-background-color: -app-surface-alt;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-padding: 10;
+}
+
+.calendar-agenda-time {
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -app-primary-hover;
+}
+
+.calendar-agenda-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: -app-text-muted;
+    -fx-wrap-text: true;
+}
