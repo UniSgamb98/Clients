@@ -58,8 +58,8 @@ public class SchedaClienteView extends BorderPane {
     private final Button notesFilterButton;
     private final Button callsFilterButton;
     private final VBox customerDataList;
-    private final TilePane contactsList;
-    private final TilePane addressesList;
+    private final VBox contactsList;
+    private final VBox addressesList;
     private final VBox timelineList;
     private final VBox noteEditor;
     private final DatePicker nextCallDatePicker;
@@ -115,8 +115,8 @@ public class SchedaClienteView extends BorderPane {
         notesFilterButton = createTimelineFilterButton("Solo note");
         callsFilterButton = createTimelineFilterButton("Solo chiamate");
         customerDataList = new VBox(8);
-        contactsList = createCardGrid();
-        addressesList = createCardGrid();
+        contactsList = new VBox(8);
+        addressesList = new VBox(8);
         timelineList = new VBox(10);
         noteEditor = createNoteEditor();
         nextCallDatePicker = new DatePicker();
@@ -193,10 +193,12 @@ public class SchedaClienteView extends BorderPane {
         leftColumn.setPrefWidth(560);
         leftColumn.setMaxWidth(620);
         rightColumn.setMaxWidth(Double.MAX_VALUE);
+        VBox contactsSection = createSection("Contatti", contactsList);
+        VBox addressesSection = createSection("Indirizzi", addressesList);
+        TilePane relatedSections = createRelatedSectionsGrid(contactsSection, addressesSection);
         leftColumn.getChildren().addAll(
                 createSection("Dati cliente", customerDataList),
-                createSection("Contatti", contactsList),
-                createSection("Indirizzi", addressesList)
+                relatedSections
         );
         rightColumn.getChildren().add(createTimelineSection());
         HBox.setHgrow(leftColumn, Priority.ALWAYS);
@@ -230,11 +232,16 @@ public class SchedaClienteView extends BorderPane {
         return section;
     }
 
-    private TilePane createCardGrid() {
+    private TilePane createRelatedSectionsGrid(VBox... sections) {
         TilePane grid = new TilePane(12, 12);
-        grid.getStyleClass().add("client-profile-card-grid");
+        grid.getStyleClass().add("client-profile-related-sections-grid");
         grid.setPrefColumns(2);
-        grid.setPrefTileWidth(240);
+        grid.setPrefTileWidth(270);
+        for (VBox section : sections) {
+            section.setPrefWidth(270);
+            section.setMaxWidth(Double.MAX_VALUE);
+            grid.getChildren().add(section);
+        }
         return grid;
     }
 
@@ -444,7 +451,6 @@ public class SchedaClienteView extends BorderPane {
 
     private void addContactEditor(ContactEditInput value) {
         VBox card = new VBox(8);
-        card.setPrefWidth(240);
         card.setMaxWidth(Double.MAX_VALUE);
         card.getStyleClass().add("client-profile-timeline-card");
         TextField descriptionField = createTextField(value.descrizione(), "Nome referente / contatto");
@@ -487,7 +493,6 @@ public class SchedaClienteView extends BorderPane {
 
     private void addAddressEditor(AddressEditInput value) {
         VBox card = new VBox(8);
-        card.setPrefWidth(240);
         card.setMaxWidth(Double.MAX_VALUE);
         card.getStyleClass().add("client-profile-timeline-card");
         TextField countryField = createTextField(value.paese(), "Paese");
