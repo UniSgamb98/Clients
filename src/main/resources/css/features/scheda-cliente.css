@@ -13,12 +13,23 @@
 }
 
 .client-profile-side-column {
+    -fx-min-width: 330;
     -fx-pref-width: 360;
     -fx-max-width: 430;
 }
 
 .client-profile-main-column {
-    -fx-pref-width: 680;
+    -fx-pref-width: 620;
+}
+
+.client-profile-data-grid {
+    -fx-hgap: 12;
+    -fx-vgap: 10;
+}
+
+.client-profile-card-grid {
+    -fx-hgap: 12;
+    -fx-vgap: 12;
 }
 
 .client-profile-header-actions,
@@ -79,7 +90,8 @@
     -fx-border-color: -app-border;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
-    -fx-min-height: 140;
+    -fx-min-height: 160;
+    -fx-max-width: 760;
 }
 
 .client-profile-timeline-filter-bar {

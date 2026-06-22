@@ -14,6 +14,7 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ValueEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ValueItem;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
@@ -25,8 +26,11 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
@@ -55,8 +59,8 @@ public class SchedaClienteView extends BorderPane {
     private final Button notesFilterButton;
     private final Button callsFilterButton;
     private final VBox customerDataList;
-    private final VBox contactsList;
-    private final VBox addressesList;
+    private final TilePane contactsList;
+    private final TilePane addressesList;
     private final VBox timelineList;
     private final VBox noteEditor;
     private final DatePicker nextCallDatePicker;
@@ -112,8 +116,8 @@ public class SchedaClienteView extends BorderPane {
         notesFilterButton = createTimelineFilterButton("Solo note");
         callsFilterButton = createTimelineFilterButton("Solo chiamate");
         customerDataList = new VBox(8);
-        contactsList = new VBox(8);
-        addressesList = new VBox(8);
+        contactsList = createCardGrid();
+        addressesList = createCardGrid();
         timelineList = new VBox(10);
         noteEditor = createNoteEditor();
         nextCallDatePicker = new DatePicker();
@@ -186,6 +190,7 @@ public class SchedaClienteView extends BorderPane {
         VBox rightColumn = new VBox(14);
         leftColumn.getStyleClass().addAll("client-profile-column", "client-profile-side-column");
         rightColumn.getStyleClass().addAll("client-profile-column", "client-profile-main-column");
+        leftColumn.setMinWidth(330);
         leftColumn.setMaxWidth(430);
         rightColumn.setMaxWidth(Double.MAX_VALUE);
         leftColumn.getChildren().addAll(
@@ -216,13 +221,20 @@ public class SchedaClienteView extends BorderPane {
         return section;
     }
 
-    private VBox createSection(String titleText, VBox body) {
+    private VBox createSection(String titleText, Node body) {
         VBox section = new VBox(12);
         section.getStyleClass().add("new-client-section");
         Label title = new Label(titleText);
         title.getStyleClass().add("new-client-section-title");
         section.getChildren().addAll(title, body);
         return section;
+    }
+
+    private TilePane createCardGrid() {
+        TilePane grid = new TilePane(12, 12);
+        grid.getStyleClass().add("client-profile-card-grid");
+        grid.setPrefColumns(2);
+        return grid;
     }
 
     private VBox createNoteEditor() {
@@ -265,21 +277,28 @@ public class SchedaClienteView extends BorderPane {
         nextInteractionLabel.setText("Prossima chiamata " + nextCallText(profile.interazioni()));
         setFavorite(profile.favorite());
         setInvolvementSliderValue(profile.coinvolgimento());
-        renderList(customerDataList, List.of(
-                "Ragione sociale: " + emptyFallback(profile.ragioneSociale()),
-                "Tipo cliente: " + emptyFallback(profile.tipoCliente()),
-                "Stato trattativa: " + emptyFallback(profile.statoTrattativa()),
-                "Coinvolgimento: " + emptyFallback(profile.coinvolgimento()),
-                "Partita IVA: " + emptyFallback(profile.partitaIva()),
-                "Codice fiscale: " + emptyFallback(profile.codiceFiscale()),
-                "Acquisizione: " + formatDate(profile.acquisizione()),
-                "Telefoni azienda: " + joinProfileValues(profile.telefoni()),
-                "Email azienda: " + joinProfileValues(profile.email()),
-                "Siti web: " + joinProfileValues(profile.sitiWeb())
-        ));
+        renderCustomerData(profile);
         renderContactList(contactsList, profile.contatti());
         renderAddressList(addressesList, profile.indirizzi());
         renderTimeline(profile.interazioni());
+    }
+
+    private void renderCustomerData(ClienteProfile profile) {
+        customerDataList.getChildren().clear();
+        GridPane grid = createCustomerDataGrid();
+        addGridNode(grid, createInfoLabel("Ragione sociale: " + emptyFallback(profile.ragioneSociale())), 0, 0);
+        addGridNode(grid, createInfoLabel("Tipo cliente: " + emptyFallback(profile.tipoCliente())), 1, 0);
+        addGridNode(grid, createInfoLabel("Stato trattativa: " + emptyFallback(profile.statoTrattativa())), 0, 1);
+        addGridNode(grid, createInfoLabel("Coinvolgimento: " + emptyFallback(profile.coinvolgimento())), 1, 1);
+        addGridNode(grid, createInfoLabel("Partita IVA: " + emptyFallback(profile.partitaIva())), 0, 2);
+        addGridNode(grid, createInfoLabel("Codice fiscale: " + emptyFallback(profile.codiceFiscale())), 1, 2);
+        addGridNode(grid, createInfoLabel("Acquisizione: " + formatDate(profile.acquisizione())), 0, 3);
+        customerDataList.getChildren().addAll(
+                grid,
+                createInfoLabel("Telefoni azienda: " + joinProfileValues(profile.telefoni())),
+                createInfoLabel("Email azienda: " + joinProfileValues(profile.email())),
+                createInfoLabel("Siti web: " + joinProfileValues(profile.sitiWeb()))
+        );
     }
 
     public void renderEditableProfile(EditProfileDraft draft) {
@@ -333,20 +352,36 @@ public class SchedaClienteView extends BorderPane {
         acquisizioneEditPicker = new DatePicker(draft.acquisizione());
         acquisizioneEditPicker.getStyleClass().add("client-profile-call-date-picker");
 
+        GridPane grid = createCustomerDataGrid();
+        addGridNode(grid, createFieldRow("Ragione sociale", ragioneSocialeEditField), 0, 0);
+        addGridNode(grid, createChoiceRow("Tipo cliente", tipoClienteEditField), 1, 0);
+        addGridNode(grid, createChoiceRow("Stato trattativa", statoTrattativaEditField), 0, 1);
+        addGridNode(grid, createIntegerChoiceRow("Coinvolgimento", coinvolgimentoEditField), 1, 1);
+        addGridNode(grid, createFieldRow("Partita IVA", partitaIvaEditField), 0, 2);
+        addGridNode(grid, createFieldRow("Codice fiscale", codiceFiscaleEditField), 1, 2);
+        addGridNode(grid, createDateRow("Acquisizione", acquisizioneEditPicker), 0, 3);
+
         customerDataList.getChildren().addAll(
-                createFieldRow("Ragione sociale", ragioneSocialeEditField),
-                createChoiceRow("Tipo cliente", tipoClienteEditField),
-                createChoiceRow("Stato trattativa", statoTrattativaEditField),
-                createIntegerChoiceRow("Coinvolgimento", coinvolgimentoEditField),
-                createFieldRow("Partita IVA", partitaIvaEditField),
-                createFieldRow("Codice fiscale", codiceFiscaleEditField),
-                createDateRow("Acquisizione", acquisizioneEditPicker),
+                grid,
                 createEditableValuesSection("Telefoni azienda", phoneEditFields, draft.telefoni(), "Telefono azienda"),
                 createEditableValuesSection("Email azienda", emailEditFields, draft.email(), "Email azienda"),
                 createEditableValuesSection("Siti web", siteEditFields, draft.sitiWeb(), "Sito web")
         );
     }
 
+
+    private GridPane createCustomerDataGrid() {
+        GridPane grid = new GridPane();
+        grid.getStyleClass().add("client-profile-data-grid");
+        grid.setHgap(12);
+        grid.setVgap(10);
+        return grid;
+    }
+
+    private void addGridNode(GridPane grid, Node node, int column, int row) {
+        GridPane.setHgrow(node, Priority.ALWAYS);
+        grid.add(node, column, row);
+    }
 
     private VBox createEditableValuesSection(String title, List<TextField> target, List<ValueEditInput> values, String prompt) {
         VBox section = new VBox(8);
@@ -404,6 +439,8 @@ public class SchedaClienteView extends BorderPane {
 
     private void addContactEditor(ContactEditInput value) {
         VBox card = new VBox(8);
+        card.setPrefWidth(300);
+        card.setMaxWidth(Double.MAX_VALUE);
         card.getStyleClass().add("client-profile-timeline-card");
         TextField descriptionField = createTextField(value.descrizione(), "Nome referente / contatto");
 
@@ -445,6 +482,8 @@ public class SchedaClienteView extends BorderPane {
 
     private void addAddressEditor(AddressEditInput value) {
         VBox card = new VBox(8);
+        card.setPrefWidth(300);
+        card.setMaxWidth(Double.MAX_VALUE);
         card.getStyleClass().add("client-profile-timeline-card");
         TextField countryField = createTextField(value.paese(), "Paese");
         TextField regionField = createTextField(value.regione(), "Regione");
@@ -704,8 +743,9 @@ public class SchedaClienteView extends BorderPane {
         HBox actions = new HBox(8);
         actions.setMaxWidth(Double.MAX_VALUE);
         actions.getStyleClass().add("client-profile-edit-interaction-actions");
-        nextCallPicker.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(nextCallPicker, Priority.ALWAYS);
+        nextCallPicker.setPrefWidth(170);
+        nextCallPicker.setMaxWidth(190);
+        HBox.setHgrow(nextCallPicker, Priority.NEVER);
         Button deleteButton = new Button("🗑");
         deleteButton.setAccessibleText("Elimina interazione");
         deleteButton.setMinWidth(36);
@@ -718,9 +758,9 @@ public class SchedaClienteView extends BorderPane {
     private void configureEditableInteractionTextArea(TextArea textArea) {
         textArea.getStyleClass().add("client-profile-note-area");
         textArea.setWrapText(true);
-        textArea.setMaxWidth(Double.MAX_VALUE);
+        textArea.setMaxWidth(760);
         textArea.setMaxHeight(Double.MAX_VALUE);
-        textArea.setMinHeight(140);
+        textArea.setMinHeight(160);
         textArea.setPrefRowCount(5);
         VBox.setVgrow(textArea, Priority.ALWAYS);
     }
@@ -819,7 +859,7 @@ public class SchedaClienteView extends BorderPane {
         activeButton.getStyleClass().add("client-profile-small-filter-active");
     }
 
-    private void renderList(VBox container, List<String> values) {
+    private void renderList(Pane container, List<String> values) {
         container.getChildren().clear();
         if (values.isEmpty()) {
             container.getChildren().add(createInfoLabel("Nessun dato disponibile"));
@@ -897,11 +937,11 @@ public class SchedaClienteView extends BorderPane {
         return date == null ? "-" : DATE_FORMATTER.format(date);
     }
 
-    private void renderContactList(VBox container, List<ContactItem> values) {
+    private void renderContactList(Pane container, List<ContactItem> values) {
         renderList(container, values.stream().map(this::formatContact).toList());
     }
 
-    private void renderAddressList(VBox container, List<AddressItem> values) {
+    private void renderAddressList(Pane container, List<AddressItem> values) {
         renderList(container, values.stream().map(this::formatAddress).toList());
     }
 
