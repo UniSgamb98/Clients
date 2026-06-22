@@ -26,6 +26,7 @@ import com.example.clients.feature.dashboard.navigator.DashboardNav;
 import com.example.clients.feature.dashboard.service.DashboardService;
 import com.example.clients.feature.dashboard.view.DashboardView;
 
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -34,6 +35,7 @@ import java.util.UUID;
 
 public class AppController implements DashboardNav, ClientiNav, LoginNav {
     private final Stage stage;
+    private Scene scene;
     private AppContainer app;
     private final String cssPath;
     private boolean shutdown;
@@ -56,7 +58,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
 
     public void showLogin() {
         LoginView view = new LoginView();
-        stage.setScene(createSceneWithCSS(view));
+        showView(view);
         stage.setTitle("Clients - Login");
 
         try {
@@ -81,7 +83,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         configureSidebar(view.getSidebar());
         new DashboardController(view, this, new DashboardService());
 
-        stage.setScene(createSceneWithCSS(view));
+        showView(view);
         stage.setTitle("Clients - Dashboard");
     }
 
@@ -92,11 +94,11 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         configureSidebar(view.getSidebar());
         ClientiController controller = new ClientiController(view, this, new ClientiService(app.database));
 
-        stage.setScene(createSceneWithCSS(
+        showView(
                 view,
                 "/css/features/clienti.css",
                 "/css/features/lista-clienti.css"
-        ));
+        );
         stage.setTitle("Clients - Clienti");
         controller.loadPreviewClientsAsync();
     }
@@ -117,11 +119,11 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
                 )
         );
 
-        stage.setScene(createSceneWithCSS(
+        showView(
                 view,
                 "/css/features/clienti.css",
                 "/css/features/nuovo-cliente.css"
-        ));
+        );
         stage.setTitle("Clients - Nuovo cliente");
     }
 
@@ -132,11 +134,11 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         configureSidebar(view.getSidebar());
         new SchedaClienteController(view, this, new SchedaClienteService(app.database), clienteId);
 
-        stage.setScene(createSceneWithCSS(
+        showView(
                 view,
                 "/css/features/clienti.css",
                 "/css/features/scheda-cliente.css"
-        ));
+        );
         stage.setTitle("Clients - Scheda cliente");
     }
 
@@ -150,11 +152,16 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         stage.setTitle("Clients - Laboratorio");*/
     }
 
-    // Creando le Scenes con questo metodo vengono collegate al CSS globale e ai eventuali css specifici per pagina.
-    private Scene createSceneWithCSS(Object root, String... extraCss) {
-        Scene scene = new Scene((javafx.scene.Parent) root, 900, 700);
-        scene.getStylesheets().add(cssPath);
+    // La Scene viene creata solo al primo caricamento: durante la navigazione cambia solo il root.
+    private void showView(Parent root, String... extraCss) {
+        if (scene == null) {
+            scene = new Scene(root, 900, 700);
+            stage.setScene(scene);
+        } else {
+            scene.setRoot(root);
+        }
 
+        scene.getStylesheets().setAll(cssPath);
         for (String css : extraCss) {
             String path = Objects.requireNonNull(
                     getClass().getResource(css)
@@ -162,7 +169,6 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
 
             scene.getStylesheets().add(path);
         }
-        return scene;
     }
 
     private void ensureAppStarted() {
