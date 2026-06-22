@@ -9,8 +9,21 @@
 }
 
 .client-profile-column {
-    -fx-min-width: 320;
-    -fx-pref-width: 420;
+    -fx-min-width: 0;
+}
+
+.client-profile-side-column {
+    -fx-pref-width: 360;
+    -fx-max-width: 430;
+}
+
+.client-profile-main-column {
+    -fx-pref-width: 680;
+}
+
+.client-profile-header-actions,
+.client-profile-summary-row {
+    -fx-alignment: center-left;
 }
 
 .client-profile-favorite-button {

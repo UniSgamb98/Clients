@@ -162,13 +162,21 @@ public class SchedaClienteView extends BorderPane {
         titleBox.getChildren().addAll(titleLabel, subtitleLabel);
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        titleRow.getChildren().addAll(titleBox, spacer, createInvolvementSliderBox(), favoriteButton, editProfileButton, saveProfileEditButton, cancelProfileEditButton);
+        HBox actions = new HBox(8);
+        actions.getStyleClass().add("client-profile-header-actions");
+        actions.getChildren().addAll(favoriteButton, editProfileButton, saveProfileEditButton, cancelProfileEditButton);
+        titleRow.getChildren().addAll(titleBox, spacer, actions);
 
+        HBox summaryRow = new HBox(12);
+        summaryRow.getStyleClass().add("client-profile-summary-row");
         HBox callBadges = new HBox(10);
         callBadges.getStyleClass().add("client-profile-badges");
         callBadges.getChildren().addAll(acquisitionLabel, lastInteractionLabel, nextInteractionLabel);
+        HBox summarySpacer = new HBox();
+        HBox.setHgrow(summarySpacer, Priority.ALWAYS);
+        summaryRow.getChildren().addAll(callBadges, summarySpacer, createInvolvementSliderBox());
 
-        hero.getChildren().addAll(titleRow, callBadges);
+        hero.getChildren().addAll(titleRow, summaryRow);
         return hero;
     }
 
@@ -176,15 +184,17 @@ public class SchedaClienteView extends BorderPane {
         HBox columns = new HBox(18);
         VBox leftColumn = new VBox(14);
         VBox rightColumn = new VBox(14);
-        leftColumn.getStyleClass().add("client-profile-column");
-        rightColumn.getStyleClass().add("client-profile-column");
+        leftColumn.getStyleClass().addAll("client-profile-column", "client-profile-side-column");
+        rightColumn.getStyleClass().addAll("client-profile-column", "client-profile-main-column");
+        leftColumn.setMaxWidth(430);
+        rightColumn.setMaxWidth(Double.MAX_VALUE);
         leftColumn.getChildren().addAll(
                 createSection("Dati cliente", customerDataList),
                 createSection("Contatti", contactsList),
                 createSection("Indirizzi", addressesList)
         );
         rightColumn.getChildren().add(createTimelineSection());
-        HBox.setHgrow(leftColumn, Priority.ALWAYS);
+        HBox.setHgrow(leftColumn, Priority.SOMETIMES);
         HBox.setHgrow(rightColumn, Priority.ALWAYS);
         columns.getChildren().addAll(leftColumn, rightColumn);
         return columns;
