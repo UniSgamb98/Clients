@@ -55,20 +55,9 @@ public class SchedaClienteView extends BorderPane {
 
     private final AppSidebar sidebar;
     private final ClienteProfileHeader header;
-    private final Button newNoteButton;
-    private final Button newCallButton;
-    private final Button allFilterButton;
-    private final Button notesFilterButton;
-    private final Button callsFilterButton;
-    private final VBox customerDataList;
-    private final VBox contactsList;
-    private final VBox addressesList;
-    private final VBox timelineList;
-    private final VBox noteEditor;
-    private final DatePicker nextCallDatePicker;
-    private final TextArea noteTextArea;
-    private final Button saveNoteButton;
-    private final Button cancelNoteButton;
+    private final ClienteDataSection dataSection;
+    private final ClienteRelatedSections relatedSections;
+    private final ClienteTimelineSection timelineSection;
     private final List<TextField> phoneEditFields = new ArrayList<>();
     private final List<TextField> emailEditFields = new ArrayList<>();
     private final List<TextField> siteEditFields = new ArrayList<>();
@@ -88,32 +77,10 @@ public class SchedaClienteView extends BorderPane {
     public SchedaClienteView() {
         sidebar = new AppSidebar();
         header = new ClienteProfileHeader();
-        newNoteButton = new Button("+ Nuova nota");
-        newNoteButton.getStyleClass().add("clients-primary-button");
-        newCallButton = new Button("+ Nuova chiamata");
-        newCallButton.getStyleClass().add("clients-filter-button");
-        allFilterButton = createTimelineFilterButton("Tutti");
-        notesFilterButton = createTimelineFilterButton("Solo note");
-        callsFilterButton = createTimelineFilterButton("Solo chiamate");
-        customerDataList = new VBox(8);
-        contactsList = new VBox(8);
-        addressesList = new VBox(8);
-        timelineList = new VBox(10);
-        noteEditor = createNoteEditor();
-        nextCallDatePicker = new DatePicker();
-        nextCallDatePicker.setPromptText("Prossima chiamata");
-        nextCallDatePicker.getStyleClass().add("client-profile-call-date-picker");
-        noteTextArea = new TextArea();
-        noteTextArea.setPromptText("Scrivi una nota sulla comunicazione con il cliente...");
-        noteTextArea.getStyleClass().add("client-profile-note-area");
-        saveNoteButton = new Button("Salva");
-        saveNoteButton.getStyleClass().add("clients-primary-button");
-        cancelNoteButton = new Button("Annulla");
-        cancelNoteButton.getStyleClass().add("clients-filter-button");
-        noteEditor.getChildren().addAll(nextCallDatePicker, noteTextArea, createNoteActions());
-        setActiveTimelineFilter(TimelineFilter.ALL);
+        dataSection = new ClienteDataSection();
+        relatedSections = new ClienteRelatedSections(RELATED_SECTIONS_GAP, RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT);
+        timelineSection = new ClienteTimelineSection();
         setEditMode(false);
-        hideNoteEditor();
 
         setLeft(sidebar);
         setCenter(createContent());
@@ -146,70 +113,12 @@ public class SchedaClienteView extends BorderPane {
         leftColumn.setPrefWidth(SIDE_COLUMN_PREF_WIDTH);
         leftColumn.setMaxWidth(SIDE_COLUMN_MAX_WIDTH);
         rightColumn.setMaxWidth(Double.MAX_VALUE);
-        VBox contactsSection = createSection("Contatti", contactsList);
-        VBox addressesSection = createSection("Indirizzi", addressesList);
-        ResponsiveTilePane relatedSections = createRelatedSectionsGrid(contactsSection, addressesSection);
-        leftColumn.getChildren().addAll(
-                createSection("Dati cliente", customerDataList),
-                relatedSections
-        );
-        rightColumn.getChildren().add(createTimelineSection());
+        leftColumn.getChildren().addAll(dataSection, relatedSections);
+        rightColumn.getChildren().add(timelineSection);
         HBox.setHgrow(leftColumn, Priority.ALWAYS);
         HBox.setHgrow(rightColumn, Priority.ALWAYS);
         columns.getChildren().addAll(leftColumn, rightColumn);
         return columns;
-    }
-
-    private VBox createTimelineSection() {
-        VBox section = createSection("Interazioni", timelineList);
-        HBox actions = new HBox(10);
-        actions.getStyleClass().add("client-profile-timeline-actions");
-        actions.getChildren().addAll(newNoteButton, newCallButton);
-
-        HBox filters = new HBox(6);
-        filters.getStyleClass().add("client-profile-timeline-filter-bar");
-        filters.getChildren().addAll(allFilterButton, notesFilterButton, callsFilterButton);
-
-        section.getChildren().add(1, actions);
-        section.getChildren().add(2, filters);
-        section.getChildren().add(3, noteEditor);
-        return section;
-    }
-
-    private VBox createSection(String titleText, Node body) {
-        VBox section = new VBox(12);
-        section.getStyleClass().add("new-client-section");
-        Label title = new Label(titleText);
-        title.getStyleClass().add("new-client-section-title");
-        section.getChildren().addAll(title, body);
-        return section;
-    }
-
-    private ResponsiveTilePane createRelatedSectionsGrid(VBox... sections) {
-        ResponsiveTilePane grid = new ResponsiveTilePane(RELATED_SECTIONS_GAP, RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT);
-        grid.getStyleClass().add("client-profile-related-sections-grid");
-        for (VBox section : sections) {
-            grid.addStretchingTile(section);
-        }
-        return grid;
-    }
-
-    private VBox createNoteEditor() {
-        VBox editor = new VBox(10);
-        editor.getStyleClass().add("client-profile-note-editor");
-        return editor;
-    }
-
-    private HBox createNoteActions() {
-        HBox actions = new HBox(10);
-        actions.getChildren().addAll(saveNoteButton, cancelNoteButton);
-        return actions;
-    }
-
-    private Button createTimelineFilterButton(String text) {
-        Button button = new Button(text);
-        button.getStyleClass().add("client-profile-small-filter-button");
-        return button;
     }
 
     public void renderProfile(ClienteProfile profile) {
@@ -222,13 +131,13 @@ public class SchedaClienteView extends BorderPane {
         setFavorite(profile.favorite());
         setInvolvementSliderValue(profile.coinvolgimento());
         renderCustomerData(profile);
-        renderContactList(contactsList, profile.contatti());
-        renderAddressList(addressesList, profile.indirizzi());
+        renderContactList(relatedSections.getContactsList(), profile.contatti());
+        renderAddressList(relatedSections.getAddressesList(), profile.indirizzi());
         renderTimeline(profile.interazioni());
     }
 
     private void renderCustomerData(ClienteProfile profile) {
-        customerDataList.getChildren().clear();
+        dataSection.getContent().getChildren().clear();
         ResponsiveTilePane grid = createCustomerDataGrid();
         addCustomerDataNode(grid, createInfoLabel("Ragione sociale: " + emptyFallback(profile.ragioneSociale())));
         addCustomerDataNode(grid, createInfoLabel("Tipo cliente: " + emptyFallback(profile.tipoCliente())));
@@ -237,7 +146,7 @@ public class SchedaClienteView extends BorderPane {
         addCustomerDataNode(grid, createInfoLabel("Partita IVA: " + emptyFallback(profile.partitaIva())));
         addCustomerDataNode(grid, createInfoLabel("Codice fiscale: " + emptyFallback(profile.codiceFiscale())));
         addCustomerDataNode(grid, createInfoLabel("Acquisizione: " + formatDate(profile.acquisizione())));
-        customerDataList.getChildren().addAll(
+        dataSection.getContent().getChildren().addAll(
                 grid,
                 createInfoLabel("Telefoni azienda: " + joinProfileValues(profile.telefoni())),
                 createInfoLabel("Email azienda: " + joinProfileValues(profile.email())),
@@ -286,7 +195,7 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private void renderCustomerDataEditor(EditProfileDraft draft) {
-        customerDataList.getChildren().clear();
+        dataSection.getContent().getChildren().clear();
         ragioneSocialeEditField = createTextField(draft.ragioneSociale(), "Ragione sociale");
         tipoClienteEditField = createChoiceBox(draft.tipoCliente());
         statoTrattativaEditField = createChoiceBox(draft.statoTrattativa(), statoTrattativaOptions);
@@ -305,7 +214,7 @@ public class SchedaClienteView extends BorderPane {
         addCustomerDataNode(grid, createFieldRow("Codice fiscale", codiceFiscaleEditField));
         addCustomerDataNode(grid, createDateRow("Acquisizione", acquisizioneEditPicker));
 
-        customerDataList.getChildren().addAll(
+        dataSection.getContent().getChildren().addAll(
                 grid,
                 createEditableValuesSection("Telefoni azienda", phoneEditFields, draft.telefoni(), "Telefono azienda"),
                 createEditableValuesSection("Email azienda", emailEditFields, draft.email(), "Email azienda"),
@@ -372,7 +281,7 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private void renderEditableContacts(List<ContactEditInput> values) {
-        contactsList.getChildren().clear();
+        relatedSections.getContactsList().getChildren().clear();
         contactEditControls.clear();
         List<ContactEditInput> safeValues = values.isEmpty() ? List.of(new ContactEditInput(null, "", List.of(), List.of())) : values;
         safeValues.forEach(this::addContactEditor);
@@ -396,7 +305,7 @@ public class SchedaClienteView extends BorderPane {
         removeButton.getStyleClass().add("client-profile-small-filter-button");
         addButton.setOnAction(event -> addContactEditor(new ContactEditInput(null, "", List.of(), List.of())));
         removeButton.setOnAction(event -> {
-            contactsList.getChildren().remove(card);
+            relatedSections.getContactsList().getChildren().remove(card);
             contactEditControls.removeIf(control -> control.container() == card);
             if (contactEditControls.isEmpty()) {
                 addContactEditor(new ContactEditInput(null, "", List.of(), List.of()));
@@ -405,12 +314,12 @@ public class SchedaClienteView extends BorderPane {
         actions.getChildren().addAll(addButton, removeButton);
 
         card.getChildren().addAll(createFieldRow("Contatto", descriptionField), phoneBox, emailBox, actions);
-        contactsList.getChildren().add(card);
+        relatedSections.getContactsList().getChildren().add(card);
         contactEditControls.add(new ContactEditControls(value.id(), descriptionField, phoneFields, emailFields, card));
     }
 
     private void renderEditableAddresses(List<AddressEditInput> values) {
-        addressesList.getChildren().clear();
+        relatedSections.getAddressesList().getChildren().clear();
         addressEditControls.clear();
         List<AddressEditInput> safeValues = values.isEmpty() ? List.of(emptyAddressInput()) : values;
         safeValues.forEach(this::addAddressEditor);
@@ -447,7 +356,7 @@ public class SchedaClienteView extends BorderPane {
         removeButton.getStyleClass().add("client-profile-small-filter-button");
         addButton.setOnAction(event -> addAddressEditor(emptyAddressInput()));
         removeButton.setOnAction(event -> {
-            addressesList.getChildren().remove(card);
+            relatedSections.getAddressesList().getChildren().remove(card);
             addressEditControls.removeIf(control -> control.container() == card);
             if (addressEditControls.isEmpty()) {
                 addAddressEditor(emptyAddressInput());
@@ -466,7 +375,7 @@ public class SchedaClienteView extends BorderPane {
                 primaryCheck,
                 actions
         );
-        addressesList.getChildren().add(card);
+        relatedSections.getAddressesList().getChildren().add(card);
         addressEditControls.add(new AddressEditControls(value.id(), countryField, regionField, provinceField, cityField, addressField, streetNumberField, zipField, primaryCheck, card));
         if (primaryCheck.isSelected()) {
             unsetOtherPrimaryChecks(primaryCheck);
@@ -705,10 +614,10 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private void renderEditableTimeline(List<InteractionEditInput> interactions) {
-        timelineList.getChildren().clear();
+        timelineSection.getTimelineList().getChildren().clear();
         timelineEditFields.clear();
         if (interactions.isEmpty()) {
-            timelineList.getChildren().add(createInfoLabel("Nessuna interazione registrata"));
+            timelineSection.getTimelineList().getChildren().add(createInfoLabel("Nessuna interazione registrata"));
             return;
         }
         for (InteractionEditInput interaction : interactions) {
@@ -729,18 +638,14 @@ public class SchedaClienteView extends BorderPane {
             TextArea textArea = new TextArea(interaction.testo());
             configureEditableInteractionTextArea(textArea);
             card.getChildren().add(textArea);
-            timelineList.getChildren().add(card);
+            timelineSection.getTimelineList().getChildren().add(card);
             timelineEditFields.add(new TimelineEditField(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea));
         }
     }
 
     private void setEditMode(boolean editMode) {
         header.setEditMode(editMode);
-        newNoteButton.setDisable(editMode);
-        newCallButton.setDisable(editMode);
-        allFilterButton.setDisable(editMode);
-        notesFilterButton.setDisable(editMode);
-        callsFilterButton.setDisable(editMode);
+        timelineSection.setEditMode(editMode);
     }
 
     public void setFavorite(boolean favorite) {
@@ -748,43 +653,19 @@ public class SchedaClienteView extends BorderPane {
     }
 
     public void showNoteEditor() {
-        saveNoteButton.setText("Salva nota");
-        nextCallDatePicker.setVisible(false);
-        nextCallDatePicker.setManaged(false);
-        showEditor();
+        timelineSection.showNoteEditor();
     }
 
     public void showCallEditor() {
-        saveNoteButton.setText("Salva chiamata");
-        nextCallDatePicker.setVisible(true);
-        nextCallDatePicker.setManaged(true);
-        showEditor();
-    }
-
-    private void showEditor() {
-        noteEditor.setVisible(true);
-        noteEditor.setManaged(true);
-        noteTextArea.requestFocus();
+        timelineSection.showCallEditor();
     }
 
     public void hideNoteEditor() {
-        noteEditor.setVisible(false);
-        noteEditor.setManaged(false);
-        noteTextArea.clear();
-        nextCallDatePicker.setValue(null);
+        timelineSection.hideNoteEditor();
     }
 
     public void setActiveTimelineFilter(TimelineFilter filter) {
-        allFilterButton.getStyleClass().remove("client-profile-small-filter-active");
-        notesFilterButton.getStyleClass().remove("client-profile-small-filter-active");
-        callsFilterButton.getStyleClass().remove("client-profile-small-filter-active");
-
-        Button activeButton = switch (filter) {
-            case NOTES -> notesFilterButton;
-            case CALLS -> callsFilterButton;
-            case ALL -> allFilterButton;
-        };
-        activeButton.getStyleClass().add("client-profile-small-filter-active");
+        timelineSection.setActiveTimelineFilter(filter);
     }
 
     private void renderList(Pane container, List<String> values) {
@@ -797,9 +678,9 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private void renderTimeline(List<InteractionPreview> interactions) {
-        timelineList.getChildren().clear();
+        timelineSection.getTimelineList().getChildren().clear();
         if (interactions.isEmpty()) {
-            timelineList.getChildren().add(createInfoLabel("Nessuna interazione registrata"));
+            timelineSection.getTimelineList().getChildren().add(createInfoLabel("Nessuna interazione registrata"));
             return;
         }
         for (InteractionPreview interaction : interactions) {
@@ -809,7 +690,7 @@ public class SchedaClienteView extends BorderPane {
             title.getStyleClass().add("client-profile-timeline-title");
             Label text = createInfoLabel(timelineText(interaction));
             card.getChildren().addAll(title, text);
-            timelineList.getChildren().add(card);
+            timelineSection.getTimelineList().getChildren().add(card);
         }
     }
 
@@ -1007,39 +888,39 @@ public class SchedaClienteView extends BorderPane {
     }
 
     public Button getNewNoteButton() {
-        return newNoteButton;
+        return timelineSection.getNewNoteButton();
     }
 
     public Button getNewCallButton() {
-        return newCallButton;
+        return timelineSection.getNewCallButton();
     }
 
     public Button getAllFilterButton() {
-        return allFilterButton;
+        return timelineSection.getAllFilterButton();
     }
 
     public Button getNotesFilterButton() {
-        return notesFilterButton;
+        return timelineSection.getNotesFilterButton();
     }
 
     public Button getCallsFilterButton() {
-        return callsFilterButton;
+        return timelineSection.getCallsFilterButton();
     }
 
     public DatePicker getNextCallDatePicker() {
-        return nextCallDatePicker;
+        return timelineSection.getNextCallDatePicker();
     }
 
     public TextArea getNoteTextArea() {
-        return noteTextArea;
+        return timelineSection.getNoteTextArea();
     }
 
     public Button getSaveNoteButton() {
-        return saveNoteButton;
+        return timelineSection.getSaveNoteButton();
     }
 
     public Button getCancelNoteButton() {
-        return cancelNoteButton;
+        return timelineSection.getCancelNoteButton();
     }
 
     private record ContactEditControls(

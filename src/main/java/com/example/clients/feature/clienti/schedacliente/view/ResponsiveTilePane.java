@@ -7,7 +7,7 @@ import javafx.scene.layout.TilePane;
 /**
  * TilePane that keeps a stable one/two column layout based on the available width.
  */
-final class ResponsiveTilePane extends TilePane {
+class ResponsiveTilePane extends TilePane {
 
     private final double gap;
     private final double twoColumnBreakpoint;
