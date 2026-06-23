@@ -54,16 +54,7 @@ public class SchedaClienteView extends BorderPane {
     private static final int EDIT_INTERACTION_TEXT_AREA_PREF_ROWS = 5;
 
     private final AppSidebar sidebar;
-    private final Label titleLabel;
-    private final Label subtitleLabel;
-    private final Label acquisitionLabel;
-    private final Label lastInteractionLabel;
-    private final Label nextInteractionLabel;
-    private final Slider involvementSlider;
-    private final Button favoriteButton;
-    private final Button editProfileButton;
-    private final Button saveProfileEditButton;
-    private final Button cancelProfileEditButton;
+    private final ClienteProfileHeader header;
     private final Button newNoteButton;
     private final Button newCallButton;
     private final Button allFilterButton;
@@ -93,32 +84,10 @@ public class SchedaClienteView extends BorderPane {
     private TextField partitaIvaEditField;
     private TextField codiceFiscaleEditField;
     private DatePicker acquisizioneEditPicker;
-    private boolean updatingInvolvementSlider;
 
     public SchedaClienteView() {
         sidebar = new AppSidebar();
-        titleLabel = new Label("Cliente");
-        titleLabel.getStyleClass().add("clients-title");
-        subtitleLabel = new Label("Profilo cliente e storico comunicazioni");
-        subtitleLabel.getStyleClass().add("clients-subtitle");
-        acquisitionLabel = createBadgeLabel();
-        lastInteractionLabel = createBadgeLabel();
-        nextInteractionLabel = createBadgeLabel();
-        involvementSlider = new Slider(1, 5, 1);
-        involvementSlider.setMajorTickUnit(1);
-        involvementSlider.setMinorTickCount(0);
-        involvementSlider.setShowTickMarks(true);
-        involvementSlider.setShowTickLabels(true);
-        involvementSlider.setSnapToTicks(true);
-        involvementSlider.getStyleClass().add("client-profile-involvement-slider");
-        favoriteButton = new Button("☆");
-        favoriteButton.getStyleClass().add("client-profile-favorite-button");
-        editProfileButton = new Button("Modifica");
-        editProfileButton.getStyleClass().add("clients-filter-button");
-        saveProfileEditButton = new Button("Salva modifiche");
-        saveProfileEditButton.getStyleClass().add("clients-primary-button");
-        cancelProfileEditButton = new Button("Annulla");
-        cancelProfileEditButton.getStyleClass().add("clients-filter-button");
+        header = new ClienteProfileHeader();
         newNoteButton = new Button("+ Nuova nota");
         newNoteButton.getStyleClass().add("clients-primary-button");
         newCallButton = new Button("+ Nuova chiamata");
@@ -156,7 +125,7 @@ public class SchedaClienteView extends BorderPane {
         content.getStyleClass().add("clients-content");
 
         VBox body = new VBox(18);
-        body.getChildren().addAll(createHero(), createMainColumns());
+        body.getChildren().addAll(header, createMainColumns());
 
         ScrollPane scrollPane = new ScrollPane(body);
         scrollPane.setFitToWidth(true);
@@ -165,34 +134,6 @@ public class SchedaClienteView extends BorderPane {
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         content.getChildren().add(scrollPane);
         return content;
-    }
-
-    private VBox createHero() {
-        VBox hero = new VBox(12);
-        hero.getStyleClass().add("client-profile-hero");
-
-        HBox titleRow = new HBox(12);
-        titleRow.getStyleClass().add("clients-title-bar");
-        VBox titleBox = new VBox(4);
-        titleBox.getChildren().addAll(titleLabel, subtitleLabel);
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox actions = new HBox(8);
-        actions.getStyleClass().add("client-profile-header-actions");
-        actions.getChildren().addAll(favoriteButton, editProfileButton, saveProfileEditButton, cancelProfileEditButton);
-        titleRow.getChildren().addAll(titleBox, spacer, actions);
-
-        HBox summaryRow = new HBox(12);
-        summaryRow.getStyleClass().add("client-profile-summary-row");
-        HBox callBadges = new HBox(10);
-        callBadges.getStyleClass().add("client-profile-badges");
-        callBadges.getChildren().addAll(acquisitionLabel, lastInteractionLabel, nextInteractionLabel);
-        HBox summarySpacer = new HBox();
-        HBox.setHgrow(summarySpacer, Priority.ALWAYS);
-        summaryRow.getChildren().addAll(callBadges, summarySpacer, createInvolvementSliderBox());
-
-        hero.getChildren().addAll(titleRow, summaryRow);
-        return hero;
     }
 
     private HBox createMainColumns() {
@@ -265,32 +206,19 @@ public class SchedaClienteView extends BorderPane {
         return actions;
     }
 
-    private HBox createInvolvementSliderBox() {
-        HBox box = new HBox(8);
-        box.getStyleClass().add("client-profile-involvement-box");
-        box.getChildren().add(involvementSlider);
-        return box;
-    }
-
     private Button createTimelineFilterButton(String text) {
         Button button = new Button(text);
         button.getStyleClass().add("client-profile-small-filter-button");
         return button;
     }
 
-    private Label createBadgeLabel() {
-        Label label = new Label();
-        label.getStyleClass().add("client-profile-badge");
-        return label;
-    }
-
     public void renderProfile(ClienteProfile profile) {
         setEditMode(false);
-        titleLabel.setText(profile.ragioneSociale());
-        subtitleLabel.setText(profile.tipoCliente() + " · " + profile.statoTrattativa());
-        acquisitionLabel.setText("Acquisito " + formatDate(profile.acquisizione()));
-        lastInteractionLabel.setText("Ultima chiamata " + lastCallText(profile.interazioni()));
-        nextInteractionLabel.setText("Prossima chiamata " + nextCallText(profile.interazioni()));
+        header.setTitle(profile.ragioneSociale());
+        header.setSubtitle(profile.tipoCliente() + " · " + profile.statoTrattativa());
+        header.setAcquisitionText("Acquisito " + formatDate(profile.acquisizione()));
+        header.setLastInteractionText("Ultima chiamata " + lastCallText(profile.interazioni()));
+        header.setNextInteractionText("Prossima chiamata " + nextCallText(profile.interazioni()));
         setFavorite(profile.favorite());
         setInvolvementSliderValue(profile.coinvolgimento());
         renderCustomerData(profile);
@@ -319,11 +247,11 @@ public class SchedaClienteView extends BorderPane {
 
     public void renderEditableProfile(EditProfileDraft draft) {
         setEditMode(true);
-        titleLabel.setText(draft.ragioneSociale().isBlank() ? "Cliente" : draft.ragioneSociale());
-        subtitleLabel.setText("Modifica dati cliente");
-        acquisitionLabel.setText("Acquisito " + formatDate(draft.acquisizione()));
-        lastInteractionLabel.setText("Ultima chiamata " + lastEditableCallText(draft.interazioni()));
-        nextInteractionLabel.setText("Prossima chiamata " + nextEditableCallText(draft.interazioni()));
+        header.setTitle(draft.ragioneSociale().isBlank() ? "Cliente" : draft.ragioneSociale());
+        header.setSubtitle("Modifica dati cliente");
+        header.setAcquisitionText("Acquisito " + formatDate(draft.acquisizione()));
+        header.setLastInteractionText("Ultima chiamata " + lastEditableCallText(draft.interazioni()));
+        header.setNextInteractionText("Prossima chiamata " + nextEditableCallText(draft.interazioni()));
         setActiveTimelineFilter(TimelineFilter.ALL);
         renderCustomerDataEditor(draft);
         renderEditableContacts(draft.contatti());
@@ -807,14 +735,7 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private void setEditMode(boolean editMode) {
-        editProfileButton.setVisible(!editMode);
-        editProfileButton.setManaged(!editMode);
-        saveProfileEditButton.setVisible(editMode);
-        saveProfileEditButton.setManaged(editMode);
-        cancelProfileEditButton.setVisible(editMode);
-        cancelProfileEditButton.setManaged(editMode);
-        involvementSlider.setDisable(editMode);
-        favoriteButton.setDisable(editMode);
+        header.setEditMode(editMode);
         newNoteButton.setDisable(editMode);
         newCallButton.setDisable(editMode);
         allFilterButton.setDisable(editMode);
@@ -823,11 +744,7 @@ public class SchedaClienteView extends BorderPane {
     }
 
     public void setFavorite(boolean favorite) {
-        favoriteButton.setText(favorite ? "★" : "☆");
-        favoriteButton.getStyleClass().remove("client-profile-favorite-active");
-        if (favorite) {
-            favoriteButton.getStyleClass().add("client-profile-favorite-active");
-        }
+        header.setFavorite(favorite);
     }
 
     public void showNoteEditor() {
@@ -1058,38 +975,35 @@ public class SchedaClienteView extends BorderPane {
     }
 
     public Slider getInvolvementSlider() {
-        return involvementSlider;
+        return header.getInvolvementSlider();
     }
 
     public boolean isUpdatingInvolvementSlider() {
-        return updatingInvolvementSlider;
+        return header.isUpdatingInvolvementSlider();
     }
 
     public int involvementSliderValue() {
-        return (int) Math.round(involvementSlider.getValue());
+        return header.involvementSliderValue();
     }
 
     public void setInvolvementSliderValue(Integer value) {
-        updatingInvolvementSlider = true;
-        int safeValue = value == null || value < 1 || value > 5 ? 1 : value;
-        involvementSlider.setValue(safeValue);
-        updatingInvolvementSlider = false;
+        header.setInvolvementSliderValue(value);
     }
 
     public Button getFavoriteButton() {
-        return favoriteButton;
+        return header.getFavoriteButton();
     }
 
     public Button getEditProfileButton() {
-        return editProfileButton;
+        return header.getEditProfileButton();
     }
 
     public Button getSaveProfileEditButton() {
-        return saveProfileEditButton;
+        return header.getSaveProfileEditButton();
     }
 
     public Button getCancelProfileEditButton() {
-        return cancelProfileEditButton;
+        return header.getCancelProfileEditButton();
     }
 
     public Button getNewNoteButton() {
