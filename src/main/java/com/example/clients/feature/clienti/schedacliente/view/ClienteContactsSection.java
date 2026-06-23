@@ -36,7 +36,7 @@ final class ClienteContactsSection extends VBox {
             getChildren().add(ClienteProfileFormControls.createInfoLabel("Nessun dato disponibile"));
             return;
         }
-        values.stream().map(this::formatContact).forEach(value -> getChildren().add(ClienteProfileFormControls.createInfoLabel(value)));
+        values.forEach(contact -> getChildren().add(createContactCard(contact)));
     }
 
     void renderEditor(List<ContactEditInput> values) {
@@ -90,6 +90,44 @@ final class ClienteContactsSection extends VBox {
         card.getChildren().addAll(ClienteProfileFormControls.createFieldRow("Contatto", descriptionField), phoneBox, emailBox, actions);
         getChildren().add(card);
         contactEditControls.add(new ContactEditControls(value.id(), descriptionField, phoneFields, emailFields, card));
+    }
+
+    private VBox createContactCard(ContactItem contact) {
+        VBox card = new VBox(10);
+        card.setMaxWidth(Double.MAX_VALUE);
+        card.getStyleClass().add("client-profile-contact-card");
+
+        Label name = new Label(emptyFallback(contact.descrizione()));
+        name.setWrapText(true);
+        name.getStyleClass().add("client-profile-contact-name");
+        card.getChildren().add(name);
+
+        if (!contact.telefoni().isEmpty()) {
+            card.getChildren().add(createContactValueGroup("Telefoni", contact.telefoni()));
+        }
+        if (!contact.email().isEmpty()) {
+            card.getChildren().add(createContactValueGroup("Email", contact.email()));
+        }
+        return card;
+    }
+
+    private VBox createContactValueGroup(String title, List<ValueItem> values) {
+        VBox group = new VBox(4);
+        group.getStyleClass().add("client-profile-contact-value-group");
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("client-profile-contact-value-title");
+        group.getChildren().add(titleLabel);
+        values.stream()
+                .map(ValueItem::value)
+                .filter(value -> value != null && !value.isBlank())
+                .forEach(value -> {
+                    Label valueLabel = new Label(value);
+                    valueLabel.setWrapText(true);
+                    valueLabel.setMaxWidth(Double.MAX_VALUE);
+                    valueLabel.getStyleClass().add("client-profile-contact-value");
+                    group.getChildren().add(valueLabel);
+                });
+        return group;
     }
 
     private VBox createLinkedEditableValuesSection(String title, List<ComboBox<String>> target, List<ValueEditInput> values, String prompt, List<String> options) {
@@ -175,26 +213,8 @@ final class ClienteContactsSection extends VBox {
         return (java.util.UUID) field.getUserData();
     }
 
-    private String formatContact(ContactItem contact) {
-        return joinNonBlank(
-                contact.descrizione(),
-                contact.telefoni().isEmpty() ? "" : "Tel: " + joinProfileValues(contact.telefoni()),
-                contact.email().isEmpty() ? "" : "Email: " + joinProfileValues(contact.email())
-        );
-    }
-
-    private String joinNonBlank(String... values) {
-        List<String> parts = new ArrayList<>();
-        for (String value : values) {
-            if (value != null && !value.isBlank()) {
-                parts.add(value.trim());
-            }
-        }
-        return String.join(" · ", parts);
-    }
-
-    private String joinProfileValues(List<ValueItem> values) {
-        return values.isEmpty() ? "-" : String.join(", ", values.stream().map(ValueItem::value).toList());
+    private String emptyFallback(String value) {
+        return value == null || value.isBlank() ? "Contatto senza nome" : value;
     }
 
     private String valueOf(TextField field) {
