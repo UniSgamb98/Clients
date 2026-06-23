@@ -40,6 +40,18 @@ import java.util.List;
 public class SchedaClienteView extends BorderPane {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final double SIDE_COLUMN_MIN_WIDTH = 330;
+    private static final double SIDE_COLUMN_PREF_WIDTH = 560;
+    private static final double SIDE_COLUMN_MAX_WIDTH = 620;
+    private static final double RELATED_SECTIONS_GAP = 12;
+    private static final double RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT = 560;
+    private static final double CUSTOMER_DATA_TILE_WIDTH = 240;
+    private static final double EDIT_NEXT_CALL_PICKER_PREF_WIDTH = 170;
+    private static final double EDIT_NEXT_CALL_PICKER_MAX_WIDTH = 190;
+    private static final double DELETE_INTERACTION_BUTTON_WIDTH = 36;
+    private static final double EDIT_INTERACTION_TEXT_AREA_MAX_WIDTH = 760;
+    private static final double EDIT_INTERACTION_TEXT_AREA_MIN_HEIGHT = 160;
+    private static final int EDIT_INTERACTION_TEXT_AREA_PREF_ROWS = 5;
 
     private final AppSidebar sidebar;
     private final Label titleLabel;
@@ -189,15 +201,16 @@ public class SchedaClienteView extends BorderPane {
         VBox rightColumn = new VBox(14);
         leftColumn.getStyleClass().addAll("client-profile-column", "client-profile-side-column");
         rightColumn.getStyleClass().addAll("client-profile-column", "client-profile-main-column");
-        leftColumn.setMinWidth(330);
-        leftColumn.setPrefWidth(560);
-        leftColumn.setMaxWidth(620);
+        leftColumn.setMinWidth(SIDE_COLUMN_MIN_WIDTH);
+        leftColumn.setPrefWidth(SIDE_COLUMN_PREF_WIDTH);
+        leftColumn.setMaxWidth(SIDE_COLUMN_MAX_WIDTH);
         rightColumn.setMaxWidth(Double.MAX_VALUE);
         VBox contactsSection = createSection("Contatti", contactsList);
         VBox addressesSection = createSection("Indirizzi", addressesList);
-        double relatedSectionsGap = 12;
         TilePane relatedSections = createRelatedSectionsGrid(contactsSection, addressesSection);
-        leftColumn.widthProperty().addListener((observable, oldWidth, newWidth) -> resizeRelatedSectionTiles(relatedSections, newWidth.doubleValue(), relatedSectionsGap));
+        leftColumn.widthProperty().addListener((observable, oldWidth, newWidth) ->
+                resizeRelatedSectionTiles(relatedSections, newWidth.doubleValue())
+        );
         leftColumn.getChildren().addAll(
                 createSection("Dati cliente", customerDataList),
                 relatedSections
@@ -235,7 +248,7 @@ public class SchedaClienteView extends BorderPane {
     }
 
     private TilePane createRelatedSectionsGrid(VBox... sections) {
-        TilePane grid = new TilePane(12, 12);
+        TilePane grid = new TilePane(RELATED_SECTIONS_GAP, RELATED_SECTIONS_GAP);
         grid.getStyleClass().add("client-profile-related-sections-grid");
         grid.setMaxWidth(Double.MAX_VALUE);
         grid.setPrefColumns(1);
@@ -247,14 +260,13 @@ public class SchedaClienteView extends BorderPane {
         return grid;
     }
 
-    private void resizeRelatedSectionTiles(TilePane grid, double width, double gap) {
+    private void resizeRelatedSectionTiles(TilePane grid, double width) {
         if (width <= 0) {
             return;
         }
-        double twoColumnBreakpoint = 560;
-        boolean twoColumns = width >= twoColumnBreakpoint;
+        boolean twoColumns = width >= RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT;
         grid.setPrefColumns(twoColumns ? 2 : 1);
-        grid.setPrefTileWidth(twoColumns ? (width - gap) / 2 : width);
+        grid.setPrefTileWidth(twoColumns ? (width - RELATED_SECTIONS_GAP) / 2 : width);
     }
 
     private VBox createNoteEditor() {
@@ -391,18 +403,18 @@ public class SchedaClienteView extends BorderPane {
 
 
     private TilePane createCustomerDataGrid() {
-        TilePane grid = new TilePane(12, 10);
+        TilePane grid = new TilePane(RELATED_SECTIONS_GAP, 10);
         grid.getStyleClass().add("client-profile-data-grid");
         grid.setMaxWidth(Double.MAX_VALUE);
         grid.setPrefColumns(2);
-        grid.setPrefTileWidth(240);
+        grid.setPrefTileWidth(CUSTOMER_DATA_TILE_WIDTH);
         return grid;
     }
 
     private void addCustomerDataNode(TilePane grid, Node node) {
         if (node instanceof javafx.scene.layout.Region region) {
             region.setMaxWidth(Double.MAX_VALUE);
-            region.setPrefWidth(240);
+            region.setPrefWidth(CUSTOMER_DATA_TILE_WIDTH);
         }
         grid.getChildren().add(node);
     }
@@ -765,13 +777,13 @@ public class SchedaClienteView extends BorderPane {
         HBox actions = new HBox(8);
         actions.setMaxWidth(Double.MAX_VALUE);
         actions.getStyleClass().add("client-profile-edit-interaction-actions");
-        nextCallPicker.setPrefWidth(170);
-        nextCallPicker.setMaxWidth(190);
+        nextCallPicker.setPrefWidth(EDIT_NEXT_CALL_PICKER_PREF_WIDTH);
+        nextCallPicker.setMaxWidth(EDIT_NEXT_CALL_PICKER_MAX_WIDTH);
         HBox.setHgrow(nextCallPicker, Priority.NEVER);
         Button deleteButton = new Button("🗑");
         deleteButton.setAccessibleText("Elimina interazione");
-        deleteButton.setMinWidth(36);
-        deleteButton.setPrefWidth(36);
+        deleteButton.setMinWidth(DELETE_INTERACTION_BUTTON_WIDTH);
+        deleteButton.setPrefWidth(DELETE_INTERACTION_BUTTON_WIDTH);
         deleteButton.getStyleClass().add("client-profile-delete-interaction-button");
         actions.getChildren().addAll(nextCallPicker, deleteButton);
         return actions;
@@ -780,10 +792,10 @@ public class SchedaClienteView extends BorderPane {
     private void configureEditableInteractionTextArea(TextArea textArea) {
         textArea.getStyleClass().add("client-profile-note-area");
         textArea.setWrapText(true);
-        textArea.setMaxWidth(760);
+        textArea.setMaxWidth(EDIT_INTERACTION_TEXT_AREA_MAX_WIDTH);
         textArea.setMaxHeight(Double.MAX_VALUE);
-        textArea.setMinHeight(160);
-        textArea.setPrefRowCount(5);
+        textArea.setMinHeight(EDIT_INTERACTION_TEXT_AREA_MIN_HEIGHT);
+        textArea.setPrefRowCount(EDIT_INTERACTION_TEXT_AREA_PREF_ROWS);
         VBox.setVgrow(textArea, Priority.ALWAYS);
     }
 
