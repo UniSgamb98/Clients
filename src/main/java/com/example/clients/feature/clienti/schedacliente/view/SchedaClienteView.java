@@ -29,7 +29,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
@@ -46,6 +45,7 @@ public class SchedaClienteView extends BorderPane {
     private static final double RELATED_SECTIONS_GAP = 12;
     private static final double RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT = 560;
     private static final double CUSTOMER_DATA_TILE_WIDTH = 240;
+    private static final double CUSTOMER_DATA_TWO_COLUMN_BREAKPOINT = CUSTOMER_DATA_TILE_WIDTH * 2 + RELATED_SECTIONS_GAP;
     private static final double EDIT_NEXT_CALL_PICKER_PREF_WIDTH = 170;
     private static final double EDIT_NEXT_CALL_PICKER_MAX_WIDTH = 190;
     private static final double DELETE_INTERACTION_BUTTON_WIDTH = 36;
@@ -207,10 +207,7 @@ public class SchedaClienteView extends BorderPane {
         rightColumn.setMaxWidth(Double.MAX_VALUE);
         VBox contactsSection = createSection("Contatti", contactsList);
         VBox addressesSection = createSection("Indirizzi", addressesList);
-        TilePane relatedSections = createRelatedSectionsGrid(contactsSection, addressesSection);
-        leftColumn.widthProperty().addListener((observable, oldWidth, newWidth) ->
-                resizeRelatedSectionTiles(relatedSections, newWidth.doubleValue())
-        );
+        ResponsiveTilePane relatedSections = createRelatedSectionsGrid(contactsSection, addressesSection);
         leftColumn.getChildren().addAll(
                 createSection("Dati cliente", customerDataList),
                 relatedSections
@@ -247,26 +244,13 @@ public class SchedaClienteView extends BorderPane {
         return section;
     }
 
-    private TilePane createRelatedSectionsGrid(VBox... sections) {
-        TilePane grid = new TilePane(RELATED_SECTIONS_GAP, RELATED_SECTIONS_GAP);
+    private ResponsiveTilePane createRelatedSectionsGrid(VBox... sections) {
+        ResponsiveTilePane grid = new ResponsiveTilePane(RELATED_SECTIONS_GAP, RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT);
         grid.getStyleClass().add("client-profile-related-sections-grid");
-        grid.setMaxWidth(Double.MAX_VALUE);
-        grid.setPrefColumns(1);
         for (VBox section : sections) {
-            section.setMinWidth(0);
-            section.setMaxWidth(Double.MAX_VALUE);
-            grid.getChildren().add(section);
+            grid.addStretchingTile(section);
         }
         return grid;
-    }
-
-    private void resizeRelatedSectionTiles(TilePane grid, double width) {
-        if (width <= 0) {
-            return;
-        }
-        boolean twoColumns = width >= RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT;
-        grid.setPrefColumns(twoColumns ? 2 : 1);
-        grid.setPrefTileWidth(twoColumns ? (width - RELATED_SECTIONS_GAP) / 2 : width);
     }
 
     private VBox createNoteEditor() {
@@ -317,7 +301,7 @@ public class SchedaClienteView extends BorderPane {
 
     private void renderCustomerData(ClienteProfile profile) {
         customerDataList.getChildren().clear();
-        TilePane grid = createCustomerDataGrid();
+        ResponsiveTilePane grid = createCustomerDataGrid();
         addCustomerDataNode(grid, createInfoLabel("Ragione sociale: " + emptyFallback(profile.ragioneSociale())));
         addCustomerDataNode(grid, createInfoLabel("Tipo cliente: " + emptyFallback(profile.tipoCliente())));
         addCustomerDataNode(grid, createInfoLabel("Stato trattativa: " + emptyFallback(profile.statoTrattativa())));
@@ -384,7 +368,7 @@ public class SchedaClienteView extends BorderPane {
         acquisizioneEditPicker = new DatePicker(draft.acquisizione());
         acquisizioneEditPicker.getStyleClass().add("client-profile-call-date-picker");
 
-        TilePane grid = createCustomerDataGrid();
+        ResponsiveTilePane grid = createCustomerDataGrid();
         addCustomerDataNode(grid, createFieldRow("Ragione sociale", ragioneSocialeEditField));
         addCustomerDataNode(grid, createChoiceRow("Tipo cliente", tipoClienteEditField));
         addCustomerDataNode(grid, createChoiceRow("Stato trattativa", statoTrattativaEditField));
@@ -402,21 +386,14 @@ public class SchedaClienteView extends BorderPane {
     }
 
 
-    private TilePane createCustomerDataGrid() {
-        TilePane grid = new TilePane(RELATED_SECTIONS_GAP, 10);
+    private ResponsiveTilePane createCustomerDataGrid() {
+        ResponsiveTilePane grid = new ResponsiveTilePane(RELATED_SECTIONS_GAP, CUSTOMER_DATA_TWO_COLUMN_BREAKPOINT);
         grid.getStyleClass().add("client-profile-data-grid");
-        grid.setMaxWidth(Double.MAX_VALUE);
-        grid.setPrefColumns(2);
-        grid.setPrefTileWidth(CUSTOMER_DATA_TILE_WIDTH);
         return grid;
     }
 
-    private void addCustomerDataNode(TilePane grid, Node node) {
-        if (node instanceof javafx.scene.layout.Region region) {
-            region.setMaxWidth(Double.MAX_VALUE);
-            region.setPrefWidth(CUSTOMER_DATA_TILE_WIDTH);
-        }
-        grid.getChildren().add(node);
+    private void addCustomerDataNode(ResponsiveTilePane grid, Node node) {
+        grid.addStretchingTile(node);
     }
 
     private VBox createEditableValuesSection(String title, List<TextField> target, List<ValueEditInput> values, String prompt) {
