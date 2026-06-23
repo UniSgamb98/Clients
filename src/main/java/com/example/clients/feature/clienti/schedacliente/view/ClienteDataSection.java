@@ -235,10 +235,7 @@ final class ClienteDataSection extends VBox {
     }
 
     private HBox createEditRow(String labelText, Region field) {
-        HBox row = new HBox(8);
-        row.getStyleClass().add("client-profile-edit-row");
-        row.getChildren().addAll(createEditLabel(labelText), field);
-        return row;
+        return ClienteProfileFormControls.createFieldRow(labelText, field);
     }
 
     private ChoiceBox<Integer> createIntegerChoiceBox(Integer selectedValue) {
@@ -269,30 +266,15 @@ final class ClienteDataSection extends VBox {
     }
 
     private TextField createTextField(String value, String prompt) {
-        TextField field = new TextField(emptyFallbackForEdit(value));
-        field.setPromptText(prompt);
-        field.getStyleClass().add("client-profile-edit-field");
-        return field;
+        return ClienteProfileFormControls.createTextField(value, prompt);
     }
 
     private Label createInfoLabel(String text) {
-        Label label = new Label(text);
-        label.getStyleClass().add("client-profile-info-label");
-        label.setWrapText(true);
-        return label;
-    }
-
-    private Label createEditLabel(String text) {
-        Label label = new Label(text);
-        label.getStyleClass().add("client-profile-edit-label");
-        label.setMinWidth(120);
-        return label;
+        return ClienteProfileFormControls.createInfoLabel(text);
     }
 
     private Label createEditSectionLabel(String text) {
-        Label label = new Label(text);
-        label.getStyleClass().add("client-profile-edit-section-title");
-        return label;
+        return ClienteProfileFormControls.createEditSectionLabel(text);
     }
 
     private List<ValueEditInput> valuesOf(List<TextField> fields) {
@@ -331,8 +313,6 @@ final class ClienteDataSection extends VBox {
     }
 
     private Button createSmallButton(String text) {
-        Button button = new Button(text);
-        button.getStyleClass().add("client-profile-small-filter-button");
-        return button;
+        return ClienteProfileFormControls.createSmallButton(text);
     }
 }
