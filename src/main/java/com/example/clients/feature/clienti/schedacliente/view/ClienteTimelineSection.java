@@ -106,16 +106,23 @@ final class ClienteTimelineSection extends VBox {
                 nextCallPicker = new DatePicker(interaction.prossimoContatto());
                 nextCallPicker.setPromptText("Prossima chiamata");
                 nextCallPicker.getStyleClass().add("client-profile-call-date-picker");
-                card.getChildren().addAll(header, createEditableInteractionActions(nextCallPicker));
-            } else {
-                addDeleteActionToHeader(header);
-                card.getChildren().add(header);
             }
             TextArea textArea = new TextArea(interaction.testo());
             configureEditableInteractionTextArea(textArea);
+            TimelineEditField editField = new TimelineEditField(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea);
+            Button deleteButton = createDeleteInteractionButton(() -> {
+                timelineEditFields.remove(editField);
+                timelineList.getChildren().remove(card);
+            });
+            if (interaction.type() == InteractionType.CHIAMATA) {
+                card.getChildren().addAll(header, createEditableInteractionActions(nextCallPicker, deleteButton));
+            } else {
+                addDeleteActionToHeader(header, deleteButton);
+                card.getChildren().add(header);
+            }
             card.getChildren().add(textArea);
             timelineList.getChildren().add(card);
-            timelineEditFields.add(new TimelineEditField(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea));
+            timelineEditFields.add(editField);
         }
     }
 
@@ -225,7 +232,7 @@ final class ClienteTimelineSection extends VBox {
         return header;
     }
 
-    private HBox createEditableInteractionActions(DatePicker nextCallPicker) {
+    private HBox createEditableInteractionActions(DatePicker nextCallPicker, Button deleteButton) {
         HBox actions = new HBox(8);
         actions.setMaxWidth(Double.MAX_VALUE);
         actions.getStyleClass().add("client-profile-edit-interaction-actions");
@@ -235,22 +242,23 @@ final class ClienteTimelineSection extends VBox {
             HBox.setHgrow(nextCallPicker, Priority.NEVER);
             actions.getChildren().add(nextCallPicker);
         }
-        actions.getChildren().add(createDeleteInteractionButton());
+        actions.getChildren().add(deleteButton);
         return actions;
     }
 
-    private void addDeleteActionToHeader(HBox header) {
+    private void addDeleteActionToHeader(HBox header, Button deleteButton) {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        header.getChildren().addAll(spacer, createDeleteInteractionButton());
+        header.getChildren().addAll(spacer, deleteButton);
     }
 
-    private Button createDeleteInteractionButton() {
+    private Button createDeleteInteractionButton(Runnable deleteAction) {
         Button deleteButton = new Button("🗑");
         deleteButton.setAccessibleText("Elimina interazione");
         deleteButton.setMinWidth(DELETE_INTERACTION_BUTTON_WIDTH);
         deleteButton.setPrefWidth(DELETE_INTERACTION_BUTTON_WIDTH);
         deleteButton.getStyleClass().add("client-profile-delete-interaction-button");
+        deleteButton.setOnAction(event -> deleteAction.run());
         return deleteButton;
     }
 

@@ -150,12 +150,8 @@ public class ClientePersistenceService {
             syncContatti(cliente.id(), contatti);
             syncTelefoni(cliente.id(), telefoni);
             syncEmail(cliente.id(), email);
-            for (NotaCliente nota : note) {
-                notaRepository.update(nota);
-            }
-            for (Interazione interazione : interazioni) {
-                interazioneRepository.update(interazione);
-            }
+            syncNote(cliente.id(), note);
+            syncInterazioni(cliente.id(), interazioni);
 
             connection.commit();
         } catch (RuntimeException | SQLException e) {
@@ -184,6 +180,14 @@ public class ClientePersistenceService {
 
     private void syncIndirizzi(UUID clienteId, List<IndirizzoCliente> desired) {
         syncById(indirizzoRepository.findByClienteId(clienteId), desired, IndirizzoCliente::id, indirizzoRepository::insert, indirizzoRepository::update, indirizzoRepository::deleteById);
+    }
+
+    private void syncNote(UUID clienteId, List<NotaCliente> desired) {
+        syncById(notaRepository.findByClienteId(clienteId), desired, NotaCliente::id, notaRepository::insert, notaRepository::update, notaRepository::deleteById);
+    }
+
+    private void syncInterazioni(UUID clienteId, List<Interazione> desired) {
+        syncById(interazioneRepository.findByClienteId(clienteId), desired, Interazione::id, interazioneRepository::insert, interazioneRepository::update, interazioneRepository::deleteById);
     }
 
     private <T> void syncById(
