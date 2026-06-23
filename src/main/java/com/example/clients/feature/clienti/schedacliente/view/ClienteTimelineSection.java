@@ -1,14 +1,31 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
 final class ClienteTimelineSection extends VBox {
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final double EDIT_NEXT_CALL_PICKER_PREF_WIDTH = 170;
+    private static final double EDIT_NEXT_CALL_PICKER_MAX_WIDTH = 190;
+    private static final double DELETE_INTERACTION_BUTTON_WIDTH = 36;
+    private static final double EDIT_INTERACTION_TEXT_AREA_MAX_WIDTH = 760;
+    private static final double EDIT_INTERACTION_TEXT_AREA_MIN_HEIGHT = 160;
+    private static final int EDIT_INTERACTION_TEXT_AREA_PREF_ROWS = 5;
 
     private final Button newNoteButton;
     private final Button newCallButton;
@@ -21,6 +38,7 @@ final class ClienteTimelineSection extends VBox {
     private final TextArea noteTextArea;
     private final Button saveNoteButton;
     private final Button cancelNoteButton;
+    private final List<TimelineEditField> timelineEditFields = new ArrayList<>();
 
     ClienteTimelineSection() {
         super(12);
@@ -54,8 +72,63 @@ final class ClienteTimelineSection extends VBox {
         getChildren().addAll(title, createActions(), createFilters(), noteEditor, timelineList);
     }
 
-    VBox getTimelineList() {
-        return timelineList;
+    void render(List<InteractionPreview> interactions) {
+        timelineList.getChildren().clear();
+        if (interactions.isEmpty()) {
+            timelineList.getChildren().add(createInfoLabel("Nessuna interazione registrata"));
+            return;
+        }
+        for (InteractionPreview interaction : interactions) {
+            VBox card = new VBox(4);
+            card.getStyleClass().add("client-profile-timeline-card");
+            Label title = createInfoLabel(DATE_FORMATTER.format(interaction.data()) + " · " + interaction.type().label());
+            title.getStyleClass().add("client-profile-timeline-title");
+            Label text = createInfoLabel(timelineText(interaction));
+            card.getChildren().addAll(title, text);
+            timelineList.getChildren().add(card);
+        }
+    }
+
+    void renderEditor(List<InteractionEditInput> interactions) {
+        timelineList.getChildren().clear();
+        timelineEditFields.clear();
+        if (interactions.isEmpty()) {
+            timelineList.getChildren().add(createInfoLabel("Nessuna interazione registrata"));
+            return;
+        }
+        for (InteractionEditInput interaction : interactions) {
+            VBox card = new VBox(8);
+            card.setMaxWidth(Double.MAX_VALUE);
+            card.getStyleClass().add("client-profile-timeline-card");
+            Label title = createInfoLabel(DATE_FORMATTER.format(interaction.data()) + " · " + interaction.type().label());
+            title.getStyleClass().add("client-profile-timeline-title");
+            DatePicker nextCallPicker = null;
+            if (interaction.type() == InteractionType.CHIAMATA) {
+                nextCallPicker = new DatePicker(interaction.prossimoContatto());
+                nextCallPicker.setPromptText("Prossima chiamata");
+                nextCallPicker.getStyleClass().add("client-profile-call-date-picker");
+                card.getChildren().addAll(title, createEditableInteractionActions(nextCallPicker));
+            } else {
+                card.getChildren().add(title);
+            }
+            TextArea textArea = new TextArea(interaction.testo());
+            configureEditableInteractionTextArea(textArea);
+            card.getChildren().add(textArea);
+            timelineList.getChildren().add(card);
+            timelineEditFields.add(new TimelineEditField(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea));
+        }
+    }
+
+    List<InteractionEditInput> collectInteractions() {
+        return timelineEditFields.stream()
+                .map(field -> new InteractionEditInput(
+                        field.notaId(),
+                        field.interazioneId(),
+                        field.data(),
+                        field.type(),
+                        field.nextCallPicker() == null ? field.prossimoContatto() : field.nextCallPicker().getValue(),
+                        field.textArea().getText()))
+                .toList();
     }
 
     void setEditMode(boolean editMode) {
@@ -136,6 +209,32 @@ final class ClienteTimelineSection extends VBox {
         return cancelNoteButton;
     }
 
+    private HBox createEditableInteractionActions(DatePicker nextCallPicker) {
+        HBox actions = new HBox(8);
+        actions.setMaxWidth(Double.MAX_VALUE);
+        actions.getStyleClass().add("client-profile-edit-interaction-actions");
+        nextCallPicker.setPrefWidth(EDIT_NEXT_CALL_PICKER_PREF_WIDTH);
+        nextCallPicker.setMaxWidth(EDIT_NEXT_CALL_PICKER_MAX_WIDTH);
+        HBox.setHgrow(nextCallPicker, Priority.NEVER);
+        Button deleteButton = new Button("🗑");
+        deleteButton.setAccessibleText("Elimina interazione");
+        deleteButton.setMinWidth(DELETE_INTERACTION_BUTTON_WIDTH);
+        deleteButton.setPrefWidth(DELETE_INTERACTION_BUTTON_WIDTH);
+        deleteButton.getStyleClass().add("client-profile-delete-interaction-button");
+        actions.getChildren().addAll(nextCallPicker, deleteButton);
+        return actions;
+    }
+
+    private void configureEditableInteractionTextArea(TextArea textArea) {
+        textArea.getStyleClass().add("client-profile-note-area");
+        textArea.setWrapText(true);
+        textArea.setMaxWidth(EDIT_INTERACTION_TEXT_AREA_MAX_WIDTH);
+        textArea.setMaxHeight(Double.MAX_VALUE);
+        textArea.setMinHeight(EDIT_INTERACTION_TEXT_AREA_MIN_HEIGHT);
+        textArea.setPrefRowCount(EDIT_INTERACTION_TEXT_AREA_PREF_ROWS);
+        VBox.setVgrow(textArea, Priority.ALWAYS);
+    }
+
     private void showEditor() {
         noteEditor.setVisible(true);
         noteEditor.setManaged(true);
@@ -172,5 +271,30 @@ final class ClienteTimelineSection extends VBox {
         Button button = new Button(text);
         button.getStyleClass().add("client-profile-small-filter-button");
         return button;
+    }
+
+    private Label createInfoLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("client-profile-info-label");
+        label.setWrapText(true);
+        return label;
+    }
+
+    private String timelineText(InteractionPreview interaction) {
+        if (interaction.prossimoContatto() == null) {
+            return interaction.testo();
+        }
+        return interaction.testo() + "\nProssima chiamata: " + DATE_FORMATTER.format(interaction.prossimoContatto());
+    }
+
+    private record TimelineEditField(
+            java.util.UUID notaId,
+            java.util.UUID interazioneId,
+            LocalDate data,
+            InteractionType type,
+            LocalDate prossimoContatto,
+            DatePicker nextCallPicker,
+            TextArea textArea
+    ) {
     }
 }
