@@ -10,6 +10,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
@@ -105,8 +106,11 @@ final class ClienteTimelineSection extends VBox {
                 nextCallPicker = new DatePicker(interaction.prossimoContatto());
                 nextCallPicker.setPromptText("Prossima chiamata");
                 nextCallPicker.getStyleClass().add("client-profile-call-date-picker");
+                card.getChildren().addAll(header, createEditableInteractionActions(nextCallPicker));
+            } else {
+                addDeleteActionToHeader(header);
+                card.getChildren().add(header);
             }
-            card.getChildren().addAll(header, createEditableInteractionActions(nextCallPicker));
             TextArea textArea = new TextArea(interaction.testo());
             configureEditableInteractionTextArea(textArea);
             card.getChildren().add(textArea);
@@ -231,13 +235,23 @@ final class ClienteTimelineSection extends VBox {
             HBox.setHgrow(nextCallPicker, Priority.NEVER);
             actions.getChildren().add(nextCallPicker);
         }
+        actions.getChildren().add(createDeleteInteractionButton());
+        return actions;
+    }
+
+    private void addDeleteActionToHeader(HBox header) {
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        header.getChildren().addAll(spacer, createDeleteInteractionButton());
+    }
+
+    private Button createDeleteInteractionButton() {
         Button deleteButton = new Button("🗑");
         deleteButton.setAccessibleText("Elimina interazione");
         deleteButton.setMinWidth(DELETE_INTERACTION_BUTTON_WIDTH);
         deleteButton.setPrefWidth(DELETE_INTERACTION_BUTTON_WIDTH);
         deleteButton.getStyleClass().add("client-profile-delete-interaction-button");
-        actions.getChildren().add(deleteButton);
-        return actions;
+        return deleteButton;
     }
 
     private void configureEditableInteractionTextArea(TextArea textArea) {
