@@ -195,7 +195,9 @@ public class SchedaClienteView extends BorderPane {
         rightColumn.setMaxWidth(Double.MAX_VALUE);
         VBox contactsSection = createSection("Contatti", contactsList);
         VBox addressesSection = createSection("Indirizzi", addressesList);
-        HBox relatedSections = createRelatedSectionsRow(contactsSection, addressesSection);
+        double relatedSectionsGap = 12;
+        TilePane relatedSections = createRelatedSectionsGrid(contactsSection, addressesSection);
+        leftColumn.widthProperty().addListener((observable, oldWidth, newWidth) -> resizeRelatedSectionTiles(relatedSections, newWidth.doubleValue(), relatedSectionsGap));
         leftColumn.getChildren().addAll(
                 createSection("Dati cliente", customerDataList),
                 relatedSections
@@ -232,16 +234,27 @@ public class SchedaClienteView extends BorderPane {
         return section;
     }
 
-    private HBox createRelatedSectionsRow(VBox... sections) {
-        HBox row = new HBox(12);
-        row.getStyleClass().add("client-profile-related-sections-row");
+    private TilePane createRelatedSectionsGrid(VBox... sections) {
+        TilePane grid = new TilePane(12, 12);
+        grid.getStyleClass().add("client-profile-related-sections-grid");
+        grid.setMaxWidth(Double.MAX_VALUE);
+        grid.setPrefColumns(1);
         for (VBox section : sections) {
             section.setMinWidth(0);
             section.setMaxWidth(Double.MAX_VALUE);
-            HBox.setHgrow(section, Priority.ALWAYS);
-            row.getChildren().add(section);
+            grid.getChildren().add(section);
         }
-        return row;
+        return grid;
+    }
+
+    private void resizeRelatedSectionTiles(TilePane grid, double width, double gap) {
+        if (width <= 0) {
+            return;
+        }
+        double twoColumnBreakpoint = 560;
+        boolean twoColumns = width >= twoColumnBreakpoint;
+        grid.setPrefColumns(twoColumns ? 2 : 1);
+        grid.setPrefTileWidth(twoColumns ? (width - gap) / 2 : width);
     }
 
     private VBox createNoteEditor() {

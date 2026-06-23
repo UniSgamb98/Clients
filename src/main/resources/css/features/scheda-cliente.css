@@ -27,8 +27,9 @@
     -fx-vgap: 10;
 }
 
-.client-profile-related-sections-row {
-    -fx-spacing: 12;
+.client-profile-related-sections-grid {
+    -fx-hgap: 12;
+    -fx-vgap: 12;
 }
 
 .client-profile-header-actions,
