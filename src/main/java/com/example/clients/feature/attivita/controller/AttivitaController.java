@@ -24,9 +24,14 @@ public class AttivitaController {
     }
 
     private void configureActions() {
-        view.getNewActivityButton().setOnAction(event -> view.showCreateForm());
+        view.getNewActivityButton().setOnAction(event -> showCreateForm());
         view.getCancelActivityButton().setOnAction(event -> view.showDetailPlaceholder());
         view.getSaveActivityButton().setOnAction(event -> createActivityAsync());
+    }
+
+    public void showCreateForm() {
+        detailVersion++;
+        view.showCreateForm();
     }
 
     public void loadAttivitaAsync() {

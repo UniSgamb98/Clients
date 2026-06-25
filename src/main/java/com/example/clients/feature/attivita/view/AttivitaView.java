@@ -260,7 +260,8 @@ public class AttivitaView extends BorderPane {
         clearActivityForm();
         detailTitle.setText("Nuova attività");
         detailDescription.setText("Inserisci i dati principali. La selezione clienti sarà il prossimo step guidato.");
-        detailPanel.getChildren().setAll(detailTitle, detailDescription, createActivityForm());
+        detailPanel.getChildren().clear();
+        detailPanel.getChildren().addAll(detailTitle, detailDescription, createActivityForm());
     }
 
     public void showFormError(String message) {

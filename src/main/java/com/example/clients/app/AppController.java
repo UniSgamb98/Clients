@@ -141,6 +141,10 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     }
 
     public void showAttivita() {
+        showAttivita(false);
+    }
+
+    public void showAttivita(boolean openCreateForm) {
         AttivitaView view = new AttivitaView();
         configureSidebar(view.getSidebar());
         AttivitaController controller = new AttivitaController(view, new AttivitaService(app.database));
@@ -151,11 +155,15 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         );
         stage.setTitle("Clients - Attività");
         controller.loadAttivitaAsync();
+        if (openCreateForm) {
+            controller.showCreateForm();
+        }
     }
 
     public void showCalendario() {
         CalendarioView view = new CalendarioView();
         configureSidebar(view.getSidebar());
+        view.getNewActivityButton().setOnAction(e -> showAttivita(true));
 
         showView(
                 view,

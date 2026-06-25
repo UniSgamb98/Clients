@@ -193,3 +193,12 @@
 .activities-form-actions {
     -fx-alignment: center-right;
 }
+
+.activities-form-area .content {
+    -fx-background-color: -app-control-bg;
+    -fx-background-radius: 8;
+}
+
+.activities-form-area:focused .content {
+    -fx-background-color: -app-control-bg;
+}
