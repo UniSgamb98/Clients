@@ -10,6 +10,7 @@ public record Interazione(
         UUID clienteId,
         UUID operatoreId,
         UUID notaId,
+        UUID attivitaId,
         LocalDate dataContatto,
         LocalDate prossimoContatto,
         BigDecimal coinvolgimento,

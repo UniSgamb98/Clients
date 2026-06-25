@@ -85,6 +85,8 @@ public final class SchemaInitializer {
         return "X0Y32".equals(sqlState)
                 || "X0Y68".equals(sqlState)
                 || message.contains("already exists")
+                || message.contains("already in")
+                || message.contains("duplicate")
                 || message.contains("già esistente");
     }
 }
