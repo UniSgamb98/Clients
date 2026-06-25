@@ -135,3 +135,61 @@
 .activities-client-rows {
     -fx-background-color: transparent;
 }
+
+.activities-secondary-button {
+    -fx-background-color: -app-control-alt-bg;
+    -fx-text-fill: -app-text-muted;
+    -fx-background-radius: 8;
+    -fx-font-weight: 700;
+    -fx-padding: 7 12;
+}
+
+.activities-secondary-button:hover {
+    -fx-background-color: -app-primary-dark;
+    -fx-text-fill: -app-text;
+}
+
+.activities-form {
+    -fx-background-color: -app-surface-alt;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-padding: 14;
+}
+
+.activities-form-row {
+    -fx-spacing: 10;
+}
+
+.activities-form-label {
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.activities-form-field,
+.activities-form-area,
+.activities-form-choice,
+.activities-form-date {
+    -fx-background-color: -app-control-bg;
+    -fx-text-fill: -app-text;
+    -fx-background-radius: 8;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+}
+
+.activities-form-field,
+.activities-form-choice,
+.activities-form-date {
+    -fx-pref-height: 34;
+}
+
+.activities-form-message {
+    -fx-text-fill: -app-error;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.activities-form-actions {
+    -fx-alignment: center-right;
+}

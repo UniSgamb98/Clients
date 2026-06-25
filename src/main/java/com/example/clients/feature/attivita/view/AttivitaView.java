@@ -6,8 +6,12 @@ import com.example.clients.core.database.query.AttivitaQuery.AttivitaListRecord;
 import com.example.clients.core.ui.AppSidebar;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -17,6 +21,7 @@ import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -34,6 +39,17 @@ public class AttivitaView extends BorderPane {
     private final GridPane detailMetaGrid;
     private final VBox detailClientRows;
     private final Label detailEmptyLabel;
+    private final HBox detailClientHeader;
+    private final TextField titleField;
+    private final TextArea descriptionArea;
+    private final ChoiceBox<PriorityOption> priorityChoiceBox;
+    private final ChoiceBox<StateOption> stateChoiceBox;
+    private final ChoiceBox<TipoAttivitaOption> typeChoiceBox;
+    private final DatePicker startDatePicker;
+    private final DatePicker endDatePicker;
+    private final Button saveActivityButton;
+    private final Button cancelActivityButton;
+    private final Label formMessage;
 
     public AttivitaView() {
         sidebar = new AppSidebar();
@@ -61,7 +77,48 @@ public class AttivitaView extends BorderPane {
         detailClientRows.getStyleClass().add("activities-client-rows");
         detailEmptyLabel = new Label("Nessun cliente selezionato.");
         detailEmptyLabel.getStyleClass().add("activities-empty-label");
-        detailPanel.getChildren().addAll(detailTitle, detailDescription, detailMetaGrid, createClientHeader(), detailClientRows);
+        detailClientHeader = createClientHeader();
+
+        titleField = new TextField();
+        titleField.setPromptText("Es. Avviso chiusura estiva");
+        titleField.getStyleClass().add("activities-form-field");
+        descriptionArea = new TextArea();
+        descriptionArea.setPromptText("Descrivi obiettivo, istruzioni e note operative dell'attività...");
+        descriptionArea.setWrapText(true);
+        descriptionArea.setPrefRowCount(4);
+        descriptionArea.getStyleClass().add("activities-form-area");
+        priorityChoiceBox = new ChoiceBox<>();
+        priorityChoiceBox.getItems().setAll(
+                new PriorityOption(1, "Bassa"),
+                new PriorityOption(2, "Normale"),
+                new PriorityOption(3, "Alta")
+        );
+        priorityChoiceBox.getSelectionModel().select(1);
+        priorityChoiceBox.getStyleClass().add("activities-form-choice");
+        stateChoiceBox = new ChoiceBox<>();
+        stateChoiceBox.getItems().setAll(
+                new StateOption("BOZZA", "Bozza"),
+                new StateOption("IN_CORSO", "In corso"),
+                new StateOption("SOSPESA", "Sospesa"),
+                new StateOption("COMPLETATA", "Completata"),
+                new StateOption("ANNULLATA", "Annullata")
+        );
+        stateChoiceBox.getSelectionModel().selectFirst();
+        stateChoiceBox.getStyleClass().add("activities-form-choice");
+        typeChoiceBox = new ChoiceBox<>();
+        typeChoiceBox.getItems().add(TipoAttivitaOption.empty());
+        typeChoiceBox.getSelectionModel().selectFirst();
+        typeChoiceBox.getStyleClass().add("activities-form-choice");
+        startDatePicker = new DatePicker();
+        startDatePicker.getStyleClass().add("activities-form-date");
+        endDatePicker = new DatePicker();
+        endDatePicker.getStyleClass().add("activities-form-date");
+        saveActivityButton = new Button("Salva attività");
+        saveActivityButton.getStyleClass().add("activities-primary-button");
+        cancelActivityButton = new Button("Annulla");
+        cancelActivityButton.getStyleClass().add("activities-secondary-button");
+        formMessage = new Label();
+        formMessage.getStyleClass().add("activities-form-message");
         showDetailPlaceholder();
 
         setLeft(sidebar);
@@ -174,6 +231,7 @@ public class AttivitaView extends BorderPane {
     }
 
     public void showDetailLoading() {
+        showDetailClientLayout();
         detailTitle.setText("Caricamento dettaglio...");
         detailDescription.setText("");
         detailMetaGrid.getChildren().clear();
@@ -182,6 +240,7 @@ public class AttivitaView extends BorderPane {
     }
 
     public void showDetail(AttivitaDetailRecord detail) {
+        showDetailClientLayout();
         detailTitle.setText(valueOrFallback(detail.titolo(), "Attività senza titolo"));
         detailDescription.setText(valueOrFallback(detail.descrizione(), "Nessuna descrizione inserita."));
         renderDetailMeta(detail);
@@ -189,6 +248,7 @@ public class AttivitaView extends BorderPane {
     }
 
     public void showDetailError(String message) {
+        showDetailClientLayout();
         detailTitle.setText("Dettaglio non disponibile");
         detailDescription.setText(message == null || message.isBlank() ? "Impossibile caricare il dettaglio attività." : message);
         detailMetaGrid.getChildren().clear();
@@ -196,12 +256,87 @@ public class AttivitaView extends BorderPane {
         detailEmptyLabel.setText("Nessun dato da mostrare.");
     }
 
-    private void showDetailPlaceholder() {
+    public void showCreateForm() {
+        clearActivityForm();
+        detailTitle.setText("Nuova attività");
+        detailDescription.setText("Inserisci i dati principali. La selezione clienti sarà il prossimo step guidato.");
+        detailPanel.getChildren().setAll(detailTitle, detailDescription, createActivityForm());
+    }
+
+    public void showFormError(String message) {
+        formMessage.setText(message == null || message.isBlank() ? "Salvataggio attività non riuscito." : message);
+    }
+
+    public void clearActivityForm() {
+        titleField.clear();
+        descriptionArea.clear();
+        priorityChoiceBox.getSelectionModel().select(1);
+        stateChoiceBox.getSelectionModel().selectFirst();
+        if (!typeChoiceBox.getItems().isEmpty()) {
+            typeChoiceBox.getSelectionModel().selectFirst();
+        }
+        startDatePicker.setValue(null);
+        endDatePicker.setValue(null);
+        formMessage.setText("");
+    }
+
+    private VBox createActivityForm() {
+        VBox form = new VBox(12);
+        form.getStyleClass().add("activities-form");
+        form.getChildren().addAll(
+                createFormField("Titolo", titleField),
+                createFormField("Descrizione", descriptionArea),
+                createFormRow(
+                        createFormField("Priorità", priorityChoiceBox),
+                        createFormField("Stato", stateChoiceBox),
+                        createFormField("Tipo attività", typeChoiceBox)
+                ),
+                createFormRow(
+                        createFormField("Data inizio", startDatePicker),
+                        createFormField("Data fine", endDatePicker)
+                ),
+                formMessage,
+                createFormActions()
+        );
+        return form;
+    }
+
+    private VBox createFormField(String labelText, javafx.scene.Node field) {
+        VBox box = new VBox(5);
+        Label label = new Label(labelText);
+        label.getStyleClass().add("activities-form-label");
+        box.getChildren().addAll(label, field);
+        HBox.setHgrow(box, Priority.ALWAYS);
+        return box;
+    }
+
+    private HBox createFormRow(VBox... fields) {
+        HBox row = new HBox(10);
+        row.getStyleClass().add("activities-form-row");
+        row.getChildren().addAll(fields);
+        return row;
+    }
+
+    private HBox createFormActions() {
+        HBox actions = new HBox(10);
+        actions.getStyleClass().add("activities-form-actions");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        actions.getChildren().addAll(spacer, cancelActivityButton, saveActivityButton);
+        return actions;
+    }
+
+    public void showDetailPlaceholder() {
+        showDetailClientLayout();
         detailTitle.setText("Seleziona un'attività");
         detailDescription.setText("Apri un'attività dalla lista per vedere clienti, stati e ultimo contatto.");
         detailMetaGrid.getChildren().clear();
         detailClientRows.getChildren().setAll(detailEmptyLabel);
         detailEmptyLabel.setText("Nessun cliente selezionato.");
+    }
+
+    private void showDetailClientLayout() {
+        detailPanel.getChildren().setAll(detailTitle, detailDescription, detailMetaGrid, detailClientHeader, detailClientRows);
     }
 
     private void renderDetailMeta(AttivitaDetailRecord detail) {
@@ -344,5 +479,75 @@ public class AttivitaView extends BorderPane {
 
     public Button getNewActivityButton() {
         return newActivityButton;
+    }
+
+    public Button getSaveActivityButton() {
+        return saveActivityButton;
+    }
+
+    public Button getCancelActivityButton() {
+        return cancelActivityButton;
+    }
+
+    public String getActivityTitle() {
+        return titleField.getText();
+    }
+
+    public String getActivityDescription() {
+        return descriptionArea.getText();
+    }
+
+    public Integer getSelectedPriority() {
+        PriorityOption option = priorityChoiceBox.getSelectionModel().getSelectedItem();
+        return option == null ? null : option.value();
+    }
+
+    public String getSelectedState() {
+        StateOption option = stateChoiceBox.getSelectionModel().getSelectedItem();
+        return option == null ? null : option.value();
+    }
+
+    public UUID getSelectedTypeId() {
+        TipoAttivitaOption option = typeChoiceBox.getSelectionModel().getSelectedItem();
+        return option == null ? null : option.id();
+    }
+
+    public LocalDate getStartDate() {
+        return startDatePicker.getValue();
+    }
+
+    public LocalDate getEndDate() {
+        return endDatePicker.getValue();
+    }
+
+    public void setTipoAttivitaOptions(List<TipoAttivitaOption> options) {
+        typeChoiceBox.getItems().setAll(TipoAttivitaOption.empty());
+        typeChoiceBox.getItems().addAll(options);
+        typeChoiceBox.getSelectionModel().selectFirst();
+    }
+
+    public record PriorityOption(Integer value, String label) {
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    public record StateOption(String value, String label) {
+        @Override
+        public String toString() {
+            return label;
+        }
+    }
+
+    public record TipoAttivitaOption(UUID id, String label) {
+        public static TipoAttivitaOption empty() {
+            return new TipoAttivitaOption(null, "Nessun tipo");
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 }

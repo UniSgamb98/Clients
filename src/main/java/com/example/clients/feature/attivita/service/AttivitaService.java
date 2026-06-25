@@ -5,14 +5,17 @@ import com.example.clients.core.database.model.Attivita;
 import com.example.clients.core.database.model.AttivitaCliente;
 import com.example.clients.core.database.model.Interazione;
 import com.example.clients.core.database.model.NotaCliente;
+import com.example.clients.core.database.model.TipoAttivita;
 import com.example.clients.core.database.query.AttivitaQuery;
 import com.example.clients.core.database.query.AttivitaQuery.AttivitaDetailRecord;
 import com.example.clients.core.database.query.AttivitaQuery.AttivitaListRecord;
 import com.example.clients.core.database.query.derby.DerbyAttivitaQuery;
 import com.example.clients.core.database.repository.AttivitaClienteRepository;
 import com.example.clients.core.database.repository.AttivitaRepository;
+import com.example.clients.core.database.repository.TipoAttivitaRepository;
 import com.example.clients.core.database.repository.derby.DerbyAttivitaClienteRepository;
 import com.example.clients.core.database.repository.derby.DerbyAttivitaRepository;
+import com.example.clients.core.database.repository.derby.DerbyTipoAttivitaRepository;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
 
@@ -35,6 +38,7 @@ public class AttivitaService {
     private final AttivitaRepository attivitaRepository;
     private final AttivitaClienteRepository attivitaClienteRepository;
     private final AttivitaQuery attivitaQuery;
+    private final TipoAttivitaRepository tipoAttivitaRepository;
     private final ClientePersistenceService clientePersistenceService;
     private final CurrentOperatoreService currentOperatoreService;
 
@@ -43,6 +47,7 @@ public class AttivitaService {
                 new DerbyAttivitaRepository(database),
                 new DerbyAttivitaClienteRepository(database),
                 new DerbyAttivitaQuery(database),
+                new DerbyTipoAttivitaRepository(database),
                 new ClientePersistenceService(database),
                 new CurrentOperatoreService()
         );
@@ -52,14 +57,22 @@ public class AttivitaService {
             AttivitaRepository attivitaRepository,
             AttivitaClienteRepository attivitaClienteRepository,
             AttivitaQuery attivitaQuery,
+            TipoAttivitaRepository tipoAttivitaRepository,
             ClientePersistenceService clientePersistenceService,
             CurrentOperatoreService currentOperatoreService
     ) {
         this.attivitaRepository = attivitaRepository;
         this.attivitaClienteRepository = attivitaClienteRepository;
         this.attivitaQuery = attivitaQuery;
+        this.tipoAttivitaRepository = tipoAttivitaRepository;
         this.clientePersistenceService = clientePersistenceService;
         this.currentOperatoreService = currentOperatoreService;
+    }
+
+    public List<TipoAttivitaOption> listaTipiAttivita() {
+        return tipoAttivitaRepository.findActive().stream()
+                .map(tipo -> new TipoAttivitaOption(tipo.id(), tipo.nome()))
+                .toList();
     }
 
     public AttivitaDetailRecord creaAttivita(AttivitaCreateInput input) {
@@ -194,6 +207,12 @@ public class AttivitaService {
             return cleanStato;
         }
         throw new IllegalArgumentException("Stato cliente attività non valido.");
+    }
+
+    public record TipoAttivitaOption(UUID id, String nome) {
+        public TipoAttivitaOption(TipoAttivita tipoAttivita) {
+            this(tipoAttivita.id(), tipoAttivita.nome());
+        }
     }
 
     public record AttivitaCreateInput(
