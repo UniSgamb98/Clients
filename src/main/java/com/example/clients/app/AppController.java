@@ -5,6 +5,9 @@ import com.example.clients.core.database.query.derby.DerbyStatoTrattativaQuery;
 import com.example.clients.core.database.query.derby.DerbyTipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
+import com.example.clients.feature.attivita.controller.AttivitaController;
+import com.example.clients.feature.attivita.service.AttivitaService;
+import com.example.clients.feature.attivita.view.AttivitaView;
 import com.example.clients.feature.auth.login.controller.LoginController;
 import com.example.clients.feature.auth.login.navigator.LoginNav;
 import com.example.clients.feature.auth.login.service.LoginService;
@@ -137,6 +140,19 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         stage.setTitle("Clients - Scheda cliente");
     }
 
+    public void showAttivita() {
+        AttivitaView view = new AttivitaView();
+        configureSidebar(view.getSidebar());
+        AttivitaController controller = new AttivitaController(view, new AttivitaService(app.database));
+
+        showView(
+                view,
+                "/css/features/attivita.css"
+        );
+        stage.setTitle("Clients - Attività");
+        controller.loadAttivitaAsync();
+    }
+
     public void showCalendario() {
         CalendarioView view = new CalendarioView();
         configureSidebar(view.getSidebar());
@@ -180,6 +196,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     private void configureSidebar(AppSidebar sidebar) {
         sidebar.getDashboardButton().setOnAction(e -> showDashboard());
         sidebar.getClientsButton().setOnAction(e -> showClienti());
+        sidebar.getActivitiesButton().setOnAction(e -> showAttivita());
         sidebar.getCalendarButton().setOnAction(e -> showCalendario());
     }
 

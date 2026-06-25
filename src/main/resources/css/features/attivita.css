@@ -1,0 +1,137 @@
+/* ==== Attività CRM ==== */
+.activities-content {
+    -fx-background-color: -app-bg;
+}
+
+.activities-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -app-text;
+}
+
+.activities-subtitle,
+.activities-panel-subtitle,
+.activities-detail-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: -app-text-subtle;
+}
+
+.activities-title-bar {
+    -fx-alignment: center-left;
+}
+
+.activities-primary-button {
+    -fx-background-color: -app-primary;
+    -fx-text-fill: -app-text;
+    -fx-background-radius: 8;
+    -fx-font-weight: 700;
+    -fx-padding: 7 12;
+}
+
+.activities-primary-button:hover {
+    -fx-background-color: -app-primary-hover;
+}
+
+.activities-list-panel,
+.activities-detail-panel {
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 12;
+    -fx-padding: 14;
+}
+
+.activities-list-panel {
+    -fx-pref-width: 760;
+}
+
+.activities-detail-panel {
+    -fx-pref-width: 640;
+}
+
+.activities-panel-title,
+.activities-detail-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -app-text;
+}
+
+.activities-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.activities-row,
+.activities-empty-row,
+.activities-client-row {
+    -fx-padding: 10 8;
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
+
+.activities-header-row,
+.activities-client-header-row {
+    -fx-background-color: -app-surface-alt;
+    -fx-background-radius: 10;
+}
+
+.activities-data-row,
+.activities-client-row {
+    -fx-border-color: -app-row-border;
+    -fx-border-width: 1 0 0 0;
+}
+
+.activities-data-row:hover {
+    -fx-background-color: -app-row-hover;
+    -fx-cursor: hand;
+}
+
+.activities-table-cell {
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 12px;
+}
+
+.activities-main-cell,
+.activities-meta-value {
+    -fx-text-fill: -app-text;
+    -fx-font-weight: 700;
+}
+
+.activities-header-cell,
+.activities-meta-label {
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.activities-empty-label {
+    -fx-text-fill: -app-text-placeholder;
+    -fx-font-size: 13px;
+}
+
+.activities-state-badge,
+.activities-client-state-badge {
+    -fx-background-color: -app-badge-bg;
+    -fx-background-radius: 999;
+    -fx-padding: 3 7;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -app-text-muted;
+}
+
+.activities-detail-meta-grid {
+    -fx-padding: 4 0 2 0;
+}
+
+.activities-meta-card {
+    -fx-background-color: -app-surface-alt;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-padding: 9;
+    -fx-pref-width: 180;
+}
+
+.activities-client-rows {
+    -fx-background-color: transparent;
+}
