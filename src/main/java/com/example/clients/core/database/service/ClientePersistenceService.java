@@ -2,6 +2,7 @@ package com.example.clients.core.database.service;
 
 import com.example.clients.core.database.Database;
 import com.example.clients.core.database.SchemaInitializer;
+import com.example.clients.core.database.model.AttivitaCliente;
 import com.example.clients.core.database.model.Cliente;
 import com.example.clients.core.database.model.ContattoCliente;
 import com.example.clients.core.database.model.EmailCliente;
@@ -10,6 +11,7 @@ import com.example.clients.core.database.model.Interazione;
 import com.example.clients.core.database.model.NotaCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
+import com.example.clients.core.database.repository.AttivitaClienteRepository;
 import com.example.clients.core.database.repository.ClientePreferitoRepository;
 import com.example.clients.core.database.repository.ClienteRepository;
 import com.example.clients.core.database.repository.ContattoClienteRepository;
@@ -19,6 +21,7 @@ import com.example.clients.core.database.repository.InterazioneRepository;
 import com.example.clients.core.database.repository.NotaClienteRepository;
 import com.example.clients.core.database.repository.SitoWebClienteRepository;
 import com.example.clients.core.database.repository.TelefonoClienteRepository;
+import com.example.clients.core.database.repository.derby.DerbyAttivitaClienteRepository;
 import com.example.clients.core.database.repository.derby.DerbyClientePreferitoRepository;
 import com.example.clients.core.database.repository.derby.DerbyClienteRepository;
 import com.example.clients.core.database.repository.derby.DerbyContattoClienteRepository;
@@ -52,6 +55,7 @@ public class ClientePersistenceService {
     private final EmailClienteRepository emailRepository;
     private final NotaClienteRepository notaRepository;
     private final InterazioneRepository interazioneRepository;
+    private final AttivitaClienteRepository attivitaClienteRepository;
     private final ClientePreferitoRepository clientePreferitoRepository;
 
     public ClientePersistenceService(Database database) {
@@ -66,6 +70,7 @@ public class ClientePersistenceService {
                 new DerbyEmailClienteRepository(database),
                 new DerbyNotaClienteRepository(database),
                 new DerbyInterazioneRepository(database),
+                new DerbyAttivitaClienteRepository(database),
                 new DerbyClientePreferitoRepository(database)
         );
     }
@@ -83,6 +88,36 @@ public class ClientePersistenceService {
             InterazioneRepository interazioneRepository,
             ClientePreferitoRepository clientePreferitoRepository
     ) {
+        this(
+                database,
+                schemaInitializer,
+                clienteRepository,
+                indirizzoRepository,
+                sitoWebRepository,
+                contattoRepository,
+                telefonoRepository,
+                emailRepository,
+                notaRepository,
+                interazioneRepository,
+                new DerbyAttivitaClienteRepository(database),
+                clientePreferitoRepository
+        );
+    }
+
+    public ClientePersistenceService(
+            Database database,
+            SchemaInitializer schemaInitializer,
+            ClienteRepository clienteRepository,
+            IndirizzoClienteRepository indirizzoRepository,
+            SitoWebClienteRepository sitoWebRepository,
+            ContattoClienteRepository contattoRepository,
+            TelefonoClienteRepository telefonoRepository,
+            EmailClienteRepository emailRepository,
+            NotaClienteRepository notaRepository,
+            InterazioneRepository interazioneRepository,
+            AttivitaClienteRepository attivitaClienteRepository,
+            ClientePreferitoRepository clientePreferitoRepository
+    ) {
         this.database = database;
         this.schemaInitializer = schemaInitializer;
         this.clienteRepository = clienteRepository;
@@ -93,6 +128,7 @@ public class ClientePersistenceService {
         this.emailRepository = emailRepository;
         this.notaRepository = notaRepository;
         this.interazioneRepository = interazioneRepository;
+        this.attivitaClienteRepository = attivitaClienteRepository;
         this.clientePreferitoRepository = clientePreferitoRepository;
     }
 
@@ -226,6 +262,14 @@ public class ClientePersistenceService {
     }
 
     public void addChiamata(NotaCliente nota, Interazione interazione) {
+        addChiamata(nota, interazione, null);
+    }
+
+    public void addChiamataAttivita(NotaCliente nota, Interazione interazione, String statoAttivitaCliente) {
+        addChiamata(nota, interazione, statoAttivitaCliente);
+    }
+
+    private void addChiamata(NotaCliente nota, Interazione interazione, String statoAttivitaCliente) {
         schemaInitializer.initialize();
 
         Connection connection = database.getConnection();
@@ -238,6 +282,20 @@ public class ClientePersistenceService {
                 notaRepository.insert(nota);
             }
             interazioneRepository.insert(interazione);
+            if (interazione.attivitaId() != null && statoAttivitaCliente != null) {
+                AttivitaCliente attivitaCliente = attivitaClienteRepository
+                        .findByAttivitaIdAndClienteId(interazione.attivitaId(), interazione.clienteId())
+                        .orElseThrow(() -> new IllegalArgumentException("Cliente non collegato all'attività selezionata."));
+                attivitaClienteRepository.update(new AttivitaCliente(
+                        attivitaCliente.id(),
+                        attivitaCliente.attivitaId(),
+                        attivitaCliente.clienteId(),
+                        statoAttivitaCliente,
+                        interazione.id(),
+                        attivitaCliente.createdAt(),
+                        interazione.createdAt()
+                ));
+            }
 
             connection.commit();
         } catch (RuntimeException | SQLException e) {
