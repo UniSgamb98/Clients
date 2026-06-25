@@ -136,11 +136,16 @@ public final class DerbyAttivitaQuery implements AttivitaQuery {
     }
 
     private String getClobText(ResultSet resultSet, String column) throws SQLException {
-        Clob clob = resultSet.getClob(column);
-        if (clob == null || clob.length() == 0) {
-            return "";
+        try {
+            Clob clob = resultSet.getClob(column);
+            if (clob == null || clob.length() == 0) {
+                return "";
+            }
+            return clob.getSubString(1, Math.toIntExact(clob.length()));
+        } catch (SQLException e) {
+            String value = resultSet.getString(column);
+            return value == null ? "" : value;
         }
-        return clob.getSubString(1, Math.toIntExact(clob.length()));
     }
 
     private String valueOrEmpty(String value) {

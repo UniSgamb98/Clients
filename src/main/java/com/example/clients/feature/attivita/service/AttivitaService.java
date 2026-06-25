@@ -93,7 +93,29 @@ public class AttivitaService {
         );
         attivitaRepository.insert(attivita);
         aggiungiClienti(attivitaId, input.clientiId());
+        if (input.clientiId().isEmpty()) {
+            return new AttivitaDetailRecord(
+                    attivita.id(),
+                    attivita.titolo(),
+                    attivita.descrizione(),
+                    tipoAttivitaNome(attivita.tipoAttivitaId()),
+                    attivita.priorita(),
+                    attivita.stato(),
+                    attivita.dataInizio(),
+                    attivita.dataFine(),
+                    List.of()
+            );
+        }
         return dettaglioAttivita(attivitaId);
+    }
+
+    private String tipoAttivitaNome(UUID tipoAttivitaId) {
+        if (tipoAttivitaId == null) {
+            return "";
+        }
+        return tipoAttivitaRepository.findById(tipoAttivitaId)
+                .map(TipoAttivita::nome)
+                .orElse("");
     }
 
     public List<AttivitaListRecord> listaAttivita() {
