@@ -42,7 +42,7 @@ public final class SchemaInitializer {
                 statement.executeUpdate(statementSql);
             } catch (SQLException e) {
                 if (!isAlreadyExistingObject(e)) {
-                    throw e;
+                    throw new SQLException("Errore esecuzione statement schema: " + statementSql, e);
                 }
             }
         }
@@ -84,9 +84,10 @@ public final class SchemaInitializer {
         String message = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
         return "X0Y32".equals(sqlState)
                 || "X0Y68".equals(sqlState)
-                || message.contains("already exists")
-                || message.contains("already in")
+                || message.contains("already")
                 || message.contains("duplicate")
-                || message.contains("già esistente");
+                || message.contains("duplicat")
+                || message.contains("già")
+                || message.contains("esiste");
     }
 }
