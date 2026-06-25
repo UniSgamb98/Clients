@@ -1,7 +1,6 @@
 package com.example.clients.core.database.query.derby;
 
 import com.example.clients.core.database.Database;
-import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.core.database.query.AttivitaQuery;
 import com.example.clients.core.database.query.AttivitaQuery.AttivitaClienteRecord;
 import com.example.clients.core.database.query.AttivitaQuery.AttivitaDetailRecord;
@@ -21,20 +20,12 @@ import java.util.UUID;
 public final class DerbyAttivitaQuery implements AttivitaQuery {
 
     private final Database database;
-    private final SchemaInitializer schemaInitializer;
-
     public DerbyAttivitaQuery(Database database) {
-        this(database, new SchemaInitializer(database));
-    }
-
-    public DerbyAttivitaQuery(Database database, SchemaInitializer schemaInitializer) {
         this.database = database;
-        this.schemaInitializer = schemaInitializer;
     }
 
     @Override
     public List<AttivitaListRecord> findAll() {
-        schemaInitializer.initialize();
         String sql = "SELECT A.ID, A.TITOLO, T.NOME AS TIPO_ATTIVITA, A.PRIORITA, A.STATO, A.DATA_INIZIO, A.DATA_FINE, "
                 + "COUNT(AC.ID) AS TOTALE_CLIENTI, "
                 + "SUM(CASE WHEN AC.STATO = 'DA_FARE' THEN 1 ELSE 0 END) AS DA_FARE, "
@@ -75,7 +66,6 @@ public final class DerbyAttivitaQuery implements AttivitaQuery {
 
     @Override
     public Optional<AttivitaDetailRecord> findById(UUID attivitaId) {
-        schemaInitializer.initialize();
         String sql = "SELECT A.ID, A.TITOLO, A.DESCRIZIONE, T.NOME AS TIPO_ATTIVITA, A.PRIORITA, A.STATO, A.DATA_INIZIO, A.DATA_FINE "
                 + "FROM ATTIVITA A LEFT JOIN TIPI_ATTIVITA T ON A.TIPO_ATTIVITA_ID = T.ID WHERE A.ID = ?";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {

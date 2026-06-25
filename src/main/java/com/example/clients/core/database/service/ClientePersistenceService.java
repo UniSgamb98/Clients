@@ -1,7 +1,6 @@
 package com.example.clients.core.database.service;
 
 import com.example.clients.core.database.Database;
-import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.core.database.model.AttivitaCliente;
 import com.example.clients.core.database.model.Cliente;
 import com.example.clients.core.database.model.ContattoCliente;
@@ -46,7 +45,6 @@ import java.util.stream.Collectors;
 public class ClientePersistenceService {
 
     private final Database database;
-    private final SchemaInitializer schemaInitializer;
     private final ClienteRepository clienteRepository;
     private final IndirizzoClienteRepository indirizzoRepository;
     private final SitoWebClienteRepository sitoWebRepository;
@@ -61,7 +59,6 @@ public class ClientePersistenceService {
     public ClientePersistenceService(Database database) {
         this(
                 database,
-                new SchemaInitializer(database),
                 new DerbyClienteRepository(database),
                 new DerbyIndirizzoClienteRepository(database),
                 new DerbySitoWebClienteRepository(database),
@@ -77,7 +74,6 @@ public class ClientePersistenceService {
 
     public ClientePersistenceService(
             Database database,
-            SchemaInitializer schemaInitializer,
             ClienteRepository clienteRepository,
             IndirizzoClienteRepository indirizzoRepository,
             SitoWebClienteRepository sitoWebRepository,
@@ -90,7 +86,6 @@ public class ClientePersistenceService {
     ) {
         this(
                 database,
-                schemaInitializer,
                 clienteRepository,
                 indirizzoRepository,
                 sitoWebRepository,
@@ -106,7 +101,6 @@ public class ClientePersistenceService {
 
     public ClientePersistenceService(
             Database database,
-            SchemaInitializer schemaInitializer,
             ClienteRepository clienteRepository,
             IndirizzoClienteRepository indirizzoRepository,
             SitoWebClienteRepository sitoWebRepository,
@@ -119,7 +113,6 @@ public class ClientePersistenceService {
             ClientePreferitoRepository clientePreferitoRepository
     ) {
         this.database = database;
-        this.schemaInitializer = schemaInitializer;
         this.clienteRepository = clienteRepository;
         this.indirizzoRepository = indirizzoRepository;
         this.sitoWebRepository = sitoWebRepository;
@@ -133,8 +126,6 @@ public class ClientePersistenceService {
     }
 
     public void saveNuovoCliente(ClienteAggregate draft) {
-        schemaInitializer.initialize();
-
         Connection connection = database.getConnection();
         boolean previousAutoCommit = true;
         try {
@@ -158,7 +149,6 @@ public class ClientePersistenceService {
     }
 
     public void updateCliente(Cliente cliente) {
-        schemaInitializer.initialize();
         clienteRepository.update(cliente);
     }
 
@@ -172,8 +162,6 @@ public class ClientePersistenceService {
             List<NotaCliente> note,
             List<Interazione> interazioni
     ) {
-        schemaInitializer.initialize();
-
         Connection connection = database.getConnection();
         boolean previousAutoCommit = true;
         try {
@@ -257,7 +245,6 @@ public class ClientePersistenceService {
     }
 
     public void addNota(NotaCliente nota) {
-        schemaInitializer.initialize();
         notaRepository.insert(nota);
     }
 
@@ -270,8 +257,6 @@ public class ClientePersistenceService {
     }
 
     private void addChiamata(NotaCliente nota, Interazione interazione, String statoAttivitaCliente) {
-        schemaInitializer.initialize();
-
         Connection connection = database.getConnection();
         boolean previousAutoCommit = true;
         try {
@@ -307,8 +292,6 @@ public class ClientePersistenceService {
     }
 
     public boolean togglePreferito(UUID operatoreId, UUID clienteId) {
-        schemaInitializer.initialize();
-
         boolean alreadyFavorite = clientePreferitoRepository.exists(operatoreId, clienteId);
         if (alreadyFavorite) {
             clientePreferitoRepository.remove(operatoreId, clienteId);

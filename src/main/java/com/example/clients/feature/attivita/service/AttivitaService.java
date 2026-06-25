@@ -1,7 +1,6 @@
 package com.example.clients.feature.attivita.service;
 
 import com.example.clients.core.database.Database;
-import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.core.database.model.Attivita;
 import com.example.clients.core.database.model.AttivitaCliente;
 import com.example.clients.core.database.model.Interazione;
@@ -33,7 +32,6 @@ public class AttivitaService {
     public static final String STATO_CLIENTE_COMPLETATO = "COMPLETATO";
     public static final String STATO_CLIENTE_ANNULLATO = "ANNULLATO";
 
-    private final SchemaInitializer schemaInitializer;
     private final AttivitaRepository attivitaRepository;
     private final AttivitaClienteRepository attivitaClienteRepository;
     private final AttivitaQuery attivitaQuery;
@@ -42,7 +40,6 @@ public class AttivitaService {
 
     public AttivitaService(Database database) {
         this(
-                new SchemaInitializer(database),
                 new DerbyAttivitaRepository(database),
                 new DerbyAttivitaClienteRepository(database),
                 new DerbyAttivitaQuery(database),
@@ -52,14 +49,12 @@ public class AttivitaService {
     }
 
     public AttivitaService(
-            SchemaInitializer schemaInitializer,
             AttivitaRepository attivitaRepository,
             AttivitaClienteRepository attivitaClienteRepository,
             AttivitaQuery attivitaQuery,
             ClientePersistenceService clientePersistenceService,
             CurrentOperatoreService currentOperatoreService
     ) {
-        this.schemaInitializer = schemaInitializer;
         this.attivitaRepository = attivitaRepository;
         this.attivitaClienteRepository = attivitaClienteRepository;
         this.attivitaQuery = attivitaQuery;
@@ -68,7 +63,6 @@ public class AttivitaService {
     }
 
     public AttivitaDetailRecord creaAttivita(AttivitaCreateInput input) {
-        schemaInitializer.initialize();
         Objects.requireNonNull(input, "input");
         UUID attivitaId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now();
@@ -90,18 +84,15 @@ public class AttivitaService {
     }
 
     public List<AttivitaListRecord> listaAttivita() {
-        schemaInitializer.initialize();
         return attivitaQuery.findAll();
     }
 
     public AttivitaDetailRecord dettaglioAttivita(UUID attivitaId) {
-        schemaInitializer.initialize();
         return attivitaQuery.findById(attivitaId)
                 .orElseThrow(() -> new IllegalArgumentException("Attività non trovata."));
     }
 
     public void aggiungiClienti(UUID attivitaId, List<UUID> clientiId) {
-        schemaInitializer.initialize();
         Objects.requireNonNull(attivitaId, "attivitaId");
         LocalDateTime now = LocalDateTime.now();
         clientiId.stream()
@@ -121,7 +112,6 @@ public class AttivitaService {
     }
 
     public void aggiornaStatoCliente(UUID attivitaId, UUID clienteId, String stato, UUID interazioneId) {
-        schemaInitializer.initialize();
         AttivitaCliente attivitaCliente = attivitaClienteRepository.findByAttivitaIdAndClienteId(attivitaId, clienteId)
                 .orElseThrow(() -> new IllegalArgumentException("Cliente non collegato all'attività selezionata."));
         attivitaClienteRepository.update(new AttivitaCliente(
@@ -136,7 +126,6 @@ public class AttivitaService {
     }
 
     public void registraChiamataAttivita(ChiamataAttivitaInput input) {
-        schemaInitializer.initialize();
         Objects.requireNonNull(input, "input");
         Objects.requireNonNull(input.clienteId(), "clienteId");
         Objects.requireNonNull(input.attivitaId(), "attivitaId");

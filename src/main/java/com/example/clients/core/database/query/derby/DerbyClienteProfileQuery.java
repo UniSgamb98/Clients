@@ -1,7 +1,6 @@
 package com.example.clients.core.database.query.derby;
 
 import com.example.clients.core.database.Database;
-import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.core.database.query.ClienteProfileQuery;
 import com.example.clients.core.database.query.ClienteProfileQuery.AddressRecord;
 import com.example.clients.core.database.query.ClienteProfileQuery.ContactRecord;
@@ -23,21 +22,12 @@ import java.util.UUID;
 public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
 
     private final Database database;
-    private final SchemaInitializer schemaInitializer;
-
     public DerbyClienteProfileQuery(Database database) {
-        this(database, new SchemaInitializer(database));
-    }
-
-    public DerbyClienteProfileQuery(Database database, SchemaInitializer schemaInitializer) {
         this.database = database;
-        this.schemaInitializer = schemaInitializer;
     }
 
     @Override
     public Optional<ClienteProfileRecord> findById(UUID clienteId, UUID operatoreId) {
-        schemaInitializer.initialize();
-
         String sql = "SELECT * FROM CLIENTI WHERE ID = ?";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
