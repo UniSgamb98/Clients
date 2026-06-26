@@ -1,7 +1,6 @@
 package com.example.clients.feature.auth.login.service;
 
 import com.example.clients.core.database.Database;
-import com.example.clients.core.database.SchemaInitializer;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,20 +12,12 @@ import java.util.UUID;
 public class LoginService {
 
     private final Database database;
-    private final SchemaInitializer schemaInitializer;
 
     public LoginService(Database database) {
-        this(database, new SchemaInitializer(database));
-    }
-
-    public LoginService(Database database, SchemaInitializer schemaInitializer) {
         this.database = database;
-        this.schemaInitializer = schemaInitializer;
     }
 
     public List<LoginUser> loadUsers() {
-        schemaInitializer.initialize();
-
         String sql = "SELECT ID, NOME, COGNOME, USERNAME FROM OPERATORI WHERE ATTIVO = 1 ORDER BY USERNAME";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
