@@ -179,3 +179,14 @@
 .client-profile-involvement-slider {
     -fx-pref-width: 140;
 }
+
+.client-profile-next-call-controls {
+    -fx-alignment: center-left;
+}
+
+.client-profile-edit-choice-box {
+    -fx-background-color: -app-surface-alt;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}

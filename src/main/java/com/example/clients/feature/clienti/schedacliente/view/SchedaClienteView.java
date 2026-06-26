@@ -62,6 +62,9 @@ public class SchedaClienteView extends BorderPane {
     private final VBox timelineList;
     private final VBox noteEditor;
     private final DatePicker nextCallDatePicker;
+    private final ChoiceBox<String> nextCallTipoClienteChoiceBox;
+    private final ChoiceBox<String> nextCallStatoTrattativaChoiceBox;
+    private final HBox nextCallControls;
     private final TextArea noteTextArea;
     private final Button saveNoteButton;
     private final Button cancelNoteButton;
@@ -122,6 +125,9 @@ public class SchedaClienteView extends BorderPane {
         nextCallDatePicker = new DatePicker();
         nextCallDatePicker.setPromptText("Prossima chiamata");
         nextCallDatePicker.getStyleClass().add("client-profile-call-date-picker");
+        nextCallTipoClienteChoiceBox = createCallChoiceBox("Tipo cliente");
+        nextCallStatoTrattativaChoiceBox = createCallChoiceBox("Stato trattativa");
+        nextCallControls = createNextCallControls();
         noteTextArea = new TextArea();
         noteTextArea.setPromptText("Scrivi una nota sulla comunicazione con il cliente...");
         noteTextArea.getStyleClass().add("client-profile-note-area");
@@ -129,7 +135,7 @@ public class SchedaClienteView extends BorderPane {
         saveNoteButton.getStyleClass().add("clients-primary-button");
         cancelNoteButton = new Button("Annulla");
         cancelNoteButton.getStyleClass().add("clients-filter-button");
-        noteEditor.getChildren().addAll(nextCallDatePicker, noteTextArea, createNoteActions());
+        noteEditor.getChildren().addAll(nextCallControls, noteTextArea, createNoteActions());
         setActiveTimelineFilter(TimelineFilter.ALL);
         setEditMode(false);
         hideNoteEditor();
@@ -222,6 +228,24 @@ public class SchedaClienteView extends BorderPane {
         VBox editor = new VBox(10);
         editor.getStyleClass().add("client-profile-note-editor");
         return editor;
+    }
+
+    private HBox createNextCallControls() {
+        HBox controls = new HBox(10);
+        controls.getStyleClass().add("client-profile-next-call-controls");
+        HBox.setHgrow(nextCallDatePicker, Priority.ALWAYS);
+        HBox.setHgrow(nextCallTipoClienteChoiceBox, Priority.ALWAYS);
+        HBox.setHgrow(nextCallStatoTrattativaChoiceBox, Priority.ALWAYS);
+        controls.getChildren().addAll(nextCallDatePicker, nextCallTipoClienteChoiceBox, nextCallStatoTrattativaChoiceBox);
+        return controls;
+    }
+
+    private ChoiceBox<String> createCallChoiceBox(String prompt) {
+        ChoiceBox<String> choiceBox = new ChoiceBox<>();
+        choiceBox.getStyleClass().add("client-profile-edit-choice-box");
+        choiceBox.setMaxWidth(Double.MAX_VALUE);
+        choiceBox.setAccessibleText(prompt);
+        return choiceBox;
     }
 
     private HBox createNoteActions() {
@@ -749,15 +773,17 @@ public class SchedaClienteView extends BorderPane {
 
     public void showNoteEditor() {
         saveNoteButton.setText("Salva nota");
-        nextCallDatePicker.setVisible(false);
-        nextCallDatePicker.setManaged(false);
+        nextCallControls.setVisible(false);
+        nextCallControls.setManaged(false);
         showEditor();
     }
 
-    public void showCallEditor() {
+    public void showCallEditor(ClienteProfile profile) {
         saveNoteButton.setText("Salva chiamata");
-        nextCallDatePicker.setVisible(true);
-        nextCallDatePicker.setManaged(true);
+        populateCallChoiceBox(nextCallTipoClienteChoiceBox, tipoClienteOptions, profile == null ? null : profile.tipoCliente());
+        populateCallChoiceBox(nextCallStatoTrattativaChoiceBox, statoTrattativaOptions, profile == null ? null : profile.statoTrattativa());
+        nextCallControls.setVisible(true);
+        nextCallControls.setManaged(true);
         showEditor();
     }
 
@@ -772,6 +798,8 @@ public class SchedaClienteView extends BorderPane {
         noteEditor.setManaged(false);
         noteTextArea.clear();
         nextCallDatePicker.setValue(null);
+        nextCallTipoClienteChoiceBox.setValue(null);
+        nextCallStatoTrattativaChoiceBox.setValue(null);
     }
 
     public void setActiveTimelineFilter(TimelineFilter filter) {
@@ -927,6 +955,16 @@ public class SchedaClienteView extends BorderPane {
         statoTrattativaOptions = options == null ? List.of() : List.copyOf(options);
     }
 
+    private void populateCallChoiceBox(ChoiceBox<String> choiceBox, List<String> sourceOptions, String selectedValue) {
+        List<String> options = new ArrayList<>(sourceOptions);
+        String cleanSelectedValue = emptyFallbackForEdit(selectedValue);
+        if (!cleanSelectedValue.isBlank() && !options.contains(cleanSelectedValue)) {
+            options.add(0, cleanSelectedValue);
+        }
+        choiceBox.getItems().setAll(options);
+        choiceBox.setValue(cleanSelectedValue.isBlank() ? null : cleanSelectedValue);
+    }
+
     private String valueOf(TextField field) {
         return field == null ? "" : field.getText();
     }
@@ -1034,6 +1072,14 @@ public class SchedaClienteView extends BorderPane {
 
     public DatePicker getNextCallDatePicker() {
         return nextCallDatePicker;
+    }
+
+    public ChoiceBox<String> getNextCallTipoClienteChoiceBox() {
+        return nextCallTipoClienteChoiceBox;
+    }
+
+    public ChoiceBox<String> getNextCallStatoTrattativaChoiceBox() {
+        return nextCallStatoTrattativaChoiceBox;
     }
 
     public TextArea getNoteTextArea() {

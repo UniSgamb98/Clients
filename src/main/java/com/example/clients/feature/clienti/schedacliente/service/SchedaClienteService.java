@@ -426,13 +426,19 @@ public class SchedaClienteService {
         return loadProfile(currentClienteId);
     }
 
-    public ClienteProfile addChiamata(String testo, LocalDate prossimoContatto) {
+    public ClienteProfile currentProfile() {
+        ensureProfileLoaded();
+        return currentProfile;
+    }
+
+    public ClienteProfile addChiamata(String testo, LocalDate prossimoContatto, String tipoCliente, String statoTrattativa) {
         ensureProfileLoaded();
         if (currentClienteId == null) {
             return filteredProfile();
         }
 
         LocalDateTime now = LocalDateTime.now();
+        updateClienteFromCall(tipoCliente, statoTrattativa, now);
         NotaCliente nota = null;
         if (testo != null && !testo.isBlank()) {
             nota = new NotaCliente(
@@ -458,6 +464,33 @@ public class SchedaClienteService {
         );
         persistenceService.addChiamata(nota, interazione);
         return loadProfile(currentClienteId);
+    }
+
+    private void updateClienteFromCall(String tipoCliente, String statoTrattativa, LocalDateTime now) {
+        String cleanTipoCliente = nullableClean(tipoCliente);
+        String cleanStatoTrattativa = nullableClean(statoTrattativa);
+        if (sameValue(cleanTipoCliente, currentProfile.tipoCliente()) && sameValue(cleanStatoTrattativa, currentProfile.statoTrattativa())) {
+            return;
+        }
+
+        Cliente cliente = new Cliente(
+                currentClienteId,
+                nullableClean(currentProfile.ragioneSociale()),
+                cleanTipoCliente,
+                cleanStatoTrattativa,
+                cleanCoinvolgimento(currentProfile.coinvolgimento()),
+                nullableClean(currentProfile.partitaIva()),
+                nullableClean(currentProfile.codiceFiscale()),
+                currentProfile.acquisizione(),
+                currentOperatoreService.currentOperatoreId(),
+                null,
+                now
+        );
+        persistenceService.updateCliente(cliente);
+    }
+
+    private boolean sameValue(String first, String second) {
+        return java.util.Objects.equals(first, nullableClean(second));
     }
 
     private void addInteraction(InteractionPreview interaction) {

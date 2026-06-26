@@ -74,7 +74,9 @@ public class SchedaClienteController {
 
     private void openCallEditor() {
         editorMode = EditorMode.CALL;
-        view.showCallEditor();
+        view.setTipoClienteOptions(service.getTipiCliente());
+        view.setStatoTrattativaOptions(service.getStatiTrattativa());
+        view.showCallEditor(service.currentProfile());
     }
 
     private void applyTimelineFilter(TimelineFilter filter) {
@@ -85,7 +87,12 @@ public class SchedaClienteController {
     private void saveEditorContent() {
         runAndRender("Salvataggio interazione non riuscito", () -> {
             if (editorMode == EditorMode.CALL) {
-                return service.addChiamata(view.getNoteTextArea().getText(), view.getNextCallDatePicker().getValue());
+                return service.addChiamata(
+                        view.getNoteTextArea().getText(),
+                        view.getNextCallDatePicker().getValue(),
+                        choiceText(view.getNextCallTipoClienteChoiceBox()),
+                        choiceText(view.getNextCallStatoTrattativaChoiceBox())
+                );
             }
             return service.addNota(view.getNoteTextArea().getText());
         });
@@ -98,6 +105,11 @@ public class SchedaClienteController {
         } catch (RuntimeException e) {
             showError(errorTitle, e);
         }
+    }
+
+    private String choiceText(javafx.scene.control.ChoiceBox<String> choiceBox) {
+        String value = choiceBox == null ? null : choiceBox.getValue();
+        return value == null ? "" : value.trim();
     }
 
     private void showError(String title, RuntimeException e) {
