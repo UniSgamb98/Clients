@@ -9,6 +9,7 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
@@ -262,6 +263,14 @@ public class SchedaClienteView extends BorderPane {
 
     public DatePicker getNextCallDatePicker() {
         return timelineSection.getNextCallDatePicker();
+    }
+
+    public ChoiceBox<String> getCallOutcomeChoiceBox() {
+        return timelineSection.getCallOutcomeChoiceBox();
+    }
+
+    public ChoiceBox<String> getCallPriorityChoiceBox() {
+        return timelineSection.getCallPriorityChoiceBox();
     }
 
     public TextArea getNoteTextArea() {

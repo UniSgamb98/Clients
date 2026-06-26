@@ -5,6 +5,7 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
@@ -36,6 +37,9 @@ final class ClienteTimelineSection extends VBox {
     private final VBox timelineList;
     private final VBox noteEditor;
     private final DatePicker nextCallDatePicker;
+    private final ChoiceBox<String> callOutcomeChoiceBox;
+    private final ChoiceBox<String> callPriorityChoiceBox;
+    private final HBox callFields;
     private final TextArea noteTextArea;
     private final Button saveNoteButton;
     private final Button cancelNoteButton;
@@ -59,6 +63,9 @@ final class ClienteTimelineSection extends VBox {
         nextCallDatePicker = new DatePicker();
         nextCallDatePicker.setPromptText("Prossima chiamata");
         nextCallDatePicker.getStyleClass().add("client-profile-call-date-picker");
+        callOutcomeChoiceBox = createCallChoiceBox("Esito chiamata", List.of("Da richiamare", "Interessato", "Non interessato"));
+        callPriorityChoiceBox = createCallChoiceBox("Priorità", List.of("Bassa", "Media", "Alta"));
+        callFields = createCallFields();
         noteTextArea = new TextArea();
         noteTextArea.setPromptText("Scrivi una nota sulla comunicazione con il cliente...");
         noteTextArea.getStyleClass().add("client-profile-note-area");
@@ -66,7 +73,7 @@ final class ClienteTimelineSection extends VBox {
         saveNoteButton.getStyleClass().add("clients-primary-button");
         cancelNoteButton = new Button("Annulla");
         cancelNoteButton.getStyleClass().add("clients-filter-button");
-        noteEditor.getChildren().addAll(nextCallDatePicker, noteTextArea, createNoteActions());
+        noteEditor.getChildren().addAll(callFields, noteTextArea, createNoteActions());
         setActiveTimelineFilter(TimelineFilter.ALL);
         hideNoteEditor();
 
@@ -148,15 +155,15 @@ final class ClienteTimelineSection extends VBox {
 
     void showNoteEditor() {
         saveNoteButton.setText("Salva nota");
-        nextCallDatePicker.setVisible(false);
-        nextCallDatePicker.setManaged(false);
+        callFields.setVisible(false);
+        callFields.setManaged(false);
         showEditor();
     }
 
     void showCallEditor() {
         saveNoteButton.setText("Salva chiamata");
-        nextCallDatePicker.setVisible(true);
-        nextCallDatePicker.setManaged(true);
+        callFields.setVisible(true);
+        callFields.setManaged(true);
         showEditor();
     }
 
@@ -165,6 +172,8 @@ final class ClienteTimelineSection extends VBox {
         noteEditor.setManaged(false);
         noteTextArea.clear();
         nextCallDatePicker.setValue(null);
+        callOutcomeChoiceBox.setValue("Esito chiamata");
+        callPriorityChoiceBox.setValue("Priorità");
     }
 
     void setActiveTimelineFilter(TimelineFilter filter) {
@@ -202,6 +211,14 @@ final class ClienteTimelineSection extends VBox {
 
     DatePicker getNextCallDatePicker() {
         return nextCallDatePicker;
+    }
+
+    ChoiceBox<String> getCallOutcomeChoiceBox() {
+        return callOutcomeChoiceBox;
+    }
+
+    ChoiceBox<String> getCallPriorityChoiceBox() {
+        return callPriorityChoiceBox;
     }
 
     TextArea getNoteTextArea() {
@@ -282,6 +299,24 @@ final class ClienteTimelineSection extends VBox {
         VBox editor = new VBox(10);
         editor.getStyleClass().add("client-profile-note-editor");
         return editor;
+    }
+
+    private HBox createCallFields() {
+        HBox fields = new HBox(10);
+        fields.getStyleClass().add("client-profile-call-fields");
+        fields.getChildren().addAll(nextCallDatePicker, callOutcomeChoiceBox, callPriorityChoiceBox);
+        return fields;
+    }
+
+    private ChoiceBox<String> createCallChoiceBox(String prompt, List<String> options) {
+        ChoiceBox<String> choiceBox = new ChoiceBox<>();
+        choiceBox.getItems().add(prompt);
+        choiceBox.getItems().addAll(options);
+        choiceBox.setAccessibleText(prompt);
+        choiceBox.setPrefWidth(160);
+        choiceBox.getStyleClass().add("client-profile-call-choice-box");
+        choiceBox.setValue(prompt);
+        return choiceBox;
     }
 
     private HBox createNoteActions() {

@@ -85,11 +85,33 @@ public class SchedaClienteController {
     private void saveEditorContent() {
         runAndRender("Salvataggio interazione non riuscito", () -> {
             if (editorMode == EditorMode.CALL) {
-                return service.addChiamata(view.getNoteTextArea().getText(), view.getNextCallDatePicker().getValue());
+                return service.addChiamata(callText(), view.getNextCallDatePicker().getValue());
             }
             return service.addNota(view.getNoteTextArea().getText());
         });
         view.hideNoteEditor();
+    }
+
+    private String callText() {
+        String text = view.getNoteTextArea().getText() == null ? "" : view.getNoteTextArea().getText().trim();
+        String outcome = selectedChoiceValue(view.getCallOutcomeChoiceBox().getValue(), "Esito chiamata");
+        String priority = selectedChoiceValue(view.getCallPriorityChoiceBox().getValue(), "Priorità");
+        String details = java.util.stream.Stream.of(
+                        outcome == null ? null : "Esito: " + outcome,
+                        priority == null ? null : "Priorità: " + priority)
+                .filter(value -> value != null && !value.isBlank())
+                .collect(java.util.stream.Collectors.joining("\n"));
+        if (details.isBlank()) {
+            return text;
+        }
+        if (text.isBlank()) {
+            return details;
+        }
+        return text + "\n" + details;
+    }
+
+    private String selectedChoiceValue(String value, String placeholder) {
+        return value == null || value.equals(placeholder) ? null : value;
     }
 
     private void runAndRender(String errorTitle, ProfileAction action) {

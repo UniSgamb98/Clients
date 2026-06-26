@@ -284,3 +284,15 @@
     -fx-text-fill: -app-text-muted-2;
     -fx-font-size: 12px;
 }
+
+.client-profile-call-fields {
+    -fx-alignment: center-left;
+    -fx-spacing: 10;
+}
+
+.client-profile-call-choice-box {
+    -fx-background-color: -app-surface-alt;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
