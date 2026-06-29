@@ -123,7 +123,7 @@ def parse_clients() -> list[Client]:
 def parse_notes() -> dict[str, list[Call]]:
     text = NOTES_FILE.read_text(encoding="utf-8")
     # Legacy exports can use either `.xml` or `.xml.txt` in FILE markers.
-    # Accept both forms so note documents are detected and NOTE_CLIENTE inserts are generated.
+    # Accept both forms so note documents are detected and INTERAZIONI inserts are generated.
     pattern = re.compile(r"===== FILE: ([^.]+)\.xml(?:\.txt)? =====\s*(.*?)\s*===== END FILE:", re.S)
     notes: dict[str, list[Call]] = {}
     for note_id, xml_text in pattern.findall(text):
@@ -249,16 +249,14 @@ def main() -> None:
     for c in clients:
         sorted_calls = sorted(c.calls, key=lambda call: (call.data or "9999-99-99", int(call.number) if (call.number or "").isdigit() else 0))
         for idx, call in enumerate(sorted_calls):
-            nid = uid("nota", f"{c.id}:{call.note_id}:{call.number}:{call.data}:{idx}")
-            iid = uid("interazione", nid)
+            iid = uid("interazione", f"{c.id}:{call.note_id}:{call.number}:{call.data}:{idx}")
             op_expr = f"(SELECT ID FROM OPERATORI WHERE USERNAME = {sql(call.operatore)})" if call.operatore else "NULL"
             next_date = c.raw.get("prossima_chiamata") if idx == len(sorted_calls) - 1 else None
-            note_statements.append(f"INSERT INTO NOTE_CLIENTE (ID, CLIENTE_ID, OPERATORE_ID, TESTO) VALUES ('{nid}', '{c.id}', {op_expr}, {sql(note_text(call))});")
-            note_statements.append(f"INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, NOTA_ID, DATA_CONTATTO, PROSSIMO_CONTATTO) VALUES ('{iid}', '{c.id}', {op_expr}, '{nid}', {sql_date(call.data)}, {sql_date(next_date)});")
+            note_statements.append(f"INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, TIPO, DATA_CONTATTO, PROSSIMO_CONTATTO, TESTO) VALUES ('{iid}', '{c.id}', {op_expr}, 'CHIAMATA', {sql_date(call.data)}, {sql_date(next_date)}, {sql(note_text(call))});")
         if not sorted_calls and (c.raw.get("ultima_chiamata") or c.raw.get("prossima_chiamata")):
             iid = uid("interazione-sintetica", c.id)
             op_expr = f"(SELECT ID FROM OPERATORI WHERE USERNAME = {sql(c.raw.get('operatore'))})" if c.raw.get("operatore") else "NULL"
-            note_statements.append(f"INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, DATA_CONTATTO, PROSSIMO_CONTATTO) VALUES ('{iid}', '{c.id}', {op_expr}, {sql_date(c.raw.get('ultima_chiamata'))}, {sql_date(c.raw.get('prossima_chiamata'))});")
+            note_statements.append(f"INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, TIPO, DATA_CONTATTO, PROSSIMO_CONTATTO) VALUES ('{iid}', '{c.id}', {op_expr}, 'CHIAMATA', {sql_date(c.raw.get('ultima_chiamata'))}, {sql_date(c.raw.get('prossima_chiamata'))});")
     counts["note_interazioni"] = write("import_note_interazioni.sql", note_statements)
 
     report = [

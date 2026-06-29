@@ -116,7 +116,7 @@ final class ClienteTimelineSection extends VBox {
             }
             TextArea textArea = new TextArea(interaction.testo());
             configureEditableInteractionTextArea(textArea);
-            TimelineEditField editField = new TimelineEditField(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea);
+            TimelineEditField editField = new TimelineEditField(interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea);
             Button deleteButton = createDeleteInteractionButton(() -> {
                 timelineEditFields.remove(editField);
                 timelineList.getChildren().remove(card);
@@ -136,7 +136,6 @@ final class ClienteTimelineSection extends VBox {
     List<InteractionEditInput> collectInteractions() {
         return timelineEditFields.stream()
                 .map(field -> new InteractionEditInput(
-                        field.notaId(),
                         field.interazioneId(),
                         field.data(),
                         field.type(),
@@ -360,7 +359,6 @@ final class ClienteTimelineSection extends VBox {
     }
 
     private record TimelineEditField(
-            java.util.UUID notaId,
             java.util.UUID interazioneId,
             LocalDate data,
             InteractionType type,

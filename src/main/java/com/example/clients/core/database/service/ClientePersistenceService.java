@@ -6,7 +6,6 @@ import com.example.clients.core.database.model.ContattoCliente;
 import com.example.clients.core.database.model.EmailCliente;
 import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.Interazione;
-import com.example.clients.core.database.model.NotaCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
 import com.example.clients.core.database.repository.ClientePreferitoRepository;
@@ -15,7 +14,6 @@ import com.example.clients.core.database.repository.ContattoClienteRepository;
 import com.example.clients.core.database.repository.EmailClienteRepository;
 import com.example.clients.core.database.repository.IndirizzoClienteRepository;
 import com.example.clients.core.database.repository.InterazioneRepository;
-import com.example.clients.core.database.repository.NotaClienteRepository;
 import com.example.clients.core.database.repository.SitoWebClienteRepository;
 import com.example.clients.core.database.repository.TelefonoClienteRepository;
 import com.example.clients.core.database.repository.derby.DerbyClientePreferitoRepository;
@@ -24,7 +22,6 @@ import com.example.clients.core.database.repository.derby.DerbyContattoClienteRe
 import com.example.clients.core.database.repository.derby.DerbyEmailClienteRepository;
 import com.example.clients.core.database.repository.derby.DerbyIndirizzoClienteRepository;
 import com.example.clients.core.database.repository.derby.DerbyInterazioneRepository;
-import com.example.clients.core.database.repository.derby.DerbyNotaClienteRepository;
 import com.example.clients.core.database.repository.derby.DerbySitoWebClienteRepository;
 import com.example.clients.core.database.repository.derby.DerbyTelefonoClienteRepository;
 import com.example.clients.core.database.model.ClienteAggregate;
@@ -48,7 +45,6 @@ public class ClientePersistenceService {
     private final ContattoClienteRepository contattoRepository;
     private final TelefonoClienteRepository telefonoRepository;
     private final EmailClienteRepository emailRepository;
-    private final NotaClienteRepository notaRepository;
     private final InterazioneRepository interazioneRepository;
     private final ClientePreferitoRepository clientePreferitoRepository;
 
@@ -61,7 +57,6 @@ public class ClientePersistenceService {
                 new DerbyContattoClienteRepository(database),
                 new DerbyTelefonoClienteRepository(database),
                 new DerbyEmailClienteRepository(database),
-                new DerbyNotaClienteRepository(database),
                 new DerbyInterazioneRepository(database),
                 new DerbyClientePreferitoRepository(database)
         );
@@ -75,7 +70,6 @@ public class ClientePersistenceService {
             ContattoClienteRepository contattoRepository,
             TelefonoClienteRepository telefonoRepository,
             EmailClienteRepository emailRepository,
-            NotaClienteRepository notaRepository,
             InterazioneRepository interazioneRepository,
             ClientePreferitoRepository clientePreferitoRepository
     ) {
@@ -86,7 +80,6 @@ public class ClientePersistenceService {
         this.contattoRepository = contattoRepository;
         this.telefonoRepository = telefonoRepository;
         this.emailRepository = emailRepository;
-        this.notaRepository = notaRepository;
         this.interazioneRepository = interazioneRepository;
         this.clientePreferitoRepository = clientePreferitoRepository;
     }
@@ -125,7 +118,6 @@ public class ClientePersistenceService {
             List<ContattoCliente> contatti,
             List<TelefonoCliente> telefoni,
             List<EmailCliente> email,
-            List<NotaCliente> note,
             List<Interazione> interazioni
     ) {
         Connection connection = database.getConnection();
@@ -140,7 +132,6 @@ public class ClientePersistenceService {
             syncContatti(cliente.id(), contatti);
             syncTelefoni(cliente.id(), telefoni);
             syncEmail(cliente.id(), email);
-            syncNote(cliente.id(), note);
             syncInterazioni(cliente.id(), interazioni);
 
             connection.commit();
@@ -172,9 +163,6 @@ public class ClientePersistenceService {
         syncById(indirizzoRepository.findByClienteId(clienteId), desired, IndirizzoCliente::id, indirizzoRepository::insert, indirizzoRepository::update, indirizzoRepository::deleteById);
     }
 
-    private void syncNote(UUID clienteId, List<NotaCliente> desired) {
-        syncById(notaRepository.findByClienteId(clienteId), desired, NotaCliente::id, notaRepository::insert, notaRepository::update, notaRepository::deleteById);
-    }
 
     private void syncInterazioni(UUID clienteId, List<Interazione> desired) {
         syncById(interazioneRepository.findByClienteId(clienteId), desired, Interazione::id, interazioneRepository::insert, interazioneRepository::update, interazioneRepository::deleteById);
@@ -210,29 +198,8 @@ public class ClientePersistenceService {
         }
     }
 
-    public void addNota(NotaCliente nota) {
-        notaRepository.insert(nota);
-    }
-
-    public void addChiamata(NotaCliente nota, Interazione interazione) {
-        Connection connection = database.getConnection();
-        boolean previousAutoCommit = true;
-        try {
-            previousAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
-
-            if (nota != null) {
-                notaRepository.insert(nota);
-            }
-            interazioneRepository.insert(interazione);
-
-            connection.commit();
-        } catch (RuntimeException | SQLException e) {
-            rollback(connection);
-            throw new RuntimeException("Errore salvataggio chiamata cliente.", e);
-        } finally {
-            restoreAutoCommit(connection, previousAutoCommit);
-        }
+    public void addInterazione(Interazione interazione) {
+        interazioneRepository.insert(interazione);
     }
 
     public boolean togglePreferito(UUID operatoreId, UUID clienteId) {
