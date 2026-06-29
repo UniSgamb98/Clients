@@ -1,0 +1,65 @@
+/* ==== Attività ==== */
+.activities-content {
+    -fx-background-color: -app-bg;
+}
+
+.activities-title {
+    -fx-text-fill: -app-text;
+    -fx-font-size: 28px;
+    -fx-font-weight: 800;
+}
+
+.activities-subtitle,
+.activities-rules-text {
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 12px;
+}
+
+.activities-card,
+.activities-rules-placeholder {
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 14;
+}
+
+.activities-section-title,
+.activities-selected-title,
+.activities-list-title,
+.activities-rules-title {
+    -fx-text-fill: -app-text;
+    -fx-font-weight: 800;
+}
+
+.activities-selected-title {
+    -fx-font-size: 13px;
+}
+
+.activities-list,
+.activities-client-list {
+    -fx-background-color: -app-surface-alt;
+    -fx-control-inner-background: -app-surface-alt;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-min-height: 150;
+}
+
+.activities-client-list {
+    -fx-min-height: 260;
+}
+
+.activities-search-field {
+    -fx-background-color: -app-surface-alt;
+    -fx-text-fill: -app-text;
+    -fx-prompt-text-fill: -app-text-placeholder-2;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.activities-dual-list {
+    -fx-alignment: center;
+}
