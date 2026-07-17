@@ -169,7 +169,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     public void showImpostazioni() {
         ImpostazioniView view = new ImpostazioniView();
         configureSidebar(view.getSidebar());
-        new ImpostazioniController(view, new ImpostazioniService());
+        new ImpostazioniController(view, new ImpostazioniService(app.database));
 
         showView(
                 view,
