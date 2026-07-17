@@ -83,13 +83,13 @@ public class ClientiResultsTable extends HBox {
         return row;
     }
 
-    public void openClientDetails(ClientePreview preview, HBox row) {
+    public void openClientDetails(ClientePreview preview, HBox row, Runnable onOpenProfile) {
         if (selectedClientRow != null) {
             selectedClientRow.getStyleClass().remove("clients-data-row-selected");
         }
         selectedClientRow = row;
         selectedClientRow.getStyleClass().add("clients-data-row-selected");
-        detailPanel.showCliente(preview);
+        detailPanel.showCliente(preview, onOpenProfile);
         detailPanel.setManaged(true);
         detailPanel.setVisible(true);
     }

@@ -2,6 +2,7 @@ package com.example.clients.feature.clienti.clienti.view;
 
 import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -10,7 +11,7 @@ import javafx.scene.layout.VBox;
 
 public class ClientePreviewDetailPanel extends VBox {
 
-    private final Label companyNameLabel;
+    private final Button companyNameButton;
     private final Label contactLabel;
     private final Label addressLabel;
     private final Label operatorLabel;
@@ -22,17 +23,20 @@ public class ClientePreviewDetailPanel extends VBox {
         setPrefWidth(300);
         setMinWidth(280);
 
-        companyNameLabel = new Label();
-        companyNameLabel.getStyleClass().add("clients-detail-company-name");
-        companyNameLabel.setWrapText(true);
+        companyNameButton = new Button();
+        companyNameButton.getStyleClass().add("clients-detail-company-button");
+        companyNameButton.setWrapText(true);
+        companyNameButton.setMaxWidth(Double.MAX_VALUE);
 
         Button closeButton = new Button("×");
         closeButton.getStyleClass().add("clients-detail-close-button");
         closeButton.setOnAction(event -> onClose.run());
 
-        HBox header = new HBox(12, companyNameLabel, closeButton);
+        HBox header = new HBox(12, companyNameButton, closeButton);
         header.getStyleClass().add("clients-detail-header");
-        HBox.setHgrow(companyNameLabel, Priority.ALWAYS);
+        header.setAlignment(Pos.TOP_LEFT);
+        header.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(companyNameButton, Priority.ALWAYS);
 
         contactLabel = createDetailValue("Referente");
         addressLabel = createDetailValue("Indirizzo");
@@ -43,8 +47,9 @@ public class ClientePreviewDetailPanel extends VBox {
                 createDetailSection("Assegnazione", operatorLabel));
     }
 
-    public void showCliente(ClientePreview preview) {
-        companyNameLabel.setText(valueOrDash(preview.name()));
+    public void showCliente(ClientePreview preview, Runnable onOpenProfile) {
+        companyNameButton.setText("↗  " + valueOrDash(preview.name()));
+        companyNameButton.setOnAction(event -> onOpenProfile.run());
         contactLabel.setText(valueOrDash(preview.contact()));
         addressLabel.setText(valueOrDash(preview.address()));
         operatorLabel.setText(valueOrDash(preview.operator()));
