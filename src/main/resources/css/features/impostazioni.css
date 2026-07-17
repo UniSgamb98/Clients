@@ -30,6 +30,7 @@
 }
 
 .settings-forno-row { -fx-padding: 8; -fx-background-color: -app-surface-alt; -fx-background-radius: 8; }
+.settings-section .check-box { -fx-text-fill: -app-text; }
 .settings-add-button, .settings-remove-button { -fx-background-color: -app-control-alt-bg; -fx-text-fill: -app-text; -fx-font-weight: 700; -fx-cursor: hand; }
 .settings-remove-button { -fx-background-color: -app-danger-bg; }
 .settings-error { -fx-text-fill: -app-error; -fx-font-size: 12px; }
