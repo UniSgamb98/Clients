@@ -40,11 +40,13 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         long totalRows = countAll(cleanSearchText, operatoreId, cleanTipoCliente, cleanStatoTrattativa);
         String sql = "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
                 + "COALESCE(R.REFERENTE, '') AS REFERENTE, "
+                + "COALESCE(A.INDIRIZZO, '') AS INDIRIZZO, "
                 + "CASE WHEN TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) = '' "
                 + "THEN COALESCE(O.USERNAME, '') ELSE TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) END AS OPERATORE, "
                 + "I.ULTIMO_CONTATTO "
                 + "FROM CLIENTI C "
                 + previewAggregateJoin("CONTATTI_CLIENTE", "R", "REFERENTE")
+                + previewAddressJoin()
                 + "LEFT JOIN OPERATORI O ON O.ID = C.OPERATORE_ID "
                 + "LEFT JOIN (SELECT CLIENTE_ID, MAX(DATA_CONTATTO) AS ULTIMO_CONTATTO FROM INTERAZIONI GROUP BY CLIENTE_ID) I ON I.CLIENTE_ID = C.ID "
                 + filterWhereClause(hasSearch, operatoreId != null, !cleanTipoCliente.isBlank(), !cleanStatoTrattativa.isBlank())
@@ -63,6 +65,7 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                             valueOrEmpty(resultSet.getString("RAGIONE_SOCIALE")),
                             valueOrEmpty(resultSet.getString("TIPO_CLIENTE")),
                             valueOrEmpty(resultSet.getString("REFERENTE")),
+                            valueOrEmpty(resultSet.getString("INDIRIZZO")),
                             valueOrEmpty(resultSet.getString("OPERATORE")),
                             valueOrEmpty(resultSet.getString("STATO_TRATTATIVA")),
                             resultSet.getDate("ULTIMO_CONTATTO") == null ? null : resultSet.getDate("ULTIMO_CONTATTO").toLocalDate()
@@ -81,6 +84,14 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                 + "FROM " + tableName + " "
                 + "GROUP BY CLIENTE_ID"
                 + ") " + alias + " ON " + alias + ".CLIENTE_ID = C.ID ";
+    }
+
+    private String previewAddressJoin() {
+        return "LEFT JOIN ("
+                + "SELECT CLIENTE_ID, COALESCE(MIN(CASE WHEN PRINCIPALE = 1 THEN INDIRIZZO END), MIN(INDIRIZZO)) AS INDIRIZZO "
+                + "FROM INDIRIZZI_CLIENTE "
+                + "GROUP BY CLIENTE_ID"
+                + ") A ON A.CLIENTE_ID = C.ID ";
     }
 
     private long countAll(String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa) {

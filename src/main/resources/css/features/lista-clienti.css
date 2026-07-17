@@ -38,6 +38,12 @@
     -fx-background-color: -app-row-hover;
 }
 
+.clients-data-row-selected {
+    -fx-background-color: derive(-app-primary-dark, -18%);
+    -fx-border-color: -app-primary;
+    -fx-border-width: 1 0 1 3;
+}
+
 .clients-table-scroll {
     -fx-background-color: transparent;
     -fx-background: transparent;
@@ -117,4 +123,53 @@
 
 .clients-actions-header {
     -fx-alignment: center;
+}
+
+/* ==== Pannello di anteprima cliente ==== */
+.clients-detail-panel {
+    -fx-background-color: -app-surface;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.clients-detail-header {
+    -fx-alignment: top-left;
+}
+
+.clients-detail-company-name {
+    -fx-text-fill: -app-text;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+}
+
+.clients-detail-close-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 20px;
+    -fx-font-weight: 400;
+    -fx-padding: 0 5;
+    -fx-cursor: hand;
+}
+
+.clients-detail-close-button:hover {
+    -fx-background-color: -app-control-alt-bg;
+    -fx-text-fill: -app-text;
+}
+
+.clients-detail-section {
+    -fx-padding: 12 0 0 0;
+    -fx-border-color: -app-row-border;
+    -fx-border-width: 1 0 0 0;
+}
+
+.clients-detail-section-title {
+    -fx-text-fill: -app-text-subtle;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.clients-detail-value {
+    -fx-text-fill: -app-text-soft;
+    -fx-font-size: 13px;
 }
