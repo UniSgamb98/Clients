@@ -58,7 +58,6 @@
 }
 
 .clients-pagination-bar {
-    -fx-alignment: center-left;
     -fx-padding: 4 2 0 2;
 }
 
@@ -73,7 +72,8 @@
 }
 
 .clients-page-navigation,
-.clients-page-number-buttons {
+.clients-page-number-buttons,
+.clients-pagination-side {
     -fx-alignment: center;
 }
 
