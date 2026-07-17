@@ -59,6 +59,8 @@ public class ClientiView extends BorderPane {
     private final HBox pageNumberButtons;
     private final Label resultsRangeLabel;
     private final ClientePreviewDetailPanel detailPanel;
+    private final ClientiResultsTable resultsTable;
+    private final ClientiPaginationBar paginationBar;
     private HBox selectedClientRow;
     private IntConsumer pageSelectionHandler = page -> { };
 
@@ -118,6 +120,8 @@ public class ClientiView extends BorderPane {
         rowsPerPageChoiceBox.getStyleClass().add("clients-rows-per-page-choice");
         resultsRangeLabel = new Label("0 risultati");
         resultsRangeLabel.getStyleClass().add("clients-pagination-label");
+        resultsTable = new ClientiResultsTable();
+        paginationBar = new ClientiPaginationBar();
         setPaginationDisabled(true);
 
         setLeft(sidebar);
@@ -158,10 +162,11 @@ public class ClientiView extends BorderPane {
         );
 
         initializeTable();
+        VBox.setVgrow(resultsTable, javafx.scene.layout.Priority.ALWAYS);
         VBox.setVgrow(resultsArea, javafx.scene.layout.Priority.ALWAYS);
         VBox.setVgrow(tableScrollPane, javafx.scene.layout.Priority.ALWAYS);
 
-        content.getChildren().addAll(titleBar, filters, createFilterActionsBar(), resultsArea, createPaginationBar());
+        content.getChildren().addAll(titleBar, filters, createFilterActionsBar(), resultsTable, paginationBar);
         return content;
     }
 
@@ -256,15 +261,15 @@ public class ClientiView extends BorderPane {
     }
 
     public void showLoading() {
-        showMessage("Caricamento clienti...");
+        resultsTable.showLoading();
     }
 
     public void showEmpty() {
-        showMessage("Nessun cliente trovato.");
+        resultsTable.showEmpty();
     }
 
     public void showError(String message) {
-        showMessage(message == null || message.isBlank() ? "Caricamento clienti non riuscito." : message);
+        resultsTable.showError(message);
     }
 
     private void showMessage(String message) {
@@ -275,30 +280,11 @@ public class ClientiView extends BorderPane {
     }
 
     public void clearClientRows() {
-        closeClientDetails();
-        tableRows.getChildren().clear();
-        tableRows.getChildren().add(emptyRow);
-        tableScrollPane.setVvalue(0);
+        resultsTable.clearRows();
     }
 
     public void renderPagination(int page, int totalPages, boolean hasPreviousPage, boolean hasNextPage, long totalRows, int pageSize) {
-        previousPageButton.setDisable(!hasPreviousPage);
-        nextPageButton.setDisable(!hasNextPage);
-        pageNumberButtons.getChildren().clear();
-        int firstPage = Math.max(0, Math.min(page - 2, totalPages - 5));
-        for (int pageIndex = firstPage; pageIndex < Math.min(firstPage + 5, totalPages); pageIndex++) {
-            Button pageButton = new Button(String.valueOf(pageIndex + 1));
-            pageButton.getStyleClass().add("clients-page-number-button");
-            if (pageIndex == page) {
-                pageButton.getStyleClass().add("clients-page-number-button-active");
-            }
-            int selectedPage = pageIndex;
-            pageButton.setOnAction(event -> pageSelectionHandler.accept(selectedPage));
-            pageNumberButtons.getChildren().add(pageButton);
-        }
-        long firstResult = totalRows == 0 ? 0 : (long) page * pageSize + 1;
-        long lastResult = Math.min((long) (page + 1) * pageSize, totalRows);
-        resultsRangeLabel.setText(firstResult + "–" + lastResult + " di " + totalRows + " risultati");
+        paginationBar.render(page, totalPages, hasPreviousPage, hasNextPage, totalRows, pageSize);
     }
 
     public void setResultsCount(long totalResults) {
@@ -313,36 +299,19 @@ public class ClientiView extends BorderPane {
     }
 
     public void setPaginationDisabled(boolean disabled) {
-        previousPageButton.setDisable(disabled);
-        nextPageButton.setDisable(disabled);
+        paginationBar.setNavigationDisabled(disabled);
     }
 
     public HBox addClientRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {
-        tableRows.getChildren().remove(emptyRow);
-        HBox row = createTableRow(name, type, contact, operator, status, lastContact, onActionsClick);
-        row.getStyleClass().add("clients-data-row");
-        tableRows.getChildren().add(row);
-        return row;
+        return resultsTable.addClientRow(name, type, contact, operator, status, lastContact, onActionsClick);
     }
 
     public void openClientDetails(ClientePreview preview, HBox row) {
-        if (selectedClientRow != null) {
-            selectedClientRow.getStyleClass().remove("clients-data-row-selected");
-        }
-        selectedClientRow = row;
-        selectedClientRow.getStyleClass().add("clients-data-row-selected");
-        detailPanel.showCliente(preview);
-        detailPanel.setManaged(true);
-        detailPanel.setVisible(true);
+        resultsTable.openClientDetails(preview, row);
     }
 
     public void closeClientDetails() {
-        if (selectedClientRow != null) {
-            selectedClientRow.getStyleClass().remove("clients-data-row-selected");
-            selectedClientRow = null;
-        }
-        detailPanel.setManaged(false);
-        detailPanel.setVisible(false);
+        resultsTable.closeClientDetails();
     }
 
     private HBox createTableRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {
@@ -398,42 +367,6 @@ public class ClientiView extends BorderPane {
     }
 
 
-    public AppSidebar getSidebar() {
-        return sidebar;
-    }
-
-    public TextField getSearchField() {
-        return searchField;
-    }
-
-    public Button getNewClientButton() {
-        return newClientButton;
-    }
-
-    public ChoiceBox<OperatoreFilter> getOperatorFilterChoiceBox() {
-        return operatorFilterChoiceBox;
-    }
-
-    public ChoiceBox<TextFilter> getTypeFilterChoiceBox() {
-        return typeFilterChoiceBox;
-    }
-
-    public ChoiceBox<TextFilter> getStatusFilterChoiceBox() {
-        return statusFilterChoiceBox;
-    }
-
-    public Button getOtherFiltersButton() {
-        return otherFiltersButton;
-    }
-
-    public Button getClearFiltersButton() {
-        return clearFiltersButton;
-    }
-
-    public Button getSaveSearchButton() {
-        return saveSearchButton;
-    }
-
     public void setTypeFilters(List<TextFilter> types) {
         setTextFilters(typeFilterChoiceBox, TextFilter.empty("Tutti"), types);
     }
@@ -470,67 +403,20 @@ public class ClientiView extends BorderPane {
         }
     }
 
-    public Button getNameHeaderButton() {
-        return nameHeaderButton;
-    }
-
-    public Button getTypeHeaderButton() {
-        return typeHeaderButton;
-    }
-
-    public Button getContactHeaderButton() {
-        return contactHeaderButton;
-    }
-
-    public Button getOperatorHeaderButton() {
-        return operatorHeaderButton;
-    }
-
-    public Button getStatusHeaderButton() {
-        return statusHeaderButton;
-    }
-
-    public Button getLastContactHeaderButton() {
-        return lastContactHeaderButton;
-    }
-
-    public Button getPreviousPageButton() {
-        return previousPageButton;
-    }
-
-    public Button getNextPageButton() {
-        return nextPageButton;
-    }
-
-    public ChoiceBox<Integer> getRowsPerPageChoiceBox() {
-        return rowsPerPageChoiceBox;
-    }
-
-    public void setPageSelectionHandler(IntConsumer pageSelectionHandler) {
-        this.pageSelectionHandler = pageSelectionHandler == null ? page -> { } : pageSelectionHandler;
-    }
-
     public void onNewClient(Runnable action) {
         newClientButton.setOnAction(event -> action.run());
     }
 
     public void onSortRequested(Consumer<SortColumn> action) {
-        nameHeaderButton.setOnAction(event -> action.accept(SortColumn.NAME));
-        typeHeaderButton.setOnAction(event -> action.accept(SortColumn.TYPE));
-        contactHeaderButton.setOnAction(event -> action.accept(SortColumn.CONTACT));
-        operatorHeaderButton.setOnAction(event -> action.accept(SortColumn.OPERATOR));
-        statusHeaderButton.setOnAction(event -> action.accept(SortColumn.STATUS));
-        lastContactHeaderButton.setOnAction(event -> action.accept(SortColumn.LAST_CONTACT));
+        resultsTable.onSortRequested(action);
     }
 
     public void onPaginationRequested(Runnable previousAction, Runnable nextAction, IntConsumer pageAction) {
-        previousPageButton.setOnAction(event -> previousAction.run());
-        nextPageButton.setOnAction(event -> nextAction.run());
-        setPageSelectionHandler(pageAction);
+        paginationBar.onPaginationRequested(previousAction, nextAction, pageAction);
     }
 
     public void onPageSizeChanged(Consumer<Integer> action) {
-        rowsPerPageChoiceBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
+        paginationBar.onPageSizeChanged(action);
     }
 
     public void onSearchChanged(Consumer<String> action) {
