@@ -28,6 +28,9 @@ import com.example.clients.feature.dashboard.controller.DashboardController;
 import com.example.clients.feature.dashboard.navigator.DashboardNav;
 import com.example.clients.feature.dashboard.service.DashboardService;
 import com.example.clients.feature.dashboard.view.DashboardView;
+import com.example.clients.feature.impostazioni.controller.ImpostazioniController;
+import com.example.clients.feature.impostazioni.service.ImpostazioniService;
+import com.example.clients.feature.impostazioni.view.ImpostazioniView;
 
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -163,6 +166,18 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         stage.setTitle("Clients - Calendario");
     }
 
+    public void showImpostazioni() {
+        ImpostazioniView view = new ImpostazioniView();
+        configureSidebar(view.getSidebar());
+        new ImpostazioniController(view, new ImpostazioniService());
+
+        showView(
+                view,
+                "/css/features/impostazioni.css"
+        );
+        stage.setTitle("Clients - Impostazioni");
+    }
+
     // La Scene viene creata solo al primo caricamento: durante la navigazione cambia solo il root.
     private void showView(Parent root, String... extraCss) {
         if (scene == null) {
@@ -197,6 +212,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         sidebar.getClientsButton().setOnAction(e -> showClienti());
         sidebar.getActivitiesButton().setOnAction(e -> showAttivita());
         sidebar.getCalendarButton().setOnAction(e -> showCalendario());
+        sidebar.getSettingsButton().setOnAction(e -> showImpostazioni());
     }
 
     public void shutdown() {

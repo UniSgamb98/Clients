@@ -1,0 +1,30 @@
+/* ==== Impostazioni ==== */
+.settings-content {
+    -fx-background-color: -app-bg;
+}
+
+.settings-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -app-text;
+}
+
+.settings-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: -app-text-subtle;
+}
+
+.settings-section {
+    -fx-min-height: 110;
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-padding: 16;
+}
+
+.settings-section-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -app-text;
+}
