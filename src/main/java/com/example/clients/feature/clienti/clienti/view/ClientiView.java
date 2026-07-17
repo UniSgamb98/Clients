@@ -204,6 +204,7 @@ public class ClientiView extends BorderPane {
     private StackPane createPaginationBar() {
         StackPane pagination = new StackPane();
         pagination.getStyleClass().add("clients-pagination-bar");
+        pagination.setMaxWidth(Double.MAX_VALUE);
         Label rowsPerPageLabel = new Label("Righe per pagina");
         rowsPerPageLabel.getStyleClass().add("clients-pagination-label");
         HBox rowsPerPage = new HBox(10, rowsPerPageLabel, rowsPerPageChoiceBox);

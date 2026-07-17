@@ -78,9 +78,12 @@
 }
 
 .clients-page-navigation,
-.clients-page-number-buttons,
-.clients-pagination-side {
+.clients-page-number-buttons {
     -fx-alignment: center;
+}
+
+.clients-pagination-side {
+    -fx-alignment: center-left;
 }
 
 .clients-page-navigation .clients-filter-button,
