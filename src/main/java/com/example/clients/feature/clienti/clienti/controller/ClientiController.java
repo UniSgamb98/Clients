@@ -20,7 +20,7 @@ import java.util.List;
 
 public class ClientiController {
 
-    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int ALL_RESULTS_PAGE_SIZE = Integer.MAX_VALUE;
     private static final Duration SEARCH_DEBOUNCE = Duration.millis(300);
 
     private final ClientiView view;
@@ -28,7 +28,7 @@ public class ClientiController {
     private final ClientiService service;
     private final ClientiFeedback feedback;
     private final PauseTransition searchDebounce = new PauseTransition(SEARCH_DEBOUNCE);
-    private ClientiSearchState searchState = ClientiSearchState.initial(DEFAULT_PAGE_SIZE);
+    private ClientiSearchState searchState = ClientiSearchState.initial(ALL_RESULTS_PAGE_SIZE);
     private long loadVersion;
     private boolean clearingFilters;
 
@@ -43,8 +43,6 @@ public class ClientiController {
     private void configureActions() {
         view.onNewClient(clientiNav::showNuovoCliente);
         view.onSortRequested(this::sortClienti);
-        view.onPaginationRequested(() -> loadPage(searchState.page() - 1), () -> loadPage(searchState.page() + 1), this::loadPage);
-        view.onPageSizeChanged(this::changePageSize);
         view.onSearchChanged(this::searchClienti);
         view.onOperatoreFilterChanged(this::filterByOperatore);
         view.onTipologiaFilterChanged(this::filterByTipoCliente);
@@ -111,7 +109,7 @@ public class ClientiController {
         clearingFilters = true;
         searchDebounce.stop();
         view.clearFilters();
-        searchState = ClientiSearchState.initial(searchState.pageSize());
+        searchState = ClientiSearchState.initial(ALL_RESULTS_PAGE_SIZE);
         clearingFilters = false;
         loadPage(0);
     }
@@ -125,20 +123,11 @@ public class ClientiController {
         loadPage(0);
     }
 
-    private void changePageSize(Integer selectedPageSize) {
-        int newPageSize = selectedPageSize == null ? DEFAULT_PAGE_SIZE : selectedPageSize;
-        if (newPageSize != searchState.pageSize()) {
-            searchState = searchState.withPageSize(newPageSize);
-            loadPage(0);
-        }
-    }
-
     private void loadPage(int page) {
         searchState = searchState.withPage(page);
         ClientiSearchRequest request = searchState.toRequest();
         long version = ++loadVersion;
         view.showLoading();
-        view.setPaginationDisabled(true);
 
         AsyncLoader.run(
                 () -> service.getClientiPreview(request),
@@ -150,7 +139,6 @@ public class ClientiController {
                 error -> {
                     if (version == loadVersion) {
                         view.showError("Caricamento clienti non riuscito.");
-                        view.setPaginationDisabled(true);
                     }
                 }
         );
@@ -158,7 +146,6 @@ public class ClientiController {
 
     private void renderClienti(ClientiPage page) {
         searchState = searchState.withPage(page.page());
-        view.renderPagination(page.page(), page.totalPages(), page.hasPreviousPage(), page.hasNextPage(), page.totalRows(), page.pageSize());
         view.setResultsCount(page.totalRows());
 
         if (page.rows().isEmpty()) {

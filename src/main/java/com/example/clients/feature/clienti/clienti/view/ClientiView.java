@@ -6,7 +6,6 @@ import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.SortColumn;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
@@ -15,11 +14,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
-import java.util.function.IntConsumer;
 import java.util.function.Consumer;
 
 public class ClientiView extends BorderPane {
@@ -53,16 +50,9 @@ public class ClientiView extends BorderPane {
     private final VBox tableRows;
     private final HBox emptyRow;
     private final ScrollPane tableScrollPane;
-    private final Button previousPageButton;
-    private final Button nextPageButton;
-    private final ChoiceBox<Integer> rowsPerPageChoiceBox;
-    private final HBox pageNumberButtons;
-    private final Label resultsRangeLabel;
     private final ClientePreviewDetailPanel detailPanel;
     private final ClientiResultsTable resultsTable;
-    private final ClientiPaginationBar paginationBar;
     private HBox selectedClientRow;
-    private IntConsumer pageSelectionHandler = page -> { };
 
     public ClientiView() {
         sidebar = new AppSidebar();
@@ -110,19 +100,7 @@ public class ClientiView extends BorderPane {
         resultsArea.getStyleClass().add("clients-results-area");
         HBox.setHgrow(table, javafx.scene.layout.Priority.ALWAYS);
 
-        previousPageButton = createFilterButton("‹");
-        nextPageButton = createFilterButton("›");
-        pageNumberButtons = new HBox(6);
-        pageNumberButtons.getStyleClass().add("clients-page-number-buttons");
-        rowsPerPageChoiceBox = new ChoiceBox<>();
-        rowsPerPageChoiceBox.getItems().addAll(10, 25, 50, 100);
-        rowsPerPageChoiceBox.getSelectionModel().select(Integer.valueOf(10));
-        rowsPerPageChoiceBox.getStyleClass().add("clients-rows-per-page-choice");
-        resultsRangeLabel = new Label("0 risultati");
-        resultsRangeLabel.getStyleClass().add("clients-pagination-label");
         resultsTable = new ClientiResultsTable();
-        paginationBar = new ClientiPaginationBar();
-        setPaginationDisabled(true);
 
         setLeft(sidebar);
         setCenter(createContent());
@@ -166,7 +144,7 @@ public class ClientiView extends BorderPane {
         VBox.setVgrow(resultsArea, javafx.scene.layout.Priority.ALWAYS);
         VBox.setVgrow(tableScrollPane, javafx.scene.layout.Priority.ALWAYS);
 
-        content.getChildren().addAll(titleBar, filters, createFilterActionsBar(), resultsTable, paginationBar);
+        content.getChildren().addAll(titleBar, filters, createFilterActionsBar(), resultsTable);
         return content;
     }
 
@@ -206,23 +184,6 @@ public class ClientiView extends BorderPane {
                 createActionsHeader()
         );
         return row;
-    }
-
-    private StackPane createPaginationBar() {
-        StackPane pagination = new StackPane();
-        pagination.getStyleClass().add("clients-pagination-bar");
-        pagination.setMaxWidth(Double.MAX_VALUE);
-        Label rowsPerPageLabel = new Label("Righe per pagina");
-        rowsPerPageLabel.getStyleClass().add("clients-pagination-label");
-        HBox rowsPerPage = new HBox(10, rowsPerPageLabel, rowsPerPageChoiceBox);
-        rowsPerPage.getStyleClass().add("clients-pagination-side");
-        HBox navigation = new HBox(6, previousPageButton, pageNumberButtons, nextPageButton);
-        navigation.getStyleClass().add("clients-page-navigation");
-        StackPane.setAlignment(rowsPerPage, Pos.CENTER_LEFT);
-        StackPane.setAlignment(navigation, Pos.CENTER);
-        StackPane.setAlignment(resultsRangeLabel, Pos.CENTER_RIGHT);
-        pagination.getChildren().addAll(rowsPerPage, navigation, resultsRangeLabel);
-        return pagination;
     }
 
     private Label createActionsHeader() {
@@ -283,10 +244,6 @@ public class ClientiView extends BorderPane {
         resultsTable.clearRows();
     }
 
-    public void renderPagination(int page, int totalPages, boolean hasPreviousPage, boolean hasNextPage, long totalRows, int pageSize) {
-        paginationBar.render(page, totalPages, hasPreviousPage, hasNextPage, totalRows, pageSize);
-    }
-
     public void setResultsCount(long totalResults) {
         resultsCountLabel.setText(totalResults + (totalResults == 1 ? " risultato trovato" : " risultati trovati"));
     }
@@ -296,10 +253,6 @@ public class ClientiView extends BorderPane {
         operatorFilterChoiceBox.getSelectionModel().selectFirst();
         typeFilterChoiceBox.getSelectionModel().selectFirst();
         statusFilterChoiceBox.getSelectionModel().selectFirst();
-    }
-
-    public void setPaginationDisabled(boolean disabled) {
-        paginationBar.setNavigationDisabled(disabled);
     }
 
     public HBox addClientRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {
@@ -413,14 +366,6 @@ public class ClientiView extends BorderPane {
 
     public void onSortRequested(Consumer<SortColumn> action) {
         resultsTable.onSortRequested(action);
-    }
-
-    public void onPaginationRequested(Runnable previousAction, Runnable nextAction, IntConsumer pageAction) {
-        paginationBar.onPaginationRequested(previousAction, nextAction, pageAction);
-    }
-
-    public void onPageSizeChanged(Consumer<Integer> action) {
-        paginationBar.onPageSizeChanged(action);
     }
 
     public void onSearchChanged(Consumer<String> action) {
