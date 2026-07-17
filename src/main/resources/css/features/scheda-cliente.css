@@ -41,6 +41,42 @@
     -fx-padding: 16;
 }
 
+.client-profile-resources-panel {
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+}
+
+.client-profile-resources-title {
+    -fx-text-fill: -app-text;
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+}
+
+.client-profile-resources-flow {
+    -fx-pref-wrap-length: 900;
+}
+
+.client-profile-resource-card {
+    -fx-min-width: 150;
+    -fx-pref-width: 170;
+    -fx-min-height: 82;
+    -fx-background-color: -app-card-bg;
+    -fx-background-radius: 8;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-padding: 12;
+}
+
+.client-profile-resource-card-title {
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+}
+
 .client-profile-header-actions,
 .client-profile-summary-row {
     -fx-alignment: center-left;
