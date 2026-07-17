@@ -98,6 +98,7 @@ public class ClientiService {
                         record.ragioneSociale(),
                         record.tipoCliente(),
                         record.referente(),
+                        record.indirizzo(),
                         record.operatore(),
                         record.statoTrattativa(),
                         record.ultimoContatto() == null ? "—" : DATE_FORMATTER.format(record.ultimoContatto())

@@ -1,6 +1,7 @@
 package com.example.clients.feature.clienti.clienti.view;
 
 import com.example.clients.core.ui.AppSidebar;
+import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import javafx.geometry.Insets;
@@ -46,6 +47,7 @@ public class ClientiView extends BorderPane {
     private final Button statusHeaderButton;
     private final Button lastContactHeaderButton;
     private final VBox table;
+    private final HBox resultsArea;
     private final VBox tableRows;
     private final HBox emptyRow;
     private final ScrollPane tableScrollPane;
@@ -54,6 +56,8 @@ public class ClientiView extends BorderPane {
     private final ChoiceBox<Integer> rowsPerPageChoiceBox;
     private final HBox pageNumberButtons;
     private final Label resultsRangeLabel;
+    private final ClientePreviewDetailPanel detailPanel;
+    private HBox selectedClientRow;
     private IntConsumer pageSelectionHandler = page -> { };
 
     public ClientiView() {
@@ -81,7 +85,7 @@ public class ClientiView extends BorderPane {
         resultsCountLabel = new Label("0 risultati trovati");
         resultsCountLabel.getStyleClass().add("clients-results-count");
 
-        nameHeaderButton = createHeaderButton("Nome", NAME_COLUMN_WIDTH);
+        nameHeaderButton = createHeaderButton("Ragione sociale", NAME_COLUMN_WIDTH);
         typeHeaderButton = createHeaderButton("Tipo", TYPE_COLUMN_WIDTH);
         contactHeaderButton = createHeaderButton("Referente", CONTACT_COLUMN_WIDTH);
         operatorHeaderButton = createHeaderButton("Operatore", OPERATOR_COLUMN_WIDTH);
@@ -95,6 +99,12 @@ public class ClientiView extends BorderPane {
         tableScrollPane = new ScrollPane(tableRows);
         tableScrollPane.setFitToWidth(true);
         tableScrollPane.getStyleClass().add("clients-table-scroll");
+        detailPanel = new ClientePreviewDetailPanel(this::closeClientDetails);
+        detailPanel.setManaged(false);
+        detailPanel.setVisible(false);
+        resultsArea = new HBox(16, table, detailPanel);
+        resultsArea.getStyleClass().add("clients-results-area");
+        HBox.setHgrow(table, javafx.scene.layout.Priority.ALWAYS);
 
         previousPageButton = createFilterButton("‹");
         nextPageButton = createFilterButton("›");
@@ -146,10 +156,10 @@ public class ClientiView extends BorderPane {
         );
 
         initializeTable();
-        VBox.setVgrow(table, javafx.scene.layout.Priority.ALWAYS);
+        VBox.setVgrow(resultsArea, javafx.scene.layout.Priority.ALWAYS);
         VBox.setVgrow(tableScrollPane, javafx.scene.layout.Priority.ALWAYS);
 
-        content.getChildren().addAll(titleBar, filters, createFilterActionsBar(), table, createPaginationBar());
+        content.getChildren().addAll(titleBar, filters, createFilterActionsBar(), resultsArea, createPaginationBar());
         return content;
     }
 
@@ -255,12 +265,14 @@ public class ClientiView extends BorderPane {
     }
 
     private void showMessage(String message) {
+        closeClientDetails();
         tableRows.getChildren().clear();
         tableRows.getChildren().add(createMessageRow(message));
         tableScrollPane.setVvalue(0);
     }
 
     public void clearClientRows() {
+        closeClientDetails();
         tableRows.getChildren().clear();
         tableRows.getChildren().add(emptyRow);
         tableScrollPane.setVvalue(0);
@@ -308,6 +320,26 @@ public class ClientiView extends BorderPane {
         row.getStyleClass().add("clients-data-row");
         tableRows.getChildren().add(row);
         return row;
+    }
+
+    public void openClientDetails(ClientePreview preview, HBox row) {
+        if (selectedClientRow != null) {
+            selectedClientRow.getStyleClass().remove("clients-data-row-selected");
+        }
+        selectedClientRow = row;
+        selectedClientRow.getStyleClass().add("clients-data-row-selected");
+        detailPanel.showCliente(preview);
+        detailPanel.setManaged(true);
+        detailPanel.setVisible(true);
+    }
+
+    public void closeClientDetails() {
+        if (selectedClientRow != null) {
+            selectedClientRow.getStyleClass().remove("clients-data-row-selected");
+            selectedClientRow = null;
+        }
+        detailPanel.setManaged(false);
+        detailPanel.setVisible(false);
     }
 
     private HBox createTableRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {

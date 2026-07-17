@@ -23,6 +23,7 @@ public interface ClientiPreviewQuery {
             String ragioneSociale,
             String tipoCliente,
             String referente,
+            String indirizzo,
             String operatore,
             String statoTrattativa,
             LocalDate ultimoContatto

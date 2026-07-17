@@ -210,7 +210,7 @@ public class ClientiController {
 
         for (ClientePreviewRow cliente : page.rows()) {
             ClientePreview preview = cliente.preview();
-            view.addClientRow(
+            var row = view.addClientRow(
                     preview.name(),
                     preview.type(),
                     preview.contact(),
@@ -218,7 +218,8 @@ public class ClientiController {
                     preview.status(),
                     preview.lastContact(),
                     this::showRowActionsUnavailable
-            ).setOnMouseClicked(event -> clientiNav.showSchedaCliente(cliente.clienteId()));
+            );
+            row.setOnMouseClicked(event -> view.openClientDetails(preview, row));
         }
     }
 
