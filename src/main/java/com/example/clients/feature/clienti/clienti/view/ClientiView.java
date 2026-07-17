@@ -3,6 +3,7 @@ package com.example.clients.feature.clienti.clienti.view;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
+import com.example.clients.feature.clienti.clienti.dto.SortColumn;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -19,6 +20,7 @@ import javafx.scene.layout.VBox;
 
 import java.util.List;
 import java.util.function.IntConsumer;
+import java.util.function.Consumer;
 
 public class ClientiView extends BorderPane {
 
@@ -506,5 +508,52 @@ public class ClientiView extends BorderPane {
 
     public void setPageSelectionHandler(IntConsumer pageSelectionHandler) {
         this.pageSelectionHandler = pageSelectionHandler == null ? page -> { } : pageSelectionHandler;
+    }
+
+    public void onNewClient(Runnable action) {
+        newClientButton.setOnAction(event -> action.run());
+    }
+
+    public void onSortRequested(Consumer<SortColumn> action) {
+        nameHeaderButton.setOnAction(event -> action.accept(SortColumn.NAME));
+        typeHeaderButton.setOnAction(event -> action.accept(SortColumn.TYPE));
+        contactHeaderButton.setOnAction(event -> action.accept(SortColumn.CONTACT));
+        operatorHeaderButton.setOnAction(event -> action.accept(SortColumn.OPERATOR));
+        statusHeaderButton.setOnAction(event -> action.accept(SortColumn.STATUS));
+        lastContactHeaderButton.setOnAction(event -> action.accept(SortColumn.LAST_CONTACT));
+    }
+
+    public void onPaginationRequested(Runnable previousAction, Runnable nextAction, IntConsumer pageAction) {
+        previousPageButton.setOnAction(event -> previousAction.run());
+        nextPageButton.setOnAction(event -> nextAction.run());
+        setPageSelectionHandler(pageAction);
+    }
+
+    public void onPageSizeChanged(Consumer<Integer> action) {
+        rowsPerPageChoiceBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
+    }
+
+    public void onSearchChanged(Consumer<String> action) {
+        searchField.textProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
+    }
+
+    public void onOperatoreFilterChanged(Consumer<OperatoreFilter> action) {
+        operatorFilterChoiceBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
+    }
+
+    public void onTipologiaFilterChanged(Consumer<TextFilter> action) {
+        typeFilterChoiceBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
+    }
+
+    public void onStatoFilterChanged(Consumer<TextFilter> action) {
+        statusFilterChoiceBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
+    }
+
+    public void onClearFilters(Runnable action) {
+        clearFiltersButton.setOnAction(event -> action.run());
+    }
+
+    public void onSaveSearch(Runnable action) {
+        saveSearchButton.setOnAction(event -> action.run());
     }
 }
