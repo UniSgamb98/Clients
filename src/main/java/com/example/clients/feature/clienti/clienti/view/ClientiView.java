@@ -233,6 +233,18 @@ public class ClientiView extends BorderPane {
         resultsTable.showError(message);
     }
 
+    public void showLoadingMore() {
+        resultsTable.showLoadingMore();
+    }
+
+    public void showLoadMoreAvailable() {
+        resultsTable.showLoadMoreAvailable();
+    }
+
+    public void showAllResultsLoaded() {
+        resultsTable.showAllResultsLoaded();
+    }
+
     private void showMessage(String message) {
         closeClientDetails();
         tableRows.getChildren().clear();
@@ -390,5 +402,9 @@ public class ClientiView extends BorderPane {
 
     public void onSaveSearch(Runnable action) {
         saveSearchButton.setOnAction(event -> action.run());
+    }
+
+    public void onScrollNearBottom(Runnable action) {
+        resultsTable.onScrollNearBottom(action);
     }
 }
