@@ -4,6 +4,7 @@ import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
@@ -12,6 +13,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
@@ -189,16 +191,19 @@ public class ClientiView extends BorderPane {
         return row;
     }
 
-    private HBox createPaginationBar() {
-        HBox pagination = new HBox(10);
+    private StackPane createPaginationBar() {
+        StackPane pagination = new StackPane();
         pagination.getStyleClass().add("clients-pagination-bar");
         Label rowsPerPageLabel = new Label("Righe per pagina");
         rowsPerPageLabel.getStyleClass().add("clients-pagination-label");
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        HBox rowsPerPage = new HBox(10, rowsPerPageLabel, rowsPerPageChoiceBox);
+        rowsPerPage.getStyleClass().add("clients-pagination-side");
         HBox navigation = new HBox(6, previousPageButton, pageNumberButtons, nextPageButton);
         navigation.getStyleClass().add("clients-page-navigation");
-        pagination.getChildren().addAll(rowsPerPageLabel, rowsPerPageChoiceBox, spacer, navigation, resultsRangeLabel);
+        StackPane.setAlignment(rowsPerPage, Pos.CENTER_LEFT);
+        StackPane.setAlignment(navigation, Pos.CENTER);
+        StackPane.setAlignment(resultsRangeLabel, Pos.CENTER_RIGHT);
+        pagination.getChildren().addAll(rowsPerPage, navigation, resultsRangeLabel);
         return pagination;
     }
 
@@ -265,8 +270,8 @@ public class ClientiView extends BorderPane {
         previousPageButton.setDisable(!hasPreviousPage);
         nextPageButton.setDisable(!hasNextPage);
         pageNumberButtons.getChildren().clear();
-        int firstPage = Math.min(page, Math.max(0, totalPages - 2));
-        for (int pageIndex = firstPage; pageIndex < Math.min(firstPage + 2, totalPages); pageIndex++) {
+        int firstPage = Math.max(0, Math.min(page - 2, totalPages - 5));
+        for (int pageIndex = firstPage; pageIndex < Math.min(firstPage + 5, totalPages); pageIndex++) {
             Button pageButton = new Button(String.valueOf(pageIndex + 1));
             pageButton.getStyleClass().add("clients-page-number-button");
             if (pageIndex == page) {
