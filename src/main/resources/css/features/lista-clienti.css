@@ -29,6 +29,13 @@
     -fx-font-size: 13px;
 }
 
+.clients-load-state {
+    -fx-text-fill: -app-text-placeholder;
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+    -fx-padding: 12;
+}
+
 .clients-data-row {
     -fx-border-color: -app-row-border;
     -fx-border-width: 1 0 0 0;

@@ -26,6 +26,7 @@ public class ClientiResultsTable extends HBox {
     private final VBox tableRows = new VBox();
     private final HBox emptyRow = createMessageRow("Nessun cliente caricato. Usa \"+ Nuovo cliente\" per iniziare.");
     private final ScrollPane tableScrollPane = new ScrollPane(tableRows);
+    private final Label loadStateLabel = new Label();
     private final ClientePreviewDetailPanel detailPanel = new ClientePreviewDetailPanel(this::closeClientDetails);
     private HBox selectedClientRow;
     private Consumer<SortColumn> sortHandler = column -> { };
@@ -65,13 +66,35 @@ public class ClientiResultsTable extends HBox {
         showMessage(message == null || message.isBlank() ? "Caricamento clienti non riuscito." : message);
     }
 
+    public void showLoadingMore() {
+        setLoadState("Caricamento altri clienti...");
+    }
+
+    public void showLoadMoreAvailable() {
+        clearLoadState();
+    }
+
+    public void showAllResultsLoaded() {
+        setLoadState("Tutti i clienti sono stati caricati.");
+    }
+
+    public void onScrollNearBottom(Runnable action) {
+        tableScrollPane.vvalueProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue.doubleValue() >= 0.88) {
+                action.run();
+            }
+        });
+    }
+
     public void clearRows() {
         closeClientDetails();
+        clearLoadState();
         tableRows.getChildren().setAll(emptyRow);
         tableScrollPane.setVvalue(0);
     }
 
     public HBox addClientRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {
+        clearLoadState();
         tableRows.getChildren().remove(emptyRow);
         HBox row = new HBox(
                 createCell(name, NAME_COLUMN_WIDTH), createCell(type, TYPE_COLUMN_WIDTH), createCell(contact, CONTACT_COLUMN_WIDTH),
@@ -135,6 +158,7 @@ public class ClientiResultsTable extends HBox {
 
     private void showMessage(String message) {
         closeClientDetails();
+        clearLoadState();
         tableRows.getChildren().setAll(createMessageRow(message));
         tableScrollPane.setVvalue(0);
     }
@@ -147,6 +171,18 @@ public class ClientiResultsTable extends HBox {
         label.setWrapText(true);
         row.getChildren().add(label);
         return row;
+    }
+
+    private void setLoadState(String message) {
+        loadStateLabel.setText(message);
+        loadStateLabel.getStyleClass().setAll("clients-load-state");
+        if (!tableRows.getChildren().contains(loadStateLabel)) {
+            tableRows.getChildren().add(loadStateLabel);
+        }
+    }
+
+    private void clearLoadState() {
+        tableRows.getChildren().remove(loadStateLabel);
     }
 
     private Label createCell(String text, double width) {
