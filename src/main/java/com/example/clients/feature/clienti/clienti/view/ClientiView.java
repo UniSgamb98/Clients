@@ -407,6 +407,10 @@ public class ClientiView extends BorderPane {
         newClientButton.setOnAction(event -> action.run());
     }
 
+    public AppSidebar getSidebar() {
+        return sidebar;
+    }
+
     public void onSortRequested(Consumer<SortColumn> action) {
         resultsTable.onSortRequested(action);
     }
