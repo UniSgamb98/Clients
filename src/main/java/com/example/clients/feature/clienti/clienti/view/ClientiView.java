@@ -15,15 +15,17 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.function.IntConsumer;
 
 public class ClientiView extends BorderPane {
 
-    private static final double NAME_COLUMN_WIDTH = 115;
-    private static final double TYPE_COLUMN_WIDTH = 75;
-    private static final double CONTACT_COLUMN_WIDTH = 115;
-    private static final double PHONE_COLUMN_WIDTH = 90;
-    private static final double EMAIL_COLUMN_WIDTH = 175;
-    private static final double STATUS_COLUMN_WIDTH = 75;
+    private static final double NAME_COLUMN_WIDTH = 190;
+    private static final double TYPE_COLUMN_WIDTH = 105;
+    private static final double CONTACT_COLUMN_WIDTH = 135;
+    private static final double OPERATOR_COLUMN_WIDTH = 130;
+    private static final double STATUS_COLUMN_WIDTH = 105;
+    private static final double LAST_CONTACT_COLUMN_WIDTH = 125;
+    private static final double ACTIONS_COLUMN_WIDTH = 80;
 
     private final AppSidebar sidebar;
     private final TextField searchField;
@@ -38,16 +40,19 @@ public class ClientiView extends BorderPane {
     private final Button nameHeaderButton;
     private final Button typeHeaderButton;
     private final Button contactHeaderButton;
-    private final Button phoneHeaderButton;
-    private final Button emailHeaderButton;
+    private final Button operatorHeaderButton;
     private final Button statusHeaderButton;
+    private final Button lastContactHeaderButton;
     private final VBox table;
     private final VBox tableRows;
     private final HBox emptyRow;
     private final ScrollPane tableScrollPane;
     private final Button previousPageButton;
     private final Button nextPageButton;
-    private final Label pageLabel;
+    private final ChoiceBox<Integer> rowsPerPageChoiceBox;
+    private final HBox pageNumberButtons;
+    private final Label resultsRangeLabel;
+    private IntConsumer pageSelectionHandler = page -> { };
 
     public ClientiView() {
         sidebar = new AppSidebar();
@@ -77,9 +82,9 @@ public class ClientiView extends BorderPane {
         nameHeaderButton = createHeaderButton("Nome", NAME_COLUMN_WIDTH);
         typeHeaderButton = createHeaderButton("Tipo", TYPE_COLUMN_WIDTH);
         contactHeaderButton = createHeaderButton("Referente", CONTACT_COLUMN_WIDTH);
-        phoneHeaderButton = createHeaderButton("Telefono", PHONE_COLUMN_WIDTH);
-        emailHeaderButton = createHeaderButton("Email", EMAIL_COLUMN_WIDTH);
+        operatorHeaderButton = createHeaderButton("Operatore", OPERATOR_COLUMN_WIDTH);
         statusHeaderButton = createHeaderButton("Stato", STATUS_COLUMN_WIDTH);
+        lastContactHeaderButton = createHeaderButton("Ultimo contatto", LAST_CONTACT_COLUMN_WIDTH);
 
         table = new VBox();
         table.getStyleClass().add("clients-table");
@@ -89,10 +94,16 @@ public class ClientiView extends BorderPane {
         tableScrollPane.setFitToWidth(true);
         tableScrollPane.getStyleClass().add("clients-table-scroll");
 
-        previousPageButton = createFilterButton("‹ Indietro");
-        nextPageButton = createFilterButton("Avanti ›");
-        pageLabel = new Label("Pagina -");
-        pageLabel.getStyleClass().add("clients-pagination-label");
+        previousPageButton = createFilterButton("‹");
+        nextPageButton = createFilterButton("›");
+        pageNumberButtons = new HBox(6);
+        pageNumberButtons.getStyleClass().add("clients-page-number-buttons");
+        rowsPerPageChoiceBox = new ChoiceBox<>();
+        rowsPerPageChoiceBox.getItems().addAll(10, 25, 50, 100);
+        rowsPerPageChoiceBox.getSelectionModel().select(Integer.valueOf(10));
+        rowsPerPageChoiceBox.getStyleClass().add("clients-rows-per-page-choice");
+        resultsRangeLabel = new Label("0 risultati");
+        resultsRangeLabel.getStyleClass().add("clients-pagination-label");
         setPaginationDisabled(true);
 
         setLeft(sidebar);
@@ -170,9 +181,10 @@ public class ClientiView extends BorderPane {
                 nameHeaderButton,
                 typeHeaderButton,
                 contactHeaderButton,
-                phoneHeaderButton,
-                emailHeaderButton,
-                statusHeaderButton
+                operatorHeaderButton,
+                statusHeaderButton,
+                lastContactHeaderButton,
+                createActionsHeader()
         );
         return row;
     }
@@ -180,10 +192,21 @@ public class ClientiView extends BorderPane {
     private HBox createPaginationBar() {
         HBox pagination = new HBox(10);
         pagination.getStyleClass().add("clients-pagination-bar");
+        Label rowsPerPageLabel = new Label("Righe per pagina");
+        rowsPerPageLabel.getStyleClass().add("clients-pagination-label");
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
-        pagination.getChildren().addAll(spacer, previousPageButton, pageLabel, nextPageButton);
+        HBox navigation = new HBox(6, previousPageButton, pageNumberButtons, nextPageButton);
+        navigation.getStyleClass().add("clients-page-navigation");
+        pagination.getChildren().addAll(rowsPerPageLabel, rowsPerPageChoiceBox, spacer, navigation, resultsRangeLabel);
         return pagination;
+    }
+
+    private Label createActionsHeader() {
+        Label header = new Label("Azioni");
+        header.getStyleClass().addAll("clients-table-cell", "clients-actions-header");
+        setColumnWidth(header, ACTIONS_COLUMN_WIDTH);
+        return header;
     }
 
     private Label createFilterLabel(String text) {
@@ -238,10 +261,24 @@ public class ClientiView extends BorderPane {
         tableScrollPane.setVvalue(0);
     }
 
-    public void renderPagination(int page, int totalPages, boolean hasPreviousPage, boolean hasNextPage) {
-        pageLabel.setText(totalPages == 0 ? "Nessuna pagina" : "Pagina " + (page + 1) + " di " + totalPages);
+    public void renderPagination(int page, int totalPages, boolean hasPreviousPage, boolean hasNextPage, long totalRows, int pageSize) {
         previousPageButton.setDisable(!hasPreviousPage);
         nextPageButton.setDisable(!hasNextPage);
+        pageNumberButtons.getChildren().clear();
+        int firstPage = Math.min(page, Math.max(0, totalPages - 2));
+        for (int pageIndex = firstPage; pageIndex < Math.min(firstPage + 2, totalPages); pageIndex++) {
+            Button pageButton = new Button(String.valueOf(pageIndex + 1));
+            pageButton.getStyleClass().add("clients-page-number-button");
+            if (pageIndex == page) {
+                pageButton.getStyleClass().add("clients-page-number-button-active");
+            }
+            int selectedPage = pageIndex;
+            pageButton.setOnAction(event -> pageSelectionHandler.accept(selectedPage));
+            pageNumberButtons.getChildren().add(pageButton);
+        }
+        long firstResult = totalRows == 0 ? 0 : (long) page * pageSize + 1;
+        long lastResult = Math.min((long) (page + 1) * pageSize, totalRows);
+        resultsRangeLabel.setText(firstResult + "–" + lastResult + " di " + totalRows + " risultati");
     }
 
     public void setResultsCount(long totalResults) {
@@ -260,24 +297,25 @@ public class ClientiView extends BorderPane {
         nextPageButton.setDisable(disabled);
     }
 
-    public HBox addClientRow(String name, String type, String contact, String phone, String email, String status) {
+    public HBox addClientRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {
         tableRows.getChildren().remove(emptyRow);
-        HBox row = createTableRow(name, type, contact, phone, email, status);
+        HBox row = createTableRow(name, type, contact, operator, status, lastContact, onActionsClick);
         row.getStyleClass().add("clients-data-row");
         tableRows.getChildren().add(row);
         return row;
     }
 
-    private HBox createTableRow(String name, String type, String contact, String phone, String email, String status) {
+    private HBox createTableRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {
         HBox row = new HBox();
         row.getStyleClass().add("clients-table-row");
         row.getChildren().addAll(
                 createCell(name, NAME_COLUMN_WIDTH),
                 createCell(type, TYPE_COLUMN_WIDTH),
                 createCell(contact, CONTACT_COLUMN_WIDTH),
-                createCell(phone, PHONE_COLUMN_WIDTH),
-                createCell(email, EMAIL_COLUMN_WIDTH),
-                createCell(status, STATUS_COLUMN_WIDTH)
+                createCell(operator, OPERATOR_COLUMN_WIDTH),
+                createCell(status, STATUS_COLUMN_WIDTH),
+                createCell(lastContact, LAST_CONTACT_COLUMN_WIDTH),
+                createActionsButton(onActionsClick)
         );
         return row;
     }
@@ -287,6 +325,17 @@ public class ClientiView extends BorderPane {
         label.getStyleClass().add("clients-table-cell");
         setColumnWidth(label, width);
         return label;
+    }
+
+    private Button createActionsButton(Runnable onActionsClick) {
+        Button button = new Button("...");
+        button.getStyleClass().add("clients-row-actions-button");
+        setColumnWidth(button, ACTIONS_COLUMN_WIDTH);
+        button.setOnAction(event -> {
+            event.consume();
+            onActionsClick.run();
+        });
+        return button;
     }
 
     private Button createFilterButton(String text) {
@@ -393,16 +442,16 @@ public class ClientiView extends BorderPane {
         return contactHeaderButton;
     }
 
-    public Button getPhoneHeaderButton() {
-        return phoneHeaderButton;
-    }
-
-    public Button getEmailHeaderButton() {
-        return emailHeaderButton;
+    public Button getOperatorHeaderButton() {
+        return operatorHeaderButton;
     }
 
     public Button getStatusHeaderButton() {
         return statusHeaderButton;
+    }
+
+    public Button getLastContactHeaderButton() {
+        return lastContactHeaderButton;
     }
 
     public Button getPreviousPageButton() {
@@ -411,5 +460,13 @@ public class ClientiView extends BorderPane {
 
     public Button getNextPageButton() {
         return nextPageButton;
+    }
+
+    public ChoiceBox<Integer> getRowsPerPageChoiceBox() {
+        return rowsPerPageChoiceBox;
+    }
+
+    public void setPageSelectionHandler(IntConsumer pageSelectionHandler) {
+        this.pageSelectionHandler = pageSelectionHandler == null ? page -> { } : pageSelectionHandler;
     }
 }

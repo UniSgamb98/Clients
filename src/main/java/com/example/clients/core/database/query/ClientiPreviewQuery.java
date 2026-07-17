@@ -1,5 +1,6 @@
 package com.example.clients.core.database.query;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,9 +23,9 @@ public interface ClientiPreviewQuery {
             String ragioneSociale,
             String tipoCliente,
             String referente,
-            String telefono,
-            String email,
-            String statoTrattativa
+            String operatore,
+            String statoTrattativa,
+            LocalDate ultimoContatto
     ) {
     }
 }
