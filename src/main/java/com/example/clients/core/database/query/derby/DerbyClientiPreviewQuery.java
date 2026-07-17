@@ -38,20 +38,7 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         String cleanTipoCliente = cleanFilterText(tipoCliente);
         String cleanStatoTrattativa = cleanFilterText(statoTrattativa);
         long totalRows = countAll(cleanSearchText, operatoreId, cleanTipoCliente, cleanStatoTrattativa);
-        String sql = "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
-                + "COALESCE(R.REFERENTE, '') AS REFERENTE, "
-                + "COALESCE(A.INDIRIZZO, '') AS INDIRIZZO, "
-                + "CASE WHEN TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) = '' "
-                + "THEN COALESCE(O.USERNAME, '') ELSE TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) END AS OPERATORE, "
-                + "I.ULTIMO_CONTATTO "
-                + "FROM CLIENTI C "
-                + previewAggregateJoin("CONTATTI_CLIENTE", "R", "REFERENTE")
-                + previewAddressJoin()
-                + "LEFT JOIN OPERATORI O ON O.ID = C.OPERATORE_ID "
-                + "LEFT JOIN (SELECT CLIENTE_ID, MAX(DATA_CONTATTO) AS ULTIMO_CONTATTO FROM INTERAZIONI GROUP BY CLIENTE_ID) I ON I.CLIENTE_ID = C.ID "
-                + filterWhereClause(hasSearch, operatoreId != null, !cleanTipoCliente.isBlank(), !cleanStatoTrattativa.isBlank())
-                + "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", C.ID "
-                + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = buildPreviewSql(hasSearch, operatoreId != null, !cleanTipoCliente.isBlank(), !cleanStatoTrattativa.isBlank(), orderByColumn, ascending);
 
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             int parameterIndex = bindFilterParameters(statement, cleanSearchText, hasSearch, operatoreId, cleanTipoCliente, cleanStatoTrattativa, 1);
@@ -84,6 +71,33 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                 + "FROM " + tableName + " "
                 + "GROUP BY CLIENTE_ID"
                 + ") " + alias + " ON " + alias + ".CLIENTE_ID = C.ID ";
+    }
+
+    private String buildPreviewSql(boolean hasSearch, boolean hasOperatoreFilter, boolean hasTipoClienteFilter, boolean hasStatoFilter, String orderByColumn, boolean ascending) {
+        return previewSelectClause()
+                + previewJoins()
+                + filterWhereClause(hasSearch, hasOperatoreFilter, hasTipoClienteFilter, hasStatoFilter)
+                + orderByClause(orderByColumn, ascending)
+                + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+    }
+
+    private String previewSelectClause() {
+        return "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
+                + "COALESCE(R.REFERENTE, '') AS REFERENTE, COALESCE(A.INDIRIZZO, '') AS INDIRIZZO, "
+                + "CASE WHEN TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) = '' "
+                + "THEN COALESCE(O.USERNAME, '') ELSE TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) END AS OPERATORE, I.ULTIMO_CONTATTO "
+                + "FROM CLIENTI C ";
+    }
+
+    private String previewJoins() {
+        return previewAggregateJoin("CONTATTI_CLIENTE", "R", "REFERENTE")
+                + previewAddressJoin()
+                + "LEFT JOIN OPERATORI O ON O.ID = C.OPERATORE_ID "
+                + "LEFT JOIN (SELECT CLIENTE_ID, MAX(DATA_CONTATTO) AS ULTIMO_CONTATTO FROM INTERAZIONI GROUP BY CLIENTE_ID) I ON I.CLIENTE_ID = C.ID ";
+    }
+
+    private String orderByClause(String orderByColumn, boolean ascending) {
+        return "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", C.ID ";
     }
 
     private String previewAddressJoin() {
