@@ -36,6 +36,7 @@ public class SchedaClienteView extends BorderPane {
     private final ClienteProfileHeader header;
     private final ClienteDataSection dataSection;
     private final ClienteRelatedSections relatedSections;
+    private final ClienteProfileDetailsPanel detailsPanel;
     private final ClienteTimelineSection timelineSection;
 
     public SchedaClienteView() {
@@ -43,6 +44,7 @@ public class SchedaClienteView extends BorderPane {
         header = new ClienteProfileHeader();
         dataSection = new ClienteDataSection();
         relatedSections = new ClienteRelatedSections(RELATED_SECTIONS_GAP, RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT);
+        detailsPanel = new ClienteProfileDetailsPanel(dataSection, relatedSections);
         timelineSection = new ClienteTimelineSection();
         dataSection.setLinkedOptionsRefresh(relatedSections::refreshLinkedContactOptions);
         setEditMode(false);
@@ -78,7 +80,7 @@ public class SchedaClienteView extends BorderPane {
         leftColumn.setPrefWidth(SIDE_COLUMN_PREF_WIDTH);
         leftColumn.setMaxWidth(SIDE_COLUMN_MAX_WIDTH);
         rightColumn.setMaxWidth(Double.MAX_VALUE);
-        leftColumn.getChildren().addAll(dataSection, relatedSections);
+        leftColumn.getChildren().add(detailsPanel);
         rightColumn.getChildren().add(timelineSection);
         HBox.setHgrow(leftColumn, Priority.ALWAYS);
         HBox.setHgrow(rightColumn, Priority.ALWAYS);
