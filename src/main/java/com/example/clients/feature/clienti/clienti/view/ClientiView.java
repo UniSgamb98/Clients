@@ -31,6 +31,10 @@ public class ClientiView extends BorderPane {
     private final ChoiceBox<OperatoreFilter> operatorFilterChoiceBox;
     private final ChoiceBox<TextFilter> typeFilterChoiceBox;
     private final ChoiceBox<TextFilter> statusFilterChoiceBox;
+    private final Button otherFiltersButton;
+    private final Button clearFiltersButton;
+    private final Button saveSearchButton;
+    private final Label resultsCountLabel;
     private final Button nameHeaderButton;
     private final Button typeHeaderButton;
     private final Button contactHeaderButton;
@@ -61,6 +65,14 @@ public class ClientiView extends BorderPane {
         operatorFilterChoiceBox.getSelectionModel().selectFirst();
         typeFilterChoiceBox = createTextFilterChoiceBox("Tutti");
         statusFilterChoiceBox = createTextFilterChoiceBox("Tutti");
+        otherFiltersButton = new Button("Altri filtri");
+        otherFiltersButton.getStyleClass().add("clients-other-filters-button");
+        clearFiltersButton = new Button("Pulisci filtri");
+        clearFiltersButton.getStyleClass().add("clients-clear-filters-button");
+        saveSearchButton = new Button("Salva ricerca");
+        saveSearchButton.getStyleClass().add("clients-save-search-button");
+        resultsCountLabel = new Label("0 risultati trovati");
+        resultsCountLabel.getStyleClass().add("clients-results-count");
 
         nameHeaderButton = createHeaderButton("Nome", NAME_COLUMN_WIDTH);
         typeHeaderButton = createHeaderButton("Tipo", TYPE_COLUMN_WIDTH);
@@ -106,29 +118,42 @@ public class ClientiView extends BorderPane {
         HBox.setHgrow(titleSpacer, javafx.scene.layout.Priority.ALWAYS);
         titleBar.getChildren().addAll(titleBox, titleSpacer, newClientButton);
 
-        HBox toolbar = new HBox(10);
-        toolbar.getStyleClass().add("clients-toolbar");
-        searchField.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(searchField, javafx.scene.layout.Priority.ALWAYS);
-        toolbar.getChildren().add(searchField);
-
-        HBox filters = new HBox(8);
+        HBox filters = new HBox(12);
         filters.getStyleClass().add("clients-filter-bar");
-        Label operatorFilterLabel = createFilterLabel("Operatore");
-        Label typeFilterLabel = createFilterLabel("Tipo cliente");
-        Label statusFilterLabel = createFilterLabel("Stato trattativa");
+        VBox searchFilter = createFilterControl("Ricerca", searchField);
+        searchFilter.getStyleClass().add("clients-search-filter-control");
+        searchField.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(searchFilter, javafx.scene.layout.Priority.ALWAYS);
         filters.getChildren().addAll(
-                operatorFilterLabel, operatorFilterChoiceBox,
-                typeFilterLabel, typeFilterChoiceBox,
-                statusFilterLabel, statusFilterChoiceBox
+                searchFilter,
+                createFilterControl("Stato cliente", statusFilterChoiceBox),
+                createFilterControl("Operatore", operatorFilterChoiceBox),
+                createFilterControl("Tipologia", typeFilterChoiceBox),
+                otherFiltersButton
         );
 
         initializeTable();
         VBox.setVgrow(table, javafx.scene.layout.Priority.ALWAYS);
         VBox.setVgrow(tableScrollPane, javafx.scene.layout.Priority.ALWAYS);
 
-        content.getChildren().addAll(titleBar, toolbar, filters, table, createPaginationBar());
+        content.getChildren().addAll(titleBar, filters, createFilterActionsBar(), table, createPaginationBar());
         return content;
+    }
+
+    private VBox createFilterControl(String labelText, Region control) {
+        VBox filterControl = new VBox(4);
+        filterControl.getStyleClass().add("clients-filter-control");
+        filterControl.getChildren().addAll(createFilterLabel(labelText), control);
+        return filterControl;
+    }
+
+    private HBox createFilterActionsBar() {
+        HBox actions = new HBox(12);
+        actions.getStyleClass().add("clients-filter-actions");
+        HBox spacer = new HBox();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        actions.getChildren().addAll(resultsCountLabel, spacer, clearFiltersButton, saveSearchButton);
+        return actions;
     }
 
     private void initializeTable() {
@@ -219,6 +244,17 @@ public class ClientiView extends BorderPane {
         nextPageButton.setDisable(!hasNextPage);
     }
 
+    public void setResultsCount(long totalResults) {
+        resultsCountLabel.setText(totalResults + (totalResults == 1 ? " risultato trovato" : " risultati trovati"));
+    }
+
+    public void clearFilters() {
+        searchField.clear();
+        operatorFilterChoiceBox.getSelectionModel().selectFirst();
+        typeFilterChoiceBox.getSelectionModel().selectFirst();
+        statusFilterChoiceBox.getSelectionModel().selectFirst();
+    }
+
     public void setPaginationDisabled(boolean disabled) {
         previousPageButton.setDisable(disabled);
         nextPageButton.setDisable(disabled);
@@ -295,6 +331,18 @@ public class ClientiView extends BorderPane {
 
     public ChoiceBox<TextFilter> getStatusFilterChoiceBox() {
         return statusFilterChoiceBox;
+    }
+
+    public Button getOtherFiltersButton() {
+        return otherFiltersButton;
+    }
+
+    public Button getClearFiltersButton() {
+        return clearFiltersButton;
+    }
+
+    public Button getSaveSearchButton() {
+        return saveSearchButton;
     }
 
     public void setTypeFilters(List<TextFilter> types) {

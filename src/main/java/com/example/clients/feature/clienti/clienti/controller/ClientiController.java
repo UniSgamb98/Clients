@@ -12,6 +12,7 @@ import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.navigator.ClientiNav;
 import javafx.animation.PauseTransition;
+import javafx.scene.control.Alert;
 import javafx.util.Duration;
 
 import java.util.List;
@@ -33,6 +34,7 @@ public class ClientiController {
     private TextFilter currentStatoTrattativaFilter = TextFilter.empty("Tutti");
     private int currentPage;
     private long loadVersion;
+    private boolean clearingFilters;
 
     public ClientiController(ClientiView view, ClientiNav clientiNav, ClientiService service) {
         this.view = view;
@@ -58,6 +60,8 @@ public class ClientiController {
                 .addListener((observable, oldValue, newValue) -> filterByTipoCliente(newValue));
         view.getStatusFilterChoiceBox().getSelectionModel().selectedItemProperty()
                 .addListener((observable, oldValue, newValue) -> filterByStatoTrattativa(newValue));
+        view.getClearFiltersButton().setOnAction(event -> clearFilters());
+        view.getSaveSearchButton().setOnAction(event -> showSaveSearchUnavailable());
     }
 
     public void loadPreviewClientsAsync() {
@@ -85,6 +89,9 @@ public class ClientiController {
 
     private void searchClienti(String searchText) {
         currentSearchText = searchText == null ? "" : searchText.trim();
+        if (clearingFilters) {
+            return;
+        }
         searchDebounce.stop();
         searchDebounce.setOnFinished(event -> loadPage(0));
         searchDebounce.playFromStart();
@@ -92,17 +99,43 @@ public class ClientiController {
 
     private void filterByOperatore(OperatoreFilter operatoreFilter) {
         currentOperatoreFilter = operatoreFilter == null ? OperatoreFilter.empty() : operatoreFilter;
-        loadPage(0);
+        if (!clearingFilters) {
+            loadPage(0);
+        }
     }
 
     private void filterByTipoCliente(TextFilter filter) {
         currentTipoClienteFilter = filter == null ? TextFilter.empty("Tutti") : filter;
-        loadPage(0);
+        if (!clearingFilters) {
+            loadPage(0);
+        }
     }
 
     private void filterByStatoTrattativa(TextFilter filter) {
         currentStatoTrattativaFilter = filter == null ? TextFilter.empty("Tutti") : filter;
+        if (!clearingFilters) {
+            loadPage(0);
+        }
+    }
+
+    private void clearFilters() {
+        clearingFilters = true;
+        searchDebounce.stop();
+        view.clearFilters();
+        currentSearchText = "";
+        currentOperatoreFilter = OperatoreFilter.empty();
+        currentTipoClienteFilter = TextFilter.empty("Tutti");
+        currentStatoTrattativaFilter = TextFilter.empty("Tutti");
+        clearingFilters = false;
         loadPage(0);
+    }
+
+    private void showSaveSearchUnavailable() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Funzionalità in sviluppo");
+        alert.setHeaderText("Salvataggio ricerca");
+        alert.setContentText("Questa funzionalità sarà disponibile prossimamente.");
+        alert.showAndWait();
     }
 
     private void sortClienti(SortColumn sortColumn) {
@@ -154,6 +187,7 @@ public class ClientiController {
     private void renderClienti(ClientiPage page) {
         currentPage = page.page();
         view.renderPagination(page.page(), page.totalPages(), page.hasPreviousPage(), page.hasNextPage());
+        view.setResultsCount(page.totalRows());
 
         if (page.rows().isEmpty()) {
             view.showEmpty();

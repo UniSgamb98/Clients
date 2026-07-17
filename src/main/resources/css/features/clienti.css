@@ -18,9 +18,25 @@
     -fx-text-fill: -app-text-subtle;
 }
 
-.clients-toolbar,
 .clients-filter-bar {
     -fx-alignment: center-left;
+}
+
+.clients-filter-bar {
+    -fx-background-color: -app-surface;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+}
+
+.clients-filter-control {
+    -fx-min-width: 130;
+}
+
+.clients-search-filter-control {
+    -fx-min-width: 220;
 }
 
 .clients-search-field {
@@ -29,6 +45,10 @@
     -fx-prompt-text-fill: -app-text-placeholder;
     -fx-background-radius: 8;
     -fx-padding: 9 12;
+}
+
+.clients-filter-control .choice-box {
+    -fx-pref-width: 150;
 }
 
 .clients-primary-button {
@@ -48,6 +68,45 @@
     -fx-text-fill: -app-text-soft;
     -fx-background-radius: 16;
     -fx-padding: 7 12;
+}
+
+.clients-other-filters-button,
+.clients-clear-filters-button,
+.clients-save-search-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-muted;
+    -fx-border-color: -app-border-soft;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 9 12;
+    -fx-cursor: hand;
+}
+
+.clients-other-filters-button:hover,
+.clients-clear-filters-button:hover,
+.clients-save-search-button:hover {
+    -fx-background-color: -app-control-alt-bg;
+    -fx-text-fill: -app-text;
+}
+
+.clients-filter-actions {
+    -fx-alignment: center-left;
+    -fx-padding: 0 2;
+}
+
+.clients-clear-filters-button {
+    -fx-border-color: transparent;
+}
+
+.clients-save-search-button {
+    -fx-text-fill: -app-primary-hover;
+    -fx-border-color: transparent;
+}
+
+.clients-results-count {
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
 }
 
 .clients-filter-label {
