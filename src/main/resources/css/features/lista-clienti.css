@@ -140,10 +140,18 @@
     -fx-alignment: top-left;
 }
 
-.clients-detail-company-name {
+.clients-detail-company-button {
+    -fx-background-color: transparent;
     -fx-text-fill: -app-text;
     -fx-font-size: 16px;
     -fx-font-weight: 700;
+    -fx-alignment: top-left;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.clients-detail-company-button:hover {
+    -fx-text-fill: -app-primary-hover;
 }
 
 .clients-detail-close-button {
@@ -153,6 +161,9 @@
     -fx-font-weight: 400;
     -fx-padding: 0 5;
     -fx-cursor: hand;
+    -fx-min-width: 30;
+    -fx-min-height: 30;
+    -fx-alignment: center;
 }
 
 .clients-detail-close-button:hover {

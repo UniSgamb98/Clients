@@ -306,8 +306,8 @@ public class ClientiView extends BorderPane {
         return resultsTable.addClientRow(name, type, contact, operator, status, lastContact, onActionsClick);
     }
 
-    public void openClientDetails(ClientePreview preview, HBox row) {
-        resultsTable.openClientDetails(preview, row);
+    public void openClientDetails(ClientePreview preview, HBox row, Runnable onOpenProfile) {
+        resultsTable.openClientDetails(preview, row, onOpenProfile);
     }
 
     public void closeClientDetails() {

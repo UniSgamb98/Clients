@@ -179,7 +179,7 @@ public class ClientiController {
                     preview.lastContact(),
                     this::showRowActionsUnavailable
             );
-            row.setOnMouseClicked(event -> view.openClientDetails(preview, row));
+            row.setOnMouseClicked(event -> view.openClientDetails(preview, row, () -> clientiNav.showSchedaCliente(cliente.clienteId())));
         }
     }
 
