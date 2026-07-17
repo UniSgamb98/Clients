@@ -3,6 +3,8 @@ package com.example.clients.feature.impostazioni.controller;
 import com.example.clients.feature.impostazioni.service.ImpostazioniService;
 import com.example.clients.feature.impostazioni.view.ImpostazioniView;
 import com.example.clients.core.async.AsyncLoader;
+import com.example.clients.feature.impostazioni.view.ImpostazioniEditorSection;
+import java.util.List;
 
 public class ImpostazioniController {
 
@@ -12,13 +14,19 @@ public class ImpostazioniController {
     public ImpostazioniController(ImpostazioniView view, ImpostazioniService service) {
         this.view = view;
         this.service = service;
-        view.onForniEditChanged(editing -> {
-            if (!editing) {
-                AsyncLoader.run(() -> { service.saveForni(view.getForni()); return true; }, ignored -> { }, error -> view.showForniSaveError());
-            }
-        });
-        view.onAddForno(view::addEmptyForno);
-        AsyncLoader.run(service::getForni, view::setForni, error -> view.setForni(java.util.List.of()));
+        configure("MATERIALI_DI_CONSUMO", List.of("MATERIALE", "MARCHIO", "MODELLO"));
+        configure("CANALI_DI_ACQUISTO", List.of("MODALITA"));
+        configure("FRESATORI", List.of("MARCA", "MODELLO"));
+        configure("FORNI", List.of("TECNOLOGIA", "MARCA", "MODELLO"));
+        configure("CERAMICA", List.of("MARCA"));
+        configure("FRESE", List.of("MARCA"));
+    }
+
+    private void configure(String table, List<String> columns) {
+        ImpostazioniEditorSection editor = view.getEditor(table);
+        editor.onAdd(editor::addEmpty);
+        editor.onEditChanged(editing -> { if (!editing) AsyncLoader.run(() -> { service.saveVoci(table, columns, editor.getVoci()); return true; }, ignored -> { }, error -> { }); });
+        AsyncLoader.run(() -> service.getVoci(table, columns), editor::setVoci, error -> editor.setVoci(List.of()));
     }
 
     public ImpostazioniView getView() {

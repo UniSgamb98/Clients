@@ -16,6 +16,8 @@ import javafx.scene.layout.VBox;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.Map;
+import java.util.HashMap;
 
 public class ImpostazioniView extends BorderPane {
 
@@ -32,6 +34,7 @@ public class ImpostazioniView extends BorderPane {
     private final VBox forniRows = new VBox(8);
     private final CheckBox modificaForni = new CheckBox("Modifica");
     private final Button addForno = new Button("+");
+    private final Map<String, ImpostazioniEditorSection> editors = new HashMap<>();
 
     public ImpostazioniView() {
         setLeft(sidebar);
@@ -58,6 +61,7 @@ public class ImpostazioniView extends BorderPane {
     }
 
     public void showForniSaveError() { Label error = new Label("Salvataggio forni non riuscito."); error.getStyleClass().add("settings-error"); forniRows.getChildren().add(error); }
+    public ImpostazioniEditorSection getEditor(String table) { return editors.get(table); }
 
     private VBox createContent() {
         VBox content = new VBox(18);
@@ -89,13 +93,9 @@ public class ImpostazioniView extends BorderPane {
     }
 
     private VBox createSection(String title) {
-        if ("Forni".equals(title)) return createForniSection();
-        VBox section = new VBox();
-        section.getStyleClass().add("settings-section");
-        Label sectionTitle = new Label(title);
-        sectionTitle.getStyleClass().add("settings-section-title");
-        section.getChildren().add(sectionTitle);
-        return section;
+        String table = switch (title) { case "Materiale di Consumo" -> "MATERIALI_DI_CONSUMO"; case "Canali di acquisto" -> "CANALI_DI_ACQUISTO"; case "Parco Fresatori" -> "FRESATORI"; case "Forni" -> "FORNI"; case "Ceramica" -> "CERAMICA"; default -> "FRESE"; };
+        List<String> fields = switch (table) { case "MATERIALI_DI_CONSUMO" -> List.of("Materiale", "Marchio", "Modello"); case "CANALI_DI_ACQUISTO" -> List.of("Modalità"); case "FRESATORI" -> List.of("Marca", "Modello"); case "FORNI" -> List.of("Tecnologia", "Marca", "Modello"); default -> List.of("Marca"); };
+        ImpostazioniEditorSection editor = new ImpostazioniEditorSection(title, fields); editors.put(table, editor); return editor;
     }
 
     private VBox createForniSection() {
