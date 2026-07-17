@@ -37,7 +37,7 @@ public class ClientiPaginationBar extends StackPane {
         StackPane.setAlignment(navigation, Pos.CENTER);
         StackPane.setAlignment(resultsRangeLabel, Pos.CENTER_RIGHT);
         getChildren().addAll(rowsPerPage, navigation, resultsRangeLabel);
-        setDisabled(true);
+        setNavigationDisabled(true);
     }
 
     public void onPaginationRequested(Runnable previousAction, Runnable nextAction, IntConsumer pageAction) {
