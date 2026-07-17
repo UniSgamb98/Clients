@@ -31,8 +31,11 @@ public class ClientiPaginationBar extends StackPane {
         rowsLabel.getStyleClass().add("clients-pagination-label");
         HBox rowsPerPage = new HBox(10, rowsLabel, rowsPerPageChoiceBox);
         rowsPerPage.getStyleClass().add("clients-pagination-side");
+        rowsPerPage.setPickOnBounds(false);
         HBox navigation = new HBox(6, previousButton, pageButtons, nextButton);
         navigation.getStyleClass().add("clients-page-navigation");
+        navigation.setPickOnBounds(false);
+        resultsRangeLabel.setMouseTransparent(true);
         StackPane.setAlignment(rowsPerPage, Pos.CENTER_LEFT);
         StackPane.setAlignment(navigation, Pos.CENTER);
         StackPane.setAlignment(resultsRangeLabel, Pos.CENTER_RIGHT);
