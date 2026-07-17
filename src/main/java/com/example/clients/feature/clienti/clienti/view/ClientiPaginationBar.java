@@ -1,16 +1,17 @@
 package com.example.clients.feature.clienti.clienti.view;
 
-import javafx.geometry.Pos;
+import javafx.geometry.HPos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
 
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-public class ClientiPaginationBar extends StackPane {
+public class ClientiPaginationBar extends GridPane {
 
     private final Button previousButton = createNavigationButton("‹");
     private final Button nextButton = createNavigationButton("›");
@@ -31,15 +32,15 @@ public class ClientiPaginationBar extends StackPane {
         rowsLabel.getStyleClass().add("clients-pagination-label");
         HBox rowsPerPage = new HBox(10, rowsLabel, rowsPerPageChoiceBox);
         rowsPerPage.getStyleClass().add("clients-pagination-side");
-        rowsPerPage.setPickOnBounds(false);
         HBox navigation = new HBox(6, previousButton, pageButtons, nextButton);
         navigation.getStyleClass().add("clients-page-navigation");
-        navigation.setPickOnBounds(false);
-        resultsRangeLabel.setMouseTransparent(true);
-        StackPane.setAlignment(rowsPerPage, Pos.CENTER_LEFT);
-        StackPane.setAlignment(navigation, Pos.CENTER);
-        StackPane.setAlignment(resultsRangeLabel, Pos.CENTER_RIGHT);
-        getChildren().addAll(rowsPerPage, navigation, resultsRangeLabel);
+        getColumnConstraints().addAll(column(33.333), column(33.334), column(33.333));
+        GridPane.setHalignment(rowsPerPage, HPos.LEFT);
+        GridPane.setHalignment(navigation, HPos.CENTER);
+        GridPane.setHalignment(resultsRangeLabel, HPos.RIGHT);
+        add(rowsPerPage, 0, 0);
+        add(navigation, 1, 0);
+        add(resultsRangeLabel, 2, 0);
         setNavigationDisabled(true);
     }
 
@@ -82,5 +83,11 @@ public class ClientiPaginationBar extends StackPane {
         Button button = new Button(text);
         button.getStyleClass().add("clients-filter-button");
         return button;
+    }
+
+    private ColumnConstraints column(double percentWidth) {
+        ColumnConstraints column = new ColumnConstraints();
+        column.setPercentWidth(percentWidth);
+        return column;
     }
 }
