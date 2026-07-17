@@ -4,9 +4,9 @@ public enum SortColumn {
     NAME("C.RAGIONE_SOCIALE"),
     TYPE("C.TIPO_CLIENTE"),
     CONTACT("REFERENTE"),
-    PHONE("TELEFONO"),
-    EMAIL("EMAIL"),
-    STATUS("C.STATO_TRATTATIVA");
+    OPERATOR("OPERATORE"),
+    STATUS("C.STATO_TRATTATIVA"),
+    LAST_CONTACT("ULTIMO_CONTATTO");
 
     private final String sqlColumn;
 

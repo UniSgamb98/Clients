@@ -17,9 +17,9 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
             "C.RAGIONE_SOCIALE",
             "C.TIPO_CLIENTE",
             "REFERENTE",
-            "TELEFONO",
-            "EMAIL",
-            "C.STATO_TRATTATIVA"
+            "OPERATORE",
+            "C.STATO_TRATTATIVA",
+            "ULTIMO_CONTATTO"
     );
 
     private final Database database;
@@ -40,12 +40,13 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
         long totalRows = countAll(cleanSearchText, operatoreId, cleanTipoCliente, cleanStatoTrattativa);
         String sql = "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
                 + "COALESCE(R.REFERENTE, '') AS REFERENTE, "
-                + "COALESCE(T.TELEFONO, '') AS TELEFONO, "
-                + "COALESCE(E.EMAIL, '') AS EMAIL "
+                + "CASE WHEN TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) = '' "
+                + "THEN COALESCE(O.USERNAME, '') ELSE TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) END AS OPERATORE, "
+                + "I.ULTIMO_CONTATTO "
                 + "FROM CLIENTI C "
                 + previewAggregateJoin("CONTATTI_CLIENTE", "R", "REFERENTE")
-                + previewAggregateJoin("TELEFONI_CLIENTE", "T", "TELEFONO")
-                + previewAggregateJoin("EMAIL_CLIENTE", "E", "EMAIL")
+                + "LEFT JOIN OPERATORI O ON O.ID = C.OPERATORE_ID "
+                + "LEFT JOIN (SELECT CLIENTE_ID, MAX(DATA_CONTATTO) AS ULTIMO_CONTATTO FROM INTERAZIONI GROUP BY CLIENTE_ID) I ON I.CLIENTE_ID = C.ID "
                 + filterWhereClause(hasSearch, operatoreId != null, !cleanTipoCliente.isBlank(), !cleanStatoTrattativa.isBlank())
                 + "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", C.ID "
                 + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -62,9 +63,9 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                             valueOrEmpty(resultSet.getString("RAGIONE_SOCIALE")),
                             valueOrEmpty(resultSet.getString("TIPO_CLIENTE")),
                             valueOrEmpty(resultSet.getString("REFERENTE")),
-                            valueOrEmpty(resultSet.getString("TELEFONO")),
-                            valueOrEmpty(resultSet.getString("EMAIL")),
-                            valueOrEmpty(resultSet.getString("STATO_TRATTATIVA"))
+                            valueOrEmpty(resultSet.getString("OPERATORE")),
+                            valueOrEmpty(resultSet.getString("STATO_TRATTATIVA")),
+                            resultSet.getDate("ULTIMO_CONTATTO") == null ? null : resultSet.getDate("ULTIMO_CONTATTO").toLocalDate()
                     ));
                 }
                 return new ClientePreviewPage(previews, safePage, safePageSize, totalRows);

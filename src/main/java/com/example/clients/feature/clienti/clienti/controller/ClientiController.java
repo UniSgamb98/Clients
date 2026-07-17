@@ -19,7 +19,7 @@ import java.util.List;
 
 public class ClientiController {
 
-    private static final int PAGE_SIZE = 50;
+    private static final int DEFAULT_PAGE_SIZE = 10;
     private static final Duration SEARCH_DEBOUNCE = Duration.millis(300);
 
     private final ClientiView view;
@@ -33,6 +33,7 @@ public class ClientiController {
     private TextFilter currentTipoClienteFilter = TextFilter.empty("Tutti");
     private TextFilter currentStatoTrattativaFilter = TextFilter.empty("Tutti");
     private int currentPage;
+    private int pageSize = DEFAULT_PAGE_SIZE;
     private long loadVersion;
     private boolean clearingFilters;
 
@@ -48,11 +49,14 @@ public class ClientiController {
         view.getNameHeaderButton().setOnAction(event -> sortClienti(SortColumn.NAME));
         view.getTypeHeaderButton().setOnAction(event -> sortClienti(SortColumn.TYPE));
         view.getContactHeaderButton().setOnAction(event -> sortClienti(SortColumn.CONTACT));
-        view.getPhoneHeaderButton().setOnAction(event -> sortClienti(SortColumn.PHONE));
-        view.getEmailHeaderButton().setOnAction(event -> sortClienti(SortColumn.EMAIL));
+        view.getOperatorHeaderButton().setOnAction(event -> sortClienti(SortColumn.OPERATOR));
         view.getStatusHeaderButton().setOnAction(event -> sortClienti(SortColumn.STATUS));
+        view.getLastContactHeaderButton().setOnAction(event -> sortClienti(SortColumn.LAST_CONTACT));
         view.getPreviousPageButton().setOnAction(event -> loadPage(currentPage - 1));
         view.getNextPageButton().setOnAction(event -> loadPage(currentPage + 1));
+        view.setPageSelectionHandler(this::loadPage);
+        view.getRowsPerPageChoiceBox().getSelectionModel().selectedItemProperty()
+                .addListener((observable, oldValue, newValue) -> changePageSize(newValue));
         view.getSearchField().textProperty().addListener((observable, oldValue, newValue) -> searchClienti(newValue));
         view.getOperatorFilterChoiceBox().getSelectionModel().selectedItemProperty()
                 .addListener((observable, oldValue, newValue) -> filterByOperatore(newValue));
@@ -148,11 +152,19 @@ public class ClientiController {
         loadPage(0);
     }
 
+    private void changePageSize(Integer selectedPageSize) {
+        int newPageSize = selectedPageSize == null ? DEFAULT_PAGE_SIZE : selectedPageSize;
+        if (newPageSize != pageSize) {
+            pageSize = newPageSize;
+            loadPage(0);
+        }
+    }
+
     private void loadPage(int page) {
         currentPage = Math.max(0, page);
         ClientiSearchRequest request = new ClientiSearchRequest(
                 currentPage,
-                PAGE_SIZE,
+                pageSize,
                 currentSearchText,
                 currentOperatoreFilter.id(),
                 filterValue(currentTipoClienteFilter),
@@ -186,7 +198,7 @@ public class ClientiController {
 
     private void renderClienti(ClientiPage page) {
         currentPage = page.page();
-        view.renderPagination(page.page(), page.totalPages(), page.hasPreviousPage(), page.hasNextPage());
+        view.renderPagination(page.page(), page.totalPages(), page.hasPreviousPage(), page.hasNextPage(), page.totalRows(), page.pageSize());
         view.setResultsCount(page.totalRows());
 
         if (page.rows().isEmpty()) {
@@ -202,11 +214,20 @@ public class ClientiController {
                     preview.name(),
                     preview.type(),
                     preview.contact(),
-                    preview.phone(),
-                    preview.email(),
-                    preview.status()
+                    preview.operator(),
+                    preview.status(),
+                    preview.lastContact(),
+                    this::showRowActionsUnavailable
             ).setOnMouseClicked(event -> clientiNav.showSchedaCliente(cliente.clienteId()));
         }
+    }
+
+    private void showRowActionsUnavailable() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Funzionalità in sviluppo");
+        alert.setHeaderText("Azioni cliente");
+        alert.setContentText("Le azioni rapide sul cliente saranno disponibili prossimamente.");
+        alert.showAndWait();
     }
 
     public ClientiView getView() {
