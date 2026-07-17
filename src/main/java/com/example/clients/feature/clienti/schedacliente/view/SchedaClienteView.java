@@ -38,6 +38,7 @@ public class SchedaClienteView extends BorderPane {
     private final ClienteRelatedSections relatedSections;
     private final ClienteProfileDetailsPanel detailsPanel;
     private final ClienteTimelineSection timelineSection;
+    private final ClienteProfileResourcesPanel resourcesPanel;
 
     public SchedaClienteView() {
         sidebar = new AppSidebar();
@@ -46,6 +47,7 @@ public class SchedaClienteView extends BorderPane {
         relatedSections = new ClienteRelatedSections(RELATED_SECTIONS_GAP, RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT);
         detailsPanel = new ClienteProfileDetailsPanel(dataSection, relatedSections);
         timelineSection = new ClienteTimelineSection();
+        resourcesPanel = new ClienteProfileResourcesPanel();
         dataSection.setLinkedOptionsRefresh(relatedSections::refreshLinkedContactOptions);
         setEditMode(false);
 
@@ -59,7 +61,7 @@ public class SchedaClienteView extends BorderPane {
         content.getStyleClass().add("clients-content");
 
         VBox body = new VBox(18);
-        body.getChildren().addAll(header, createMainColumns());
+        body.getChildren().addAll(header, createMainColumns(), resourcesPanel);
 
         ScrollPane scrollPane = new ScrollPane(body);
         scrollPane.setFitToWidth(true);
