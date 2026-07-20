@@ -112,6 +112,16 @@
     -fx-font-size: 12px;
 }
 
+.client-profile-timeline-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 0;
+}
+
+.client-profile-timeline-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
 .client-profile-timeline-card,
 .client-profile-note-editor {
     -fx-background-color: -app-card-bg;
