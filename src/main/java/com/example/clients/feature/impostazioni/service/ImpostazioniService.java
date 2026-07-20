@@ -12,7 +12,7 @@ import java.util.UUID;
 import java.util.Set;
 
 public class ImpostazioniService {
-    private static final Set<String> TABLES = Set.of("MATERIALI_DI_CONSUMO", "CANALI_DI_ACQUISTO", "FRESATORI", "FORNI", "CERAMICA", "FRESE");
+    private static final Set<String> TABLES = Set.of("MATERIALI_DI_CONSUMO", "CANALI_DI_ACQUISTO", "FRESATORI", "FORNI");
     private final Database database;
     private final SchemaInitializer schemaInitializer;
 

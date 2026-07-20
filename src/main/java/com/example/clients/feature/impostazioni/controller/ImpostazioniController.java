@@ -18,8 +18,6 @@ public class ImpostazioniController {
         configure("CANALI_DI_ACQUISTO", List.of("MODALITA"));
         configure("FRESATORI", List.of("MARCA", "MODELLO"));
         configure("FORNI", List.of("TECNOLOGIA", "MARCA", "MODELLO"));
-        configure("CERAMICA", List.of("MARCA"));
-        configure("FRESE", List.of("MARCA"));
     }
 
     private void configure(String table, List<String> columns) {

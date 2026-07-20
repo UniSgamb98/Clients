@@ -8,7 +8,7 @@ import javafx.scene.layout.VBox;
 final class ClienteProfileResourcesPanel extends VBox {
 
     private static final String[] RESOURCES = {
-            "Materiali", "Forni", "Fresatori", "Ceramiche", "Frese", "Canale di vendita"
+            "Materiali", "Forni", "Fresatori", "Canale di vendita"
     };
 
     ClienteProfileResourcesPanel() {
