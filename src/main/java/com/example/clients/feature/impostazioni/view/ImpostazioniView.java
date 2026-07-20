@@ -25,9 +25,7 @@ public class ImpostazioniView extends BorderPane {
             "Materiale di Consumo",
             "Canali di acquisto",
             "Parco Fresatori",
-            "Forni",
-            "Ceramica",
-            "Fresa"
+            "Forni"
     };
 
     private final AppSidebar sidebar = new AppSidebar();
@@ -93,8 +91,8 @@ public class ImpostazioniView extends BorderPane {
     }
 
     private VBox createSection(String title) {
-        String table = switch (title) { case "Materiale di Consumo" -> "MATERIALI_DI_CONSUMO"; case "Canali di acquisto" -> "CANALI_DI_ACQUISTO"; case "Parco Fresatori" -> "FRESATORI"; case "Forni" -> "FORNI"; case "Ceramica" -> "CERAMICA"; default -> "FRESE"; };
-        List<String> fields = switch (table) { case "MATERIALI_DI_CONSUMO" -> List.of("Materiale", "Marchio", "Modello"); case "CANALI_DI_ACQUISTO" -> List.of("Modalità"); case "FRESATORI" -> List.of("Marca", "Modello"); case "FORNI" -> List.of("Tecnologia", "Marca", "Modello"); default -> List.of("Marca"); };
+        String table = switch (title) { case "Materiale di Consumo" -> "MATERIALI_DI_CONSUMO"; case "Canali di acquisto" -> "CANALI_DI_ACQUISTO"; case "Parco Fresatori" -> "FRESATORI"; default -> "FORNI"; };
+        List<String> fields = switch (table) { case "MATERIALI_DI_CONSUMO" -> List.of("Materiale", "Marchio", "Modello"); case "CANALI_DI_ACQUISTO" -> List.of("Modalità"); case "FRESATORI" -> List.of("Marca", "Modello"); default -> List.of("Tecnologia", "Marca", "Modello"); };
         ImpostazioniEditorSection editor = new ImpostazioniEditorSection(title, fields); editors.put(table, editor); return editor;
     }
 
