@@ -14,10 +14,10 @@ public class ImpostazioniController {
     public ImpostazioniController(ImpostazioniView view, ImpostazioniService service) {
         this.view = view;
         this.service = service;
-        configure("MATERIALI_DI_CONSUMO", List.of("MATERIALE", "MARCHIO", "MODELLO"));
-        configure("CANALI_DI_ACQUISTO", List.of("MODALITA"));
-        configure("FRESATORI", List.of("MARCA", "MODELLO"));
-        configure("FORNI", List.of("TECNOLOGIA", "MARCA", "MODELLO"));
+        configure("MATERIALI_DI_CONSUMO", List.of("MATERIALE", "MARCHIO", "MODELLO", "NOTA"));
+        configure("CANALI_DI_ACQUISTO", List.of("MODALITA", "NOTA"));
+        configure("FRESATORI", List.of("MARCA", "MODELLO", "NOTA"));
+        configure("FORNI", List.of("TECNOLOGIA", "MARCA", "MODELLO", "NOTA"));
     }
 
     private void configure(String table, List<String> columns) {
