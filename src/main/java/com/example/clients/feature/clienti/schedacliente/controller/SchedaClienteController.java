@@ -65,6 +65,7 @@ public class SchedaClienteController {
         view.setTipoClienteOptions(service.getTipiCliente());
         view.setStatoTrattativaOptions(service.getStatiTrattativa());
         view.setForniCatalog(service.getForniCatalog());
+        view.setFresatoriCatalog(service.getFresatoriCatalog());
         view.renderEditableProfile(service.startEdit());
     }
 

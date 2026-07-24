@@ -148,6 +148,7 @@ public class SchedaClienteService {
                 toAddressItems(record.indirizzi()),
                 toContactItems(record.contatti()),
                 findClienteForni(record.clienteId()),
+                findClienteFresatori(record.clienteId()),
                 record.timeline().stream()
                         .map(this::toInteractionPreview)
                         .toList()
@@ -175,6 +176,27 @@ public class SchedaClienteService {
             return values;
         } catch (SQLException e) {
             throw new RuntimeException("Caricamento catalogo forni non riuscito.", e);
+        }
+    }
+
+    public List<FresatoreCatalogItem> getFresatoriCatalog() {
+        if (database == null) {
+            return List.of();
+        }
+        initializeSchema();
+        String sql = "SELECT ID, MARCA, MODELLO FROM FRESATORI ORDER BY MARCA, MODELLO";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            List<FresatoreCatalogItem> values = new ArrayList<>();
+            while (resultSet.next()) {
+                values.add(new FresatoreCatalogItem(
+                        getUuid(resultSet, "ID"),
+                        cleanResult(resultSet.getString("MARCA")),
+                        cleanResult(resultSet.getString("MODELLO"))));
+            }
+            return values;
+        } catch (SQLException e) {
+            throw new RuntimeException("Caricamento catalogo fresatori non riuscito.", e);
         }
     }
 
@@ -289,6 +311,109 @@ public class SchedaClienteService {
                 || !forno.modello().isBlank();
     }
 
+    private List<FresatoreClienteItem> findClienteFresatori(UUID clienteId) {
+        if (database == null || clienteId == null) {
+            return List.of();
+        }
+        initializeSchema();
+        String sql = """
+                SELECT CF.ID AS CLIENTE_FRESATORE_ID, F.ID AS FRESATORE_ID, F.MARCA, F.MODELLO, CF.NOTA
+                FROM CLIENTI_FRESATORI CF
+                JOIN FRESATORI F ON F.ID = CF.FRESATORE_ID
+                WHERE CF.CLIENTE_ID = ?
+                ORDER BY F.MARCA, F.MODELLO
+                """;
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<FresatoreClienteItem> values = new ArrayList<>();
+                while (resultSet.next()) {
+                    values.add(new FresatoreClienteItem(
+                            getUuid(resultSet, "CLIENTE_FRESATORE_ID"),
+                            getUuid(resultSet, "FRESATORE_ID"),
+                            cleanResult(resultSet.getString("MARCA")),
+                            cleanResult(resultSet.getString("MODELLO")),
+                            cleanResult(resultSet.getString("NOTA"))));
+                }
+                return values;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Caricamento fresatori cliente non riuscito.", e);
+        }
+    }
+
+    private void saveClienteFresatori(List<FresatoreClienteEditInput> fresatori) {
+        if (database == null || currentClienteId == null) {
+            return;
+        }
+        initializeSchema();
+        try (PreparedStatement delete = database.getConnection().prepareStatement("DELETE FROM CLIENTI_FRESATORI WHERE CLIENTE_ID = ?");
+             PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO CLIENTI_FRESATORI (ID, CLIENTE_ID, FRESATORE_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
+            delete.setString(1, currentClienteId.toString());
+            delete.executeUpdate();
+            LocalDateTime now = LocalDateTime.now();
+            for (FresatoreClienteEditInput fresatore : fresatori) {
+                FresatoreClienteEditInput cleanFresatore = cleanFresatore(fresatore);
+                if (!hasFresatoreData(cleanFresatore)) {
+                    continue;
+                }
+                UUID fresatoreId = findOrCreateFresatore(cleanFresatore);
+                insert.setString(1, idOrNew(cleanFresatore.id()).toString());
+                insert.setString(2, currentClienteId.toString());
+                insert.setString(3, fresatoreId.toString());
+                insert.setString(4, nullableClean(cleanFresatore.nota()));
+                insert.setTimestamp(5, Timestamp.valueOf(now));
+                insert.addBatch();
+            }
+            insert.executeBatch();
+        } catch (SQLException e) {
+            throw new RuntimeException("Salvataggio fresatori cliente non riuscito.", e);
+        }
+    }
+
+    private UUID findOrCreateFresatore(FresatoreClienteEditInput fresatore) throws SQLException {
+        String findSql = "SELECT ID FROM FRESATORI WHERE MARCA = ? AND MODELLO = ?";
+        try (PreparedStatement find = database.getConnection().prepareStatement(findSql)) {
+            bindFresatoreIdentity(find, fresatore);
+            try (ResultSet resultSet = find.executeQuery()) {
+                if (resultSet.next()) {
+                    return getUuid(resultSet, "ID");
+                }
+            }
+        }
+
+        UUID fresatoreId = UUID.randomUUID();
+        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO FRESATORI (ID, MARCA, MODELLO) VALUES (?, ?, ?)")) {
+            insert.setString(1, fresatoreId.toString());
+            bindFresatoreIdentity(insert, fresatore, 2);
+            insert.executeUpdate();
+        }
+        return fresatoreId;
+    }
+
+    private void bindFresatoreIdentity(PreparedStatement statement, FresatoreClienteEditInput fresatore) throws SQLException {
+        bindFresatoreIdentity(statement, fresatore, 1);
+    }
+
+    private void bindFresatoreIdentity(PreparedStatement statement, FresatoreClienteEditInput fresatore, int startIndex) throws SQLException {
+        statement.setString(startIndex, fresatore.marca());
+        statement.setString(startIndex + 1, fresatore.modello());
+    }
+
+    private FresatoreClienteEditInput cleanFresatore(FresatoreClienteEditInput fresatore) {
+        return new FresatoreClienteEditInput(
+                fresatore.id(),
+                fresatore.fresatoreId(),
+                normalize(fresatore.marca()),
+                normalize(fresatore.modello()),
+                normalize(fresatore.nota()));
+    }
+
+    private boolean hasFresatoreData(FresatoreClienteEditInput fresatore) {
+        return !fresatore.marca().isBlank()
+                || !fresatore.modello().isBlank();
+    }
+
     private UUID getUuid(ResultSet resultSet, String column) throws SQLException {
         String value = resultSet.getString(column);
         return value == null || value.isBlank() ? null : UUID.fromString(value);
@@ -349,6 +474,7 @@ public class SchedaClienteService {
                 "",
                 null,
                 false,
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -447,6 +573,7 @@ public class SchedaClienteService {
                 toInterazioneUpdates(draft.interazioni(), now)
         );
         saveClienteForni(draft.forni());
+        saveClienteFresatori(draft.fresatori());
 
         editingDraft = null;
         currentFilter = TimelineFilter.ALL;
@@ -721,6 +848,7 @@ public class SchedaClienteService {
             List<AddressItem> indirizzi,
             List<ContactItem> contatti,
             List<FornoClienteItem> forni,
+            List<FresatoreClienteItem> fresatori,
             List<InteractionPreview> interazioni
     ) {
         public ClienteProfile {
@@ -730,22 +858,23 @@ public class SchedaClienteService {
             indirizzi = List.copyOf(indirizzi);
             contatti = List.copyOf(contatti);
             forni = List.copyOf(forni);
+            fresatori = List.copyOf(fresatori);
             interazioni = List.copyOf(interazioni);
         }
 
         private ClienteProfile withCoinvolgimento(Integer coinvolgimento) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
         }
 
         private ClienteProfile withFavorite(boolean favorite) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
         }
 
         private ClienteProfile withInterazioni(List<InteractionPreview> interazioni) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
         }
     }
 
@@ -763,6 +892,7 @@ public class SchedaClienteService {
             List<AddressEditInput> indirizzi,
             List<ContactEditInput> contatti,
             List<FornoClienteEditInput> forni,
+            List<FresatoreClienteEditInput> fresatori,
             List<InteractionEditInput> interazioni
     ) {
         public EditProfileDraft {
@@ -772,6 +902,7 @@ public class SchedaClienteService {
             indirizzi = List.copyOf(indirizzi);
             contatti = List.copyOf(contatti);
             forni = List.copyOf(forni);
+            fresatori = List.copyOf(fresatori);
             interazioni = List.copyOf(interazioni);
         }
 
@@ -820,6 +951,9 @@ public class SchedaClienteService {
                     profile.forni().stream()
                             .map(FornoClienteEditInput::from)
                             .toList(),
+                    profile.fresatori().stream()
+                            .map(FresatoreClienteEditInput::from)
+                            .toList(),
                     profile.interazioni().stream()
                             .map(InteractionEditInput::from)
                             .toList()
@@ -836,6 +970,18 @@ public class SchedaClienteService {
     public record FornoClienteEditInput(UUID id, UUID fornoId, String tecnologia, String anno, String marca, String modello, String nota) {
         private static FornoClienteEditInput from(FornoClienteItem item) {
             return new FornoClienteEditInput(item.id(), item.fornoId(), item.tecnologia(), item.anno(), item.marca(), item.modello(), item.nota());
+        }
+    }
+
+    public record FresatoreCatalogItem(UUID fresatoreId, String marca, String modello) {
+    }
+
+    public record FresatoreClienteItem(UUID id, UUID fresatoreId, String marca, String modello, String nota) {
+    }
+
+    public record FresatoreClienteEditInput(UUID id, UUID fresatoreId, String marca, String modello, String nota) {
+        private static FresatoreClienteEditInput from(FresatoreClienteItem item) {
+            return new FresatoreClienteEditInput(item.id(), item.fresatoreId(), item.marca(), item.modello(), item.nota());
         }
     }
 

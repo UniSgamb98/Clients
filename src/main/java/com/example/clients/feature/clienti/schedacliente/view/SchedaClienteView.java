@@ -4,6 +4,7 @@ import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ClienteProfile;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.EditProfileDraft;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreCatalogItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
@@ -104,6 +105,7 @@ public class SchedaClienteView extends BorderPane {
         relatedSections.renderAddresses(profile.indirizzi());
         timelineSection.render(profile.interazioni());
         resourcesPanel.renderForni(profile.forni());
+        resourcesPanel.renderFresatori(profile.fresatori());
     }
 
     public void renderEditableProfile(EditProfileDraft draft) {
@@ -120,6 +122,7 @@ public class SchedaClienteView extends BorderPane {
         relatedSections.renderAddressesEditor(draft.indirizzi());
         timelineSection.renderEditor(draft.interazioni());
         resourcesPanel.renderForniEditor(draft.forni());
+        resourcesPanel.renderFresatoriEditor(draft.fresatori());
     }
 
     public EditProfileDraft collectEditDraft() {
@@ -137,6 +140,7 @@ public class SchedaClienteView extends BorderPane {
                 relatedSections.collectAddresses(),
                 relatedSections.collectContacts(),
                 resourcesPanel.collectForni(),
+                resourcesPanel.collectFresatori(),
                 timelineSection.collectInteractions()
         );
     }
@@ -149,6 +153,10 @@ public class SchedaClienteView extends BorderPane {
 
     public void setForniCatalog(List<FornoCatalogItem> forniCatalog) {
         resourcesPanel.setForniCatalog(forniCatalog);
+    }
+
+    public void setFresatoriCatalog(List<FresatoreCatalogItem> fresatoriCatalog) {
+        resourcesPanel.setFresatoriCatalog(fresatoriCatalog);
     }
 
     public void setFavorite(boolean favorite) {
