@@ -198,7 +198,13 @@ public class ClientiController {
                     preview.lastContact(),
                     this::showRowActionsUnavailable
             );
-            row.setOnMouseClicked(event -> view.openClientDetails(preview, row, () -> clientiNav.showSchedaCliente(cliente.clienteId())));
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2) {
+                    clientiNav.showSchedaCliente(cliente.clienteId());
+                    return;
+                }
+                view.openClientDetails(preview, row, () -> clientiNav.showSchedaCliente(cliente.clienteId()));
+            });
         }
         loadedRows += page.rows().size();
 
