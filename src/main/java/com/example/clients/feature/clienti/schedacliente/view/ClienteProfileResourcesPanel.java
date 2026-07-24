@@ -14,6 +14,7 @@ import javafx.scene.layout.VBox;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -26,6 +27,7 @@ final class ClienteProfileResourcesPanel extends VBox {
     private final List<FornoCatalogItem> forniCatalog = new ArrayList<>();
     private final List<FornoEditorRow> fornoEditorRows = new ArrayList<>();
     private boolean editMode;
+    private boolean refreshingSuggestions;
 
     ClienteProfileResourcesPanel() {
         super(12);
@@ -186,22 +188,46 @@ final class ClienteProfileResourcesPanel extends VBox {
                 .filter(row -> row.contains(comboBox))
                 .findFirst()
                 .ifPresent(this::refreshSuggestions));
-        comboBox.getEditor().textProperty().addListener((observable, oldValue, newValue) -> fornoEditorRows.stream()
-                .filter(row -> row.contains(comboBox))
-                .findFirst()
-                .ifPresent(this::refreshSuggestions));
+        comboBox.getEditor().textProperty().addListener((observable, oldValue, newValue) -> {
+            if (refreshingSuggestions) {
+                return;
+            }
+            fornoEditorRows.stream()
+                    .filter(row -> row.contains(comboBox))
+                    .findFirst()
+                    .ifPresent(this::refreshSuggestions);
+        });
         return comboBox;
     }
 
     private void refreshSuggestions(FornoEditorRow row) {
-        updateSuggestions(row.tecnologia(), FornoCatalogItem::tecnologia, row, false);
-        updateSuggestions(row.anno(), FornoCatalogItem::anno, row, false);
-        updateSuggestions(row.marca(), FornoCatalogItem::marca, row, false);
-        updateSuggestions(row.modello(), FornoCatalogItem::modello, row, true);
+        if (refreshingSuggestions) {
+            return;
+        }
+        refreshingSuggestions = true;
+        try {
+            updateSuggestions(row.tecnologia(), FornoCatalogItem::tecnologia, row, false);
+            updateSuggestions(row.anno(), FornoCatalogItem::anno, row, false);
+            updateSuggestions(row.marca(), FornoCatalogItem::marca, row, false);
+            updateSuggestions(row.modello(), FornoCatalogItem::modello, row, true);
+        } finally {
+            refreshingSuggestions = false;
+        }
     }
 
     private void updateSuggestions(ComboBox<String> field, Function<FornoCatalogItem, String> extractor, FornoEditorRow row, boolean filterByMarca) {
         String currentText = textOf(field);
+        List<String> values = suggestionsFor(extractor, row, field, filterByMarca);
+        if (!field.getItems().equals(values)) {
+            field.getItems().setAll(values);
+        }
+        if (!textOf(field).equals(currentText)) {
+            field.getEditor().setText(currentText);
+            field.getEditor().positionCaret(currentText.length());
+        }
+    }
+
+    private List<String> suggestionsFor(Function<FornoCatalogItem, String> extractor, FornoEditorRow row, ComboBox<String> field, boolean filterByMarca) {
         Set<String> values = new LinkedHashSet<>();
         for (FornoCatalogItem item : forniCatalog) {
             if (matches(row.tecnologia(), item.tecnologia(), field)
@@ -214,8 +240,7 @@ final class ClienteProfileResourcesPanel extends VBox {
                 }
             }
         }
-        field.getItems().setAll(values);
-        field.getEditor().setText(currentText);
+        return new ArrayList<>(values);
     }
 
     private boolean matches(ComboBox<String> field, String candidate, ComboBox<String> ignoredField) {
