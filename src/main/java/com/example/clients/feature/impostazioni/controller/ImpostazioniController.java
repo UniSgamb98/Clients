@@ -17,7 +17,7 @@ public class ImpostazioniController {
         configure("MATERIALI_DI_CONSUMO", List.of("MATERIALE", "MARCHIO", "MODELLO", "NOTA"));
         configure("CANALI_DI_ACQUISTO", List.of("MODALITA", "NOTA"));
         configure("FRESATORI", List.of("MARCA", "MODELLO", "NOTA"));
-        configure("FORNI", List.of("TECNOLOGIA", "MARCA", "MODELLO", "NOTA"));
+        configure("FORNI", List.of("TECNOLOGIA", "ANNO", "MARCA", "MODELLO"));
     }
 
     private void configure(String table, List<String> columns) {
