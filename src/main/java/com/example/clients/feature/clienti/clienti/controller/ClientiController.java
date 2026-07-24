@@ -20,7 +20,7 @@ import java.util.List;
 
 public class ClientiController {
 
-    private static final int INITIAL_LOAD_SIZE = 15;
+    private static final int INITIAL_LOAD_SIZE = 30;
     private static final int LOAD_MORE_SIZE = 50;
     private static final Duration SEARCH_DEBOUNCE = Duration.millis(300);
 
