@@ -3,7 +3,7 @@ package com.example.clients.feature.clienti.clienti.dto;
 import java.util.UUID;
 
 public record ClientiSearchRequest(
-        int page,
+        int offset,
         int pageSize,
         String searchText,
         UUID operatoreId,
@@ -13,7 +13,7 @@ public record ClientiSearchRequest(
         boolean ascending
 ) {
     public ClientiSearchRequest {
-        page = Math.max(0, page);
+        offset = Math.max(0, offset);
         pageSize = Math.max(1, pageSize);
         searchText = searchText == null ? "" : searchText.trim();
         tipoCliente = tipoCliente == null ? "" : tipoCliente.trim();

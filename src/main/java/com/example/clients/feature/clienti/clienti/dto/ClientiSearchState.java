@@ -1,7 +1,7 @@
 package com.example.clients.feature.clienti.clienti.dto;
 
 public record ClientiSearchState(
-        int page,
+        int offset,
         int pageSize,
         String searchText,
         OperatoreFilter operatore,
@@ -11,7 +11,7 @@ public record ClientiSearchState(
         boolean ascending
 ) {
     public ClientiSearchState {
-        page = Math.max(0, page);
+        offset = Math.max(0, offset);
         pageSize = Math.max(1, pageSize);
         searchText = searchText == null ? "" : searchText.trim();
         operatore = operatore == null ? OperatoreFilter.empty() : operatore;
@@ -24,8 +24,8 @@ public record ClientiSearchState(
         return new ClientiSearchState(0, pageSize, "", OperatoreFilter.empty(), TextFilter.empty("Tutti"), TextFilter.empty("Tutti"), SortColumn.NAME, true);
     }
 
-    public ClientiSearchState withPage(int page) {
-        return new ClientiSearchState(page, pageSize, searchText, operatore, tipologia, stato, sortColumn, ascending);
+    public ClientiSearchState withOffset(int offset) {
+        return new ClientiSearchState(offset, pageSize, searchText, operatore, tipologia, stato, sortColumn, ascending);
     }
 
     public ClientiSearchState withPageSize(int pageSize) {
@@ -53,7 +53,7 @@ public record ClientiSearchState(
     }
 
     public ClientiSearchRequest toRequest() {
-        return new ClientiSearchRequest(page, pageSize, searchText, operatore.id(), value(tipologia), value(stato), sortColumn, ascending);
+        return new ClientiSearchRequest(offset, pageSize, searchText, operatore.id(), value(tipologia), value(stato), sortColumn, ascending);
     }
 
     private String value(TextFilter filter) {

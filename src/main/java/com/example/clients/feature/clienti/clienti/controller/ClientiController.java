@@ -20,7 +20,8 @@ import java.util.List;
 
 public class ClientiController {
 
-    private static final int PAGE_SIZE = 50;
+    private static final int INITIAL_LOAD_SIZE = 15;
+    private static final int LOAD_MORE_SIZE = 50;
     private static final Duration SEARCH_DEBOUNCE = Duration.millis(300);
 
     private final ClientiView view;
@@ -28,11 +29,12 @@ public class ClientiController {
     private final ClientiService service;
     private final ClientiFeedback feedback;
     private final PauseTransition searchDebounce = new PauseTransition(SEARCH_DEBOUNCE);
-    private ClientiSearchState searchState = ClientiSearchState.initial(PAGE_SIZE);
+    private ClientiSearchState searchState = ClientiSearchState.initial(INITIAL_LOAD_SIZE);
     private long loadVersion;
     private boolean clearingFilters;
     private boolean loadingPage;
     private boolean hasNextPage;
+    private int loadedRows;
 
     public ClientiController(ClientiView view, ClientiNav clientiNav, ClientiService service) {
         this.view = view;
@@ -112,7 +114,7 @@ public class ClientiController {
         clearingFilters = true;
         searchDebounce.stop();
         view.clearFilters();
-        searchState = ClientiSearchState.initial(PAGE_SIZE);
+        searchState = ClientiSearchState.initial(INITIAL_LOAD_SIZE);
         clearingFilters = false;
         reloadClients();
     }
@@ -128,20 +130,22 @@ public class ClientiController {
 
     private void reloadClients() {
         hasNextPage = false;
-        loadPage(0, false);
+        loadedRows = 0;
+        searchState = searchState.withPageSize(INITIAL_LOAD_SIZE);
+        loadPage(0, INITIAL_LOAD_SIZE, false);
     }
 
     private void loadNextPage() {
         if (hasNextPage && !loadingPage) {
-            loadPage(searchState.page() + 1, true);
+            loadPage(loadedRows, LOAD_MORE_SIZE, true);
         }
     }
 
-    private void loadPage(int page, boolean append) {
+    private void loadPage(int offset, int pageSize, boolean append) {
         if (append && (!hasNextPage || loadingPage)) {
             return;
         }
-        searchState = searchState.withPage(page);
+        searchState = searchState.withPageSize(pageSize).withOffset(offset);
         ClientiSearchRequest request = searchState.toRequest();
         long version = ++loadVersion;
         loadingPage = true;
@@ -169,7 +173,7 @@ public class ClientiController {
     }
 
     private void renderClienti(ClientiPage page, boolean append) {
-        searchState = searchState.withPage(page.page());
+        searchState = searchState.withOffset(page.offset());
         hasNextPage = page.hasNextPage();
         view.setResultsCount(page.totalRows());
 
@@ -180,6 +184,7 @@ public class ClientiController {
 
         if (!append) {
             view.clearClientRows();
+            loadedRows = 0;
         }
 
         for (ClientePreviewRow cliente : page.rows()) {
@@ -195,6 +200,7 @@ public class ClientiController {
             );
             row.setOnMouseClicked(event -> view.openClientDetails(preview, row, () -> clientiNav.showSchedaCliente(cliente.clienteId())));
         }
+        loadedRows += page.rows().size();
 
         if (hasNextPage) {
             view.showLoadMoreAvailable();

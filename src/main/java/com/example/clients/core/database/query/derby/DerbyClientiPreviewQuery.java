@@ -36,12 +36,11 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
     }
 
     @Override
-    public ClientePreviewPage findPage(int page, int pageSize, String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa, String orderByColumn, boolean ascending) {
+    public ClientePreviewPage findPage(int offset, int pageSize, String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa, String orderByColumn, boolean ascending) {
         schemaInitializer.initialize();
 
-        int safePage = Math.max(0, page);
+        int safeOffset = Math.max(0, offset);
         int safePageSize = Math.max(1, pageSize);
-        int offset = safePage * safePageSize;
         String cleanSearchText = cleanSearchText(searchText);
         boolean hasSearch = !cleanSearchText.isBlank();
         String cleanTipoCliente = cleanFilterText(tipoCliente);
@@ -51,7 +50,7 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
 
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             int parameterIndex = bindFilterParameters(statement, cleanSearchText, hasSearch, operatoreId, cleanTipoCliente, cleanStatoTrattativa, 1);
-            statement.setInt(parameterIndex, offset);
+            statement.setInt(parameterIndex, safeOffset);
             statement.setInt(parameterIndex + 1, safePageSize);
             try (ResultSet resultSet = statement.executeQuery()) {
                 List<ClientePreviewRecord> previews = new ArrayList<>();
@@ -67,7 +66,7 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                             resultSet.getDate("ULTIMO_CONTATTO") == null ? null : resultSet.getDate("ULTIMO_CONTATTO").toLocalDate()
                     ));
                 }
-                return new ClientePreviewPage(previews, safePage, safePageSize, totalRows);
+                return new ClientePreviewPage(previews, safeOffset, safePageSize, totalRows);
             }
         } catch (SQLException e) {
             throw new RuntimeException("Errore caricamento anteprima clienti.", e);
