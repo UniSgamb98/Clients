@@ -195,36 +195,59 @@ final class ClienteProfileResourcesPanel extends VBox {
             fornoEditorRows.stream()
                     .filter(row -> row.contains(comboBox))
                     .findFirst()
-                    .ifPresent(this::refreshSuggestions);
+                    .ifPresent(row -> refreshSuggestions(row, comboBox));
         });
         return comboBox;
     }
 
     private void refreshSuggestions(FornoEditorRow row) {
+        refreshSuggestions(row, null);
+    }
+
+    private void refreshSuggestions(FornoEditorRow row, ComboBox<String> activeField) {
         if (refreshingSuggestions) {
             return;
         }
         refreshingSuggestions = true;
         try {
-            updateSuggestions(row.tecnologia(), FornoCatalogItem::tecnologia, row, false);
-            updateSuggestions(row.anno(), FornoCatalogItem::anno, row, false);
-            updateSuggestions(row.marca(), FornoCatalogItem::marca, row, false);
-            updateSuggestions(row.modello(), FornoCatalogItem::modello, row, true);
+            updateSuggestions(row.tecnologia(), FornoCatalogItem::tecnologia, row, false, activeField);
+            updateSuggestions(row.anno(), FornoCatalogItem::anno, row, false, activeField);
+            updateSuggestions(row.marca(), FornoCatalogItem::marca, row, false, activeField);
+            updateSuggestions(row.modello(), FornoCatalogItem::modello, row, true, activeField);
         } finally {
             refreshingSuggestions = false;
         }
     }
 
-    private void updateSuggestions(ComboBox<String> field, Function<FornoCatalogItem, String> extractor, FornoEditorRow row, boolean filterByMarca) {
+    private void updateSuggestions(ComboBox<String> field, Function<FornoCatalogItem, String> extractor, FornoEditorRow row, boolean filterByMarca, ComboBox<String> activeField) {
         String currentText = textOf(field);
         List<String> values = suggestionsFor(extractor, row, field, filterByMarca);
         if (!field.getItems().equals(values)) {
             field.getItems().setAll(values);
         }
+        if (field == activeField && applyFirstSuggestionCompletion(field, currentText, values)) {
+            return;
+        }
         if (!textOf(field).equals(currentText)) {
             field.getEditor().setText(currentText);
             field.getEditor().positionCaret(currentText.length());
         }
+    }
+
+    private boolean applyFirstSuggestionCompletion(ComboBox<String> field, String typedText, List<String> suggestions) {
+        if (typedText.isBlank()) {
+            return false;
+        }
+        return suggestions.stream()
+                .filter(value -> value.length() > typedText.length())
+                .filter(value -> value.regionMatches(true, 0, typedText, 0, typedText.length()))
+                .findFirst()
+                .map(value -> {
+                    field.getEditor().setText(value);
+                    field.getEditor().selectRange(typedText.length(), value.length());
+                    return true;
+                })
+                .orElse(false);
     }
 
     private List<String> suggestionsFor(Function<FornoCatalogItem, String> extractor, FornoEditorRow row, ComboBox<String> field, boolean filterByMarca) {
