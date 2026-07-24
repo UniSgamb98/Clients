@@ -1,0 +1,73 @@
+package com.example.clients.feature.clienti.schedacliente.view;
+
+import javafx.application.Platform;
+import javafx.scene.control.ComboBox;
+
+import java.util.List;
+import java.util.function.Consumer;
+
+/** Editable combo box that shows suggestions and keeps the suggested suffix selected. */
+final class ResourceAutocompleteComboBox extends ComboBox<String> {
+
+    private boolean refreshingSuggestions;
+
+    ResourceAutocompleteComboBox(String value, String prompt, Consumer<ResourceAutocompleteComboBox> onUserTextChanged) {
+        setEditable(true);
+        setValue(display(value));
+        setPromptText(prompt);
+        getStyleClass().add("client-profile-resource-combo");
+        getEditor().textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!refreshingSuggestions) {
+                onUserTextChanged.accept(this);
+            }
+        });
+    }
+
+    void setSuggestions(List<String> suggestions, boolean completeFirstSuggestion) {
+        String typedText = textValue();
+        refreshingSuggestions = true;
+        try {
+            if (!getItems().equals(suggestions)) {
+                getItems().setAll(suggestions);
+            }
+            if (completeFirstSuggestion && applyFirstSuggestionCompletion(typedText, suggestions)) {
+                return;
+            }
+            if (!textValue().equals(typedText)) {
+                getEditor().setText(typedText);
+                getEditor().positionCaret(typedText.length());
+            }
+        } finally {
+            refreshingSuggestions = false;
+        }
+    }
+
+    String textValue() {
+        String value = getEditor().getText();
+        return value == null ? "" : value;
+    }
+
+    String trimmedTextValue() {
+        return textValue().trim();
+    }
+
+    private boolean applyFirstSuggestionCompletion(String typedText, List<String> suggestions) {
+        if (typedText.isBlank()) {
+            return false;
+        }
+        return suggestions.stream()
+                .filter(value -> value.length() > typedText.length())
+                .filter(value -> value.regionMatches(true, 0, typedText, 0, typedText.length()))
+                .findFirst()
+                .map(value -> {
+                    getEditor().setText(value);
+                    Platform.runLater(() -> getEditor().selectRange(typedText.length(), value.length()));
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    private String display(String value) {
+        return value == null ? "" : value;
+    }
+}
