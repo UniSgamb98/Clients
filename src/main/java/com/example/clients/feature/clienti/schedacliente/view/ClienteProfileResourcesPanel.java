@@ -3,6 +3,7 @@ package com.example.clients.feature.clienti.schedacliente.view;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoCatalogItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
+import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -244,7 +245,7 @@ final class ClienteProfileResourcesPanel extends VBox {
                 .findFirst()
                 .map(value -> {
                     field.getEditor().setText(value);
-                    field.getEditor().selectRange(typedText.length(), value.length());
+                    Platform.runLater(() -> field.getEditor().selectRange(typedText.length(), value.length()));
                     return true;
                 })
                 .orElse(false);
