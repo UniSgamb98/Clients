@@ -3,6 +3,9 @@ package com.example.clients.feature.clienti.schedacliente.view;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoCatalogItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteItem;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
@@ -22,8 +25,11 @@ final class ClienteProfileResourcesPanel extends VBox {
 
     private final FlowPane resources = new FlowPane(12, 12);
     private final ClienteResourceSection forniSection = new ClienteResourceSection("Forni", "+ Forno");
+    private final ClienteResourceSection fresatoriSection = new ClienteResourceSection("Fresatori", "+ Fresatore");
     private final List<FornoCatalogItem> forniCatalog = new ArrayList<>();
+    private final List<FresatoreCatalogItem> fresatoriCatalog = new ArrayList<>();
     private final List<FornoEditorRow> fornoEditorRows = new ArrayList<>();
+    private final List<FresatoreEditorRow> fresatoreEditorRows = new ArrayList<>();
     private boolean editMode;
 
     ClienteProfileResourcesPanel() {
@@ -34,7 +40,9 @@ final class ClienteProfileResourcesPanel extends VBox {
         title.getStyleClass().add("client-profile-resources-title");
 
         resources.getStyleClass().add("client-profile-resources-flow");
+        resources.getChildren().setAll(forniSection, fresatoriSection);
         forniSection.addButton().setOnAction(event -> addFornoEditorRow(emptyForno()));
+        fresatoriSection.addButton().setOnAction(event -> addFresatoreEditorRow(emptyFresatore()));
         setEditMode(false);
 
         getChildren().addAll(title, resources);
@@ -48,9 +56,16 @@ final class ClienteProfileResourcesPanel extends VBox {
         fornoEditorRows.forEach(this::refreshSuggestions);
     }
 
+    void setFresatoriCatalog(List<FresatoreCatalogItem> values) {
+        fresatoriCatalog.clear();
+        if (values != null) {
+            fresatoriCatalog.addAll(values);
+        }
+        fresatoreEditorRows.forEach(this::refreshSuggestions);
+    }
+
     void renderForni(List<FornoClienteItem> forni) {
         editMode = false;
-        resources.getChildren().setAll(forniSection);
         forniSection.clearCards();
         forniSection.setAddButtonVisible(false);
 
@@ -66,7 +81,6 @@ final class ClienteProfileResourcesPanel extends VBox {
 
     void renderForniEditor(List<FornoClienteEditInput> forni) {
         editMode = true;
-        resources.getChildren().setAll(forniSection);
         forniSection.clearCards();
         fornoEditorRows.clear();
         forniSection.setAddButtonVisible(true);
@@ -85,6 +99,41 @@ final class ClienteProfileResourcesPanel extends VBox {
                 .toList();
     }
 
+    void renderFresatori(List<FresatoreClienteItem> fresatori) {
+        editMode = false;
+        fresatoriSection.clearCards();
+        fresatoriSection.setAddButtonVisible(false);
+
+        if (fresatori == null || fresatori.isEmpty()) {
+            fresatoriSection.addCard(createEmptyLabel("Nessun fresatore associato"));
+            return;
+        }
+
+        for (FresatoreClienteItem fresatore : fresatori) {
+            fresatoriSection.addCard(createFresatoreCard(fresatore));
+        }
+    }
+
+    void renderFresatoriEditor(List<FresatoreClienteEditInput> fresatori) {
+        editMode = true;
+        fresatoriSection.clearCards();
+        fresatoreEditorRows.clear();
+        fresatoriSection.setAddButtonVisible(true);
+
+        if (fresatori == null || fresatori.isEmpty()) {
+            addFresatoreEditorRow(emptyFresatore());
+            return;
+        }
+
+        fresatori.forEach(this::addFresatoreEditorRow);
+    }
+
+    List<FresatoreClienteEditInput> collectFresatori() {
+        return fresatoreEditorRows.stream()
+                .map(FresatoreEditorRow::toInput)
+                .toList();
+    }
+
     private VBox createFornoCard(FornoClienteItem forno) {
         VBox card = new VBox(8);
         card.getStyleClass().add("client-profile-forno-card");
@@ -94,6 +143,18 @@ final class ClienteProfileResourcesPanel extends VBox {
         );
         if (forno.nota() != null && !forno.nota().isBlank()) {
             Label note = new Label("Nota: " + forno.nota());
+            note.getStyleClass().add("client-profile-resource-note");
+            card.getChildren().add(note);
+        }
+        return card;
+    }
+
+    private VBox createFresatoreCard(FresatoreClienteItem fresatore) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("client-profile-forno-card");
+        card.getChildren().add(createFornoDisplayRow("Marca: " + display(fresatore.marca()), "Modello: " + display(fresatore.modello())));
+        if (fresatore.nota() != null && !fresatore.nota().isBlank()) {
+            Label note = new Label("Nota: " + fresatore.nota());
             note.getStyleClass().add("client-profile-resource-note");
             card.getChildren().add(note);
         }
@@ -143,6 +204,35 @@ final class ClienteProfileResourcesPanel extends VBox {
         refreshSuggestions(editorRow);
     }
 
+    private void addFresatoreEditorRow(FresatoreClienteEditInput fresatore) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("client-profile-forno-card");
+
+        ResourceAutocompleteComboBox marca = createFresatoreAutocompleteComboBox(fresatore.marca(), "Marca");
+        ResourceAutocompleteComboBox modello = createFresatoreAutocompleteComboBox(fresatore.modello(), "Modello");
+        TextArea nota = new TextArea(display(fresatore.nota()));
+        nota.setPromptText("Nota cliente-fresatore");
+        nota.getStyleClass().add("client-profile-resource-note-editor");
+
+        Button remove = new Button("−");
+        remove.getStyleClass().add("client-profile-delete-interaction-button");
+
+        FresatoreEditorRow editorRow = new FresatoreEditorRow(fresatore.id(), fresatore.fresatoreId(), card, marca, modello, nota);
+        fresatoreEditorRows.add(editorRow);
+        remove.setOnAction(event -> {
+            fresatoreEditorRows.remove(editorRow);
+            fresatoriSection.removeCard(card);
+        });
+
+        card.getChildren().addAll(
+                createFornoEditorLine("Marca", marca, "Modello", modello),
+                nota,
+                remove
+        );
+        fresatoriSection.addCard(card);
+        refreshSuggestions(editorRow);
+    }
+
     private HBox createFornoEditorLine(String firstLabel, ResourceAutocompleteComboBox firstField, String secondLabel, ResourceAutocompleteComboBox secondField) {
         HBox row = new HBox(10);
         row.getStyleClass().add("client-profile-forno-row");
@@ -170,6 +260,18 @@ final class ClienteProfileResourcesPanel extends VBox {
         return comboBox;
     }
 
+    private ResourceAutocompleteComboBox createFresatoreAutocompleteComboBox(String value, String prompt) {
+        ResourceAutocompleteComboBox comboBox = new ResourceAutocompleteComboBox(value, prompt, field -> fresatoreEditorRows.stream()
+                .filter(row -> row.contains(field))
+                .findFirst()
+                .ifPresent(row -> refreshSuggestions(row, field)));
+        comboBox.setOnShowing(event -> fresatoreEditorRows.stream()
+                .filter(row -> row.contains(comboBox))
+                .findFirst()
+                .ifPresent(this::refreshSuggestions));
+        return comboBox;
+    }
+
     private void refreshSuggestions(FornoEditorRow row) {
         refreshSuggestions(row, null);
     }
@@ -181,8 +283,21 @@ final class ClienteProfileResourcesPanel extends VBox {
         updateSuggestions(row.modello(), FornoCatalogItem::modello, row, true, activeField);
     }
 
+    private void refreshSuggestions(FresatoreEditorRow row) {
+        refreshSuggestions(row, null);
+    }
+
+    private void refreshSuggestions(FresatoreEditorRow row, ResourceAutocompleteComboBox activeField) {
+        updateSuggestions(row.marca(), FresatoreCatalogItem::marca, row, activeField);
+        updateSuggestions(row.modello(), FresatoreCatalogItem::modello, row, activeField);
+    }
+
     private void updateSuggestions(ResourceAutocompleteComboBox field, Function<FornoCatalogItem, String> extractor, FornoEditorRow row, boolean filterByMarca, ResourceAutocompleteComboBox activeField) {
         field.setSuggestions(suggestionsFor(extractor, row, field, filterByMarca), field == activeField);
+    }
+
+    private void updateSuggestions(ResourceAutocompleteComboBox field, Function<FresatoreCatalogItem, String> extractor, FresatoreEditorRow row, ResourceAutocompleteComboBox activeField) {
+        field.setSuggestions(suggestionsFor(extractor, row, field), field == activeField);
     }
 
     private List<String> suggestionsFor(Function<FornoCatalogItem, String> extractor, FornoEditorRow row, ResourceAutocompleteComboBox field, boolean filterByMarca) {
@@ -192,6 +307,20 @@ final class ClienteProfileResourcesPanel extends VBox {
                     && matches(row.anno(), item.anno(), field)
                     && matches(row.marca(), item.marca(), field)
                     && (!filterByMarca || matches(row.marca(), item.marca(), null))) {
+                String value = extractor.apply(item);
+                if (value != null && !value.isBlank()) {
+                    values.add(value);
+                }
+            }
+        }
+        return new ArrayList<>(values);
+    }
+
+    private List<String> suggestionsFor(Function<FresatoreCatalogItem, String> extractor, FresatoreEditorRow row, ResourceAutocompleteComboBox field) {
+        Set<String> values = new LinkedHashSet<>();
+        for (FresatoreCatalogItem item : fresatoriCatalog) {
+            if (matches(row.marca(), item.marca(), field)
+                    && matches(row.modello(), item.modello(), field)) {
                 String value = extractor.apply(item);
                 if (value != null && !value.isBlank()) {
                     values.add(value);
@@ -217,6 +346,10 @@ final class ClienteProfileResourcesPanel extends VBox {
 
     private FornoClienteEditInput emptyForno() {
         return new FornoClienteEditInput(null, null, "", "", "", "", "");
+    }
+
+    private FresatoreClienteEditInput emptyFresatore() {
+        return new FresatoreClienteEditInput(null, null, "", "", "");
     }
 
     private String textOf(ResourceAutocompleteComboBox field) {
@@ -253,4 +386,25 @@ final class ClienteProfileResourcesPanel extends VBox {
             return field.trimmedTextValue();
         }
     }
+    private record FresatoreEditorRow(
+            UUID id,
+            UUID fresatoreId,
+            VBox card,
+            ResourceAutocompleteComboBox marca,
+            ResourceAutocompleteComboBox modello,
+            TextArea nota
+    ) {
+        private boolean contains(ResourceAutocompleteComboBox field) {
+            return marca == field || modello == field;
+        }
+
+        private FresatoreClienteEditInput toInput() {
+            return new FresatoreClienteEditInput(id, fresatoreId, text(marca), text(modello), nota.getText());
+        }
+
+        private static String text(ResourceAutocompleteComboBox field) {
+            return field.trimmedTextValue();
+        }
+    }
+
 }

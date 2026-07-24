@@ -16,7 +16,7 @@ public class ImpostazioniController {
         this.service = service;
         configure("MATERIALI_DI_CONSUMO", List.of("MATERIALE", "MARCHIO", "MODELLO", "NOTA"));
         configure("CANALI_DI_ACQUISTO", List.of("MODALITA", "NOTA"));
-        configure("FRESATORI", List.of("MARCA", "MODELLO", "NOTA"));
+        configure("FRESATORI", List.of("MARCA", "MODELLO"));
         configure("FORNI", List.of("TECNOLOGIA", "ANNO", "MARCA", "MODELLO"));
     }
 
