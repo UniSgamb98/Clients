@@ -34,7 +34,7 @@ public class ClientiService {
 
     public ClientiPage getClientiPreview(ClientiSearchRequest request) {
         ClientiPreviewQuery.ClientePreviewPage page = clientiPreviewQuery.findPage(
-                request.page(),
+                request.offset(),
                 request.pageSize(),
                 request.searchText(),
                 request.operatoreId(),
@@ -47,7 +47,7 @@ public class ClientiService {
                 page.records().stream()
                         .map(this::toPreviewRow)
                         .toList(),
-                page.page(),
+                page.offset(),
                 page.pageSize(),
                 page.totalRows()
         );
