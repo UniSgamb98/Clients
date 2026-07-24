@@ -15,7 +15,9 @@ final class ResourceAutocompleteComboBox extends ComboBox<String> {
 
     ResourceAutocompleteComboBox(String value, String prompt, Consumer<ResourceAutocompleteComboBox> onUserTextChanged) {
         setEditable(true);
-        setValue(display(value));
+        String initialValue = display(value);
+        setValue(initialValue);
+        getEditor().setText(initialValue);
         setPromptText(prompt);
         getStyleClass().add("client-profile-resource-combo");
         getEditor().setOnKeyPressed(event -> lastEditWasDeletion = event.getCode() == KeyCode.BACK_SPACE || event.getCode() == KeyCode.DELETE);
