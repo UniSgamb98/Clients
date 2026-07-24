@@ -1,6 +1,7 @@
 package com.example.clients.feature.clienti.schedacliente.service;
 
 import com.example.clients.core.database.Database;
+import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.core.database.model.Cliente;
 import com.example.clients.core.database.model.ContattoCliente;
 import com.example.clients.core.database.model.EmailCliente;
@@ -24,6 +25,10 @@ import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
 
 import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,13 +42,15 @@ public class SchedaClienteService {
     private final CurrentOperatoreService currentOperatoreService;
     private final TipoClienteQuery tipoClienteQuery;
     private final StatoTrattativaQuery statoTrattativaQuery;
+    private final Database database;
+    private final SchemaInitializer schemaInitializer;
     private ClienteProfile currentProfile;
     private EditProfileDraft editingDraft;
     private UUID currentClienteId;
     private TimelineFilter currentFilter = TimelineFilter.ALL;
 
     public SchedaClienteService(Database database) {
-        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService(), new DerbyTipoClienteQuery(database), new DerbyStatoTrattativaQuery(database));
+        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService(), new DerbyTipoClienteQuery(database), new DerbyStatoTrattativaQuery(database), database);
     }
 
     public SchedaClienteService(
@@ -70,11 +77,24 @@ public class SchedaClienteService {
             TipoClienteQuery tipoClienteQuery,
             StatoTrattativaQuery statoTrattativaQuery
     ) {
+        this(profileQuery, persistenceService, currentOperatoreService, tipoClienteQuery, statoTrattativaQuery, null);
+    }
+
+    private SchedaClienteService(
+            ClienteProfileQuery profileQuery,
+            ClientePersistenceService persistenceService,
+            CurrentOperatoreService currentOperatoreService,
+            TipoClienteQuery tipoClienteQuery,
+            StatoTrattativaQuery statoTrattativaQuery,
+            Database database
+    ) {
         this.profileQuery = profileQuery;
         this.persistenceService = persistenceService;
         this.currentOperatoreService = currentOperatoreService;
         this.tipoClienteQuery = tipoClienteQuery;
         this.statoTrattativaQuery = statoTrattativaQuery;
+        this.database = database;
+        this.schemaInitializer = database == null ? null : new SchemaInitializer(database);
     }
 
     public List<String> getTipiCliente() {
@@ -127,12 +147,162 @@ public class SchedaClienteService {
                 toValueItems(record.sitiWeb()),
                 toAddressItems(record.indirizzi()),
                 toContactItems(record.contatti()),
+                findClienteForni(record.clienteId()),
                 record.timeline().stream()
                         .map(this::toInteractionPreview)
                         .toList()
         );
     }
 
+
+    public List<FornoCatalogItem> getForniCatalog() {
+        if (database == null) {
+            return List.of();
+        }
+        initializeSchema();
+        String sql = "SELECT ID, TECNOLOGIA, ANNO, MARCA, MODELLO FROM FORNI ORDER BY MARCA, MODELLO, TECNOLOGIA, ANNO";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            List<FornoCatalogItem> values = new ArrayList<>();
+            while (resultSet.next()) {
+                values.add(new FornoCatalogItem(
+                        getUuid(resultSet, "ID"),
+                        cleanResult(resultSet.getString("TECNOLOGIA")),
+                        cleanResult(resultSet.getString("ANNO")),
+                        cleanResult(resultSet.getString("MARCA")),
+                        cleanResult(resultSet.getString("MODELLO"))));
+            }
+            return values;
+        } catch (SQLException e) {
+            throw new RuntimeException("Caricamento catalogo forni non riuscito.", e);
+        }
+    }
+
+    private List<FornoClienteItem> findClienteForni(UUID clienteId) {
+        if (database == null || clienteId == null) {
+            return List.of();
+        }
+        initializeSchema();
+        String sql = """
+                SELECT CF.ID AS CLIENTE_FORNO_ID, F.ID AS FORNO_ID, F.TECNOLOGIA, F.ANNO, F.MARCA, F.MODELLO, CF.NOTA
+                FROM CLIENTI_FORNI CF
+                JOIN FORNI F ON F.ID = CF.FORNO_ID
+                WHERE CF.CLIENTE_ID = ?
+                ORDER BY F.MARCA, F.MODELLO, F.TECNOLOGIA, F.ANNO
+                """;
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<FornoClienteItem> values = new ArrayList<>();
+                while (resultSet.next()) {
+                    values.add(new FornoClienteItem(
+                            getUuid(resultSet, "CLIENTE_FORNO_ID"),
+                            getUuid(resultSet, "FORNO_ID"),
+                            cleanResult(resultSet.getString("TECNOLOGIA")),
+                            cleanResult(resultSet.getString("ANNO")),
+                            cleanResult(resultSet.getString("MARCA")),
+                            cleanResult(resultSet.getString("MODELLO")),
+                            cleanResult(resultSet.getString("NOTA"))));
+                }
+                return values;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Caricamento forni cliente non riuscito.", e);
+        }
+    }
+
+    private void saveClienteForni(List<FornoClienteEditInput> forni) {
+        if (database == null || currentClienteId == null) {
+            return;
+        }
+        initializeSchema();
+        try (PreparedStatement delete = database.getConnection().prepareStatement("DELETE FROM CLIENTI_FORNI WHERE CLIENTE_ID = ?");
+             PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO CLIENTI_FORNI (ID, CLIENTE_ID, FORNO_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
+            delete.setString(1, currentClienteId.toString());
+            delete.executeUpdate();
+            LocalDateTime now = LocalDateTime.now();
+            for (FornoClienteEditInput forno : forni) {
+                FornoClienteEditInput cleanForno = cleanForno(forno);
+                if (!hasFornoData(cleanForno)) {
+                    continue;
+                }
+                UUID fornoId = findOrCreateForno(cleanForno);
+                insert.setString(1, idOrNew(cleanForno.id()).toString());
+                insert.setString(2, currentClienteId.toString());
+                insert.setString(3, fornoId.toString());
+                insert.setString(4, nullableClean(cleanForno.nota()));
+                insert.setTimestamp(5, Timestamp.valueOf(now));
+                insert.addBatch();
+            }
+            insert.executeBatch();
+        } catch (SQLException e) {
+            throw new RuntimeException("Salvataggio forni cliente non riuscito.", e);
+        }
+    }
+
+    private UUID findOrCreateForno(FornoClienteEditInput forno) throws SQLException {
+        String findSql = "SELECT ID FROM FORNI WHERE TECNOLOGIA = ? AND COALESCE(ANNO, '') = ? AND MARCA = ? AND MODELLO = ?";
+        try (PreparedStatement find = database.getConnection().prepareStatement(findSql)) {
+            bindFornoIdentity(find, forno);
+            try (ResultSet resultSet = find.executeQuery()) {
+                if (resultSet.next()) {
+                    return getUuid(resultSet, "ID");
+                }
+            }
+        }
+
+        UUID fornoId = UUID.randomUUID();
+        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO FORNI (ID, TECNOLOGIA, ANNO, MARCA, MODELLO) VALUES (?, ?, ?, ?, ?)")) {
+            insert.setString(1, fornoId.toString());
+            bindFornoIdentity(insert, forno, 2);
+            insert.executeUpdate();
+        }
+        return fornoId;
+    }
+
+    private void bindFornoIdentity(PreparedStatement statement, FornoClienteEditInput forno) throws SQLException {
+        bindFornoIdentity(statement, forno, 1);
+    }
+
+    private void bindFornoIdentity(PreparedStatement statement, FornoClienteEditInput forno, int startIndex) throws SQLException {
+        statement.setString(startIndex, forno.tecnologia());
+        statement.setString(startIndex + 1, forno.anno());
+        statement.setString(startIndex + 2, forno.marca());
+        statement.setString(startIndex + 3, forno.modello());
+    }
+
+    private FornoClienteEditInput cleanForno(FornoClienteEditInput forno) {
+        return new FornoClienteEditInput(
+                forno.id(),
+                forno.fornoId(),
+                normalize(forno.tecnologia()),
+                normalize(forno.anno()),
+                normalize(forno.marca()),
+                normalize(forno.modello()),
+                normalize(forno.nota()));
+    }
+
+    private boolean hasFornoData(FornoClienteEditInput forno) {
+        return !forno.tecnologia().isBlank()
+                || !forno.anno().isBlank()
+                || !forno.marca().isBlank()
+                || !forno.modello().isBlank();
+    }
+
+    private UUID getUuid(ResultSet resultSet, String column) throws SQLException {
+        String value = resultSet.getString(column);
+        return value == null || value.isBlank() ? null : UUID.fromString(value);
+    }
+
+    private String cleanResult(String value) {
+        return value == null ? "" : value;
+    }
+
+    private void initializeSchema() {
+        if (schemaInitializer != null) {
+            schemaInitializer.initialize();
+        }
+    }
 
     private List<ValueItem> toValueItems(List<ValueRecord> values) {
         return values.stream()
@@ -179,6 +349,7 @@ public class SchedaClienteService {
                 "",
                 null,
                 false,
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -275,6 +446,7 @@ public class SchedaClienteService {
                 toNoteUpdates(draft.interazioni(), now),
                 toInterazioneUpdates(draft.interazioni(), now)
         );
+        saveClienteForni(draft.forni());
 
         editingDraft = null;
         currentFilter = TimelineFilter.ALL;
@@ -548,6 +720,7 @@ public class SchedaClienteService {
             List<ValueItem> sitiWeb,
             List<AddressItem> indirizzi,
             List<ContactItem> contatti,
+            List<FornoClienteItem> forni,
             List<InteractionPreview> interazioni
     ) {
         public ClienteProfile {
@@ -556,22 +729,23 @@ public class SchedaClienteService {
             sitiWeb = List.copyOf(sitiWeb);
             indirizzi = List.copyOf(indirizzi);
             contatti = List.copyOf(contatti);
+            forni = List.copyOf(forni);
             interazioni = List.copyOf(interazioni);
         }
 
         private ClienteProfile withCoinvolgimento(Integer coinvolgimento) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, interazioni);
         }
 
         private ClienteProfile withFavorite(boolean favorite) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, interazioni);
         }
 
         private ClienteProfile withInterazioni(List<InteractionPreview> interazioni) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, interazioni);
         }
     }
 
@@ -588,6 +762,7 @@ public class SchedaClienteService {
             List<ValueEditInput> sitiWeb,
             List<AddressEditInput> indirizzi,
             List<ContactEditInput> contatti,
+            List<FornoClienteEditInput> forni,
             List<InteractionEditInput> interazioni
     ) {
         public EditProfileDraft {
@@ -596,6 +771,7 @@ public class SchedaClienteService {
             sitiWeb = List.copyOf(sitiWeb);
             indirizzi = List.copyOf(indirizzi);
             contatti = List.copyOf(contatti);
+            forni = List.copyOf(forni);
             interazioni = List.copyOf(interazioni);
         }
 
@@ -641,10 +817,25 @@ public class SchedaClienteService {
                     toEditInputs(profile.sitiWeb()),
                     toAddressEditInputs(profile.indirizzi()),
                     toContactEditInputs(profile.contatti()),
+                    profile.forni().stream()
+                            .map(FornoClienteEditInput::from)
+                            .toList(),
                     profile.interazioni().stream()
                             .map(InteractionEditInput::from)
                             .toList()
             );
+        }
+    }
+
+    public record FornoCatalogItem(UUID fornoId, String tecnologia, String anno, String marca, String modello) {
+    }
+
+    public record FornoClienteItem(UUID id, UUID fornoId, String tecnologia, String anno, String marca, String modello, String nota) {
+    }
+
+    public record FornoClienteEditInput(UUID id, UUID fornoId, String tecnologia, String anno, String marca, String modello, String nota) {
+        private static FornoClienteEditInput from(FornoClienteItem item) {
+            return new FornoClienteEditInput(item.id(), item.fornoId(), item.tecnologia(), item.anno(), item.marca(), item.modello(), item.nota());
         }
     }
 
