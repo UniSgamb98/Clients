@@ -41,7 +41,7 @@ public class ImpostazioniService {
              PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO FORNI (ID, TECNOLOGIA, ANNO, MARCA, MODELLO) VALUES (?, ?, ?, ?, ?)")) {
             delete.executeUpdate();
             for (Forno forno : forni) {
-                if (forno.tecnologia().isBlank() && forno.anno().isBlank() && forno.marca().isBlank() && forno.modello().isBlank()) continue;
+                if (isBlank(forno.tecnologia()) && isBlank(forno.anno()) && isBlank(forno.marca()) && isBlank(forno.modello())) continue;
                 insert.setString(1, (forno.id() == null ? UUID.randomUUID() : forno.id()).toString());
                 insert.setString(2, forno.tecnologia());
                 insert.setString(3, forno.anno());
@@ -53,6 +53,10 @@ public class ImpostazioniService {
         } catch (Exception e) {
             throw new RuntimeException("Salvataggio forni non riuscito.", e);
         }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     public List<com.example.clients.feature.impostazioni.dto.ImpostazioneVoce> getVoci(String table, List<String> columns) {

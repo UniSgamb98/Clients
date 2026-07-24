@@ -340,14 +340,57 @@
     -fx-font-size: 12px;
 }
 
-.client-profile-call-fields {
-    -fx-alignment: center-left;
-    -fx-spacing: 10;
+.client-profile-resource-group {
+    -fx-background-color: transparent;
+    -fx-min-width: 360;
+    -fx-pref-width: 520;
 }
 
-.client-profile-call-choice-box {
+.client-profile-resource-group-header,
+.client-profile-forno-row {
+    -fx-alignment: center-left;
+}
+
+.client-profile-forno-card {
+    -fx-background-color: -app-card-bg;
+    -fx-background-radius: 8;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+}
+
+.client-profile-resource-value,
+.client-profile-resource-note {
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 12px;
+}
+
+.client-profile-resource-field-label {
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.client-profile-resource-combo {
     -fx-background-color: -app-surface-alt;
+    -fx-control-inner-background: -app-surface-alt;
+    -fx-text-fill: -app-text;
+    -fx-prompt-text-fill: -app-text-placeholder-2;
     -fx-border-color: -app-border;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
+    -fx-pref-width: 180;
+}
+
+.client-profile-resource-note-editor {
+    -fx-background-color: -app-surface-alt;
+    -fx-control-inner-background: -app-surface-alt;
+    -fx-text-fill: -app-text;
+    -fx-prompt-text-fill: -app-text-placeholder-2;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-pref-row-count: 2;
+    -fx-max-height: 72;
 }

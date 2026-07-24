@@ -64,6 +64,7 @@ public class SchedaClienteController {
         applyTimelineFilter(TimelineFilter.ALL);
         view.setTipoClienteOptions(service.getTipiCliente());
         view.setStatoTrattativaOptions(service.getStatiTrattativa());
+        view.setForniCatalog(service.getForniCatalog());
         view.renderEditableProfile(service.startEdit());
     }
 

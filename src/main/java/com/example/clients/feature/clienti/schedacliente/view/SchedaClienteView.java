@@ -3,6 +3,7 @@ package com.example.clients.feature.clienti.schedacliente.view;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ClienteProfile;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.EditProfileDraft;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoCatalogItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
@@ -103,6 +104,7 @@ public class SchedaClienteView extends BorderPane {
         relatedSections.renderContacts(profile.contatti());
         relatedSections.renderAddresses(profile.indirizzi());
         timelineSection.render(profile.interazioni());
+        resourcesPanel.renderForni(profile.forni());
     }
 
     public void renderEditableProfile(EditProfileDraft draft) {
@@ -118,6 +120,7 @@ public class SchedaClienteView extends BorderPane {
         relatedSections.renderContactsEditor(draft.contatti());
         relatedSections.renderAddressesEditor(draft.indirizzi());
         timelineSection.renderEditor(draft.interazioni());
+        resourcesPanel.renderForniEditor(draft.forni());
     }
 
     public EditProfileDraft collectEditDraft() {
@@ -134,6 +137,7 @@ public class SchedaClienteView extends BorderPane {
                 dataSection.sitiWeb(),
                 relatedSections.collectAddresses(),
                 relatedSections.collectContacts(),
+                resourcesPanel.collectForni(),
                 timelineSection.collectInteractions()
         );
     }
@@ -141,6 +145,11 @@ public class SchedaClienteView extends BorderPane {
     private void setEditMode(boolean editMode) {
         header.setEditMode(editMode);
         timelineSection.setEditMode(editMode);
+        resourcesPanel.setEditMode(editMode);
+    }
+
+    public void setForniCatalog(List<FornoCatalogItem> forniCatalog) {
+        resourcesPanel.setForniCatalog(forniCatalog);
     }
 
     public void setFavorite(boolean favorite) {
