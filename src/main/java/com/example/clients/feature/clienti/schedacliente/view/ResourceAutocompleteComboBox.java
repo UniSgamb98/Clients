@@ -2,6 +2,7 @@ package com.example.clients.feature.clienti.schedacliente.view;
 
 import javafx.application.Platform;
 import javafx.scene.control.ComboBox;
+import javafx.scene.input.KeyCode;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -10,12 +11,14 @@ import java.util.function.Consumer;
 final class ResourceAutocompleteComboBox extends ComboBox<String> {
 
     private boolean refreshingSuggestions;
+    private boolean lastEditWasDeletion;
 
     ResourceAutocompleteComboBox(String value, String prompt, Consumer<ResourceAutocompleteComboBox> onUserTextChanged) {
         setEditable(true);
         setValue(display(value));
         setPromptText(prompt);
         getStyleClass().add("client-profile-resource-combo");
+        getEditor().setOnKeyPressed(event -> lastEditWasDeletion = event.getCode() == KeyCode.BACK_SPACE || event.getCode() == KeyCode.DELETE);
         getEditor().textProperty().addListener((observable, oldValue, newValue) -> {
             if (!refreshingSuggestions) {
                 onUserTextChanged.accept(this);
@@ -30,7 +33,7 @@ final class ResourceAutocompleteComboBox extends ComboBox<String> {
             if (!getItems().equals(suggestions)) {
                 getItems().setAll(suggestions);
             }
-            if (completeFirstSuggestion && applyFirstSuggestionCompletion(typedText, suggestions)) {
+            if (completeFirstSuggestion && !lastEditWasDeletion && applyFirstSuggestionCompletion(typedText, suggestions)) {
                 return;
             }
             if (!textValue().equals(typedText)) {
@@ -39,6 +42,7 @@ final class ResourceAutocompleteComboBox extends ComboBox<String> {
             }
         } finally {
             refreshingSuggestions = false;
+            lastEditWasDeletion = false;
         }
     }
 
