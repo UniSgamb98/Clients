@@ -30,8 +30,6 @@ final class ClienteProfileResourcesPanel extends VBox {
     private final List<FresatoreCatalogItem> fresatoriCatalog = new ArrayList<>();
     private final List<FornoEditorRow> fornoEditorRows = new ArrayList<>();
     private final List<FresatoreEditorRow> fresatoreEditorRows = new ArrayList<>();
-    private boolean editMode;
-
     ClienteProfileResourcesPanel() {
         super(12);
         getStyleClass().add("client-profile-resources-panel");
@@ -43,7 +41,7 @@ final class ClienteProfileResourcesPanel extends VBox {
         resources.getChildren().setAll(forniSection, fresatoriSection);
         forniSection.addButton().setOnAction(event -> addFornoEditorRow(emptyForno()));
         fresatoriSection.addButton().setOnAction(event -> addFresatoreEditorRow(emptyFresatore()));
-        setEditMode(false);
+        fresatoriSection.hideActions();
 
         getChildren().addAll(title, resources);
     }
@@ -65,9 +63,9 @@ final class ClienteProfileResourcesPanel extends VBox {
     }
 
     void renderForni(List<FornoClienteItem> forni) {
-        editMode = false;
         forniSection.clearCards();
-        forniSection.setAddButtonVisible(false);
+        fornoEditorRows.clear();
+        forniSection.showViewActions();
 
         if (forni == null || forni.isEmpty()) {
             forniSection.addCard(createEmptyLabel("Nessun forno associato"));
@@ -80,10 +78,17 @@ final class ClienteProfileResourcesPanel extends VBox {
     }
 
     void renderForniEditor(List<FornoClienteEditInput> forni) {
-        editMode = true;
+        renderForniEditor(forni, false);
+    }
+
+    void renderStandaloneForniEditor(List<FornoClienteEditInput> forni) {
+        renderForniEditor(forni, true);
+    }
+
+    private void renderForniEditor(List<FornoClienteEditInput> forni, boolean standalone) {
         forniSection.clearCards();
         fornoEditorRows.clear();
-        forniSection.setAddButtonVisible(true);
+        forniSection.showEditActions(standalone);
 
         if (forni == null || forni.isEmpty()) {
             addFornoEditorRow(emptyForno());
@@ -100,9 +105,9 @@ final class ClienteProfileResourcesPanel extends VBox {
     }
 
     void renderFresatori(List<FresatoreClienteItem> fresatori) {
-        editMode = false;
         fresatoriSection.clearCards();
-        fresatoriSection.setAddButtonVisible(false);
+        fresatoreEditorRows.clear();
+        fresatoriSection.hideActions();
 
         if (fresatori == null || fresatori.isEmpty()) {
             fresatoriSection.addCard(createEmptyLabel("Nessun fresatore associato"));
@@ -115,10 +120,9 @@ final class ClienteProfileResourcesPanel extends VBox {
     }
 
     void renderFresatoriEditor(List<FresatoreClienteEditInput> fresatori) {
-        editMode = true;
         fresatoriSection.clearCards();
         fresatoreEditorRows.clear();
-        fresatoriSection.setAddButtonVisible(true);
+        fresatoriSection.showEditActions(false);
 
         if (fresatori == null || fresatori.isEmpty()) {
             addFresatoreEditorRow(emptyFresatore());
@@ -360,8 +364,16 @@ final class ClienteProfileResourcesPanel extends VBox {
         return value == null ? "" : value;
     }
 
-    void setEditMode(boolean editMode) {
-        this.editMode = editMode;
+    Button editForniButton() {
+        return forniSection.editButton();
+    }
+
+    Button saveForniButton() {
+        return forniSection.saveButton();
+    }
+
+    Button cancelForniButton() {
+        return forniSection.cancelButton();
     }
 
     private record FornoEditorRow(

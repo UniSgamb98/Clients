@@ -39,6 +39,9 @@ public class SchedaClienteController {
         view.getEditProfileButton().setOnAction(event -> openProfileEditor());
         view.getCancelProfileEditButton().setOnAction(event -> runAndRender("Annullamento modifica non riuscito", service::cancelEdit));
         view.getSaveProfileEditButton().setOnAction(event -> runAndRender("Salvataggio scheda non riuscito", () -> service.saveEdit(view.collectEditDraft())));
+        view.getEditForniButton().setOnAction(event -> openForniEditor());
+        view.getCancelForniButton().setOnAction(event -> closeForniEditor());
+        view.getSaveForniButton().setOnAction(event -> saveForniEditor());
         view.getNewNoteButton().setOnAction(event -> openNoteEditor());
         view.getNewCallButton().setOnAction(event -> openCallEditor());
         view.getAllFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.ALL));
@@ -67,6 +70,34 @@ public class SchedaClienteController {
         view.setForniCatalog(service.getForniCatalog());
         view.setFresatoriCatalog(service.getFresatoriCatalog());
         view.renderEditableProfile(service.startEdit());
+    }
+
+    private void openForniEditor() {
+        try {
+            view.setForniCatalog(service.getForniCatalog());
+            view.renderStandaloneForniEditor(service.startForniEdit());
+            view.getEditProfileButton().setDisable(true);
+        } catch (RuntimeException e) {
+            showError("Apertura modifica forni non riuscita", e);
+        }
+    }
+
+    private void closeForniEditor() {
+        try {
+            view.renderForni(service.cancelForniEdit());
+            view.getEditProfileButton().setDisable(false);
+        } catch (RuntimeException e) {
+            showError("Annullamento modifica forni non riuscito", e);
+        }
+    }
+
+    private void saveForniEditor() {
+        try {
+            view.renderForni(service.saveForniEdit(view.collectForni()));
+            view.getEditProfileButton().setDisable(false);
+        } catch (RuntimeException e) {
+            showError("Salvataggio forni non riuscito", e);
+        }
     }
 
     private void openNoteEditor() {
