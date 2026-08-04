@@ -4,6 +4,8 @@ import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ClienteProfile;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.EditProfileDraft;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreCatalogItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
@@ -148,7 +150,30 @@ public class SchedaClienteView extends BorderPane {
     private void setEditMode(boolean editMode) {
         header.setEditMode(editMode);
         timelineSection.setEditMode(editMode);
-        resourcesPanel.setEditMode(editMode);
+    }
+
+    public Button getEditForniButton() {
+        return resourcesPanel.editForniButton();
+    }
+
+    public Button getSaveForniButton() {
+        return resourcesPanel.saveForniButton();
+    }
+
+    public Button getCancelForniButton() {
+        return resourcesPanel.cancelForniButton();
+    }
+
+    public void renderStandaloneForniEditor(List<FornoClienteEditInput> forni) {
+        resourcesPanel.renderStandaloneForniEditor(forni);
+    }
+
+    public void renderForni(List<FornoClienteItem> forni) {
+        resourcesPanel.renderForni(forni);
+    }
+
+    public List<FornoClienteEditInput> collectForni() {
+        return resourcesPanel.collectForni();
     }
 
     public void setForniCatalog(List<FornoCatalogItem> forniCatalog) {

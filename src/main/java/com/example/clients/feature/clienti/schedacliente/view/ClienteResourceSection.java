@@ -4,12 +4,17 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 /** Reusable resource section with a title, add button and card list. */
 final class ClienteResourceSection extends VBox {
 
     private final Button addButton;
+    private final Button editButton = new Button("Modifica");
+    private final Button saveButton = new Button("Salva");
+    private final Button cancelButton = new Button("Annulla");
     private final VBox list = new VBox(10);
 
     ClienteResourceSection(String titleText, String addButtonText) {
@@ -20,10 +25,17 @@ final class ClienteResourceSection extends VBox {
         header.getStyleClass().add("client-profile-resource-group-header");
         Label title = new Label(titleText);
         title.getStyleClass().add("client-profile-resource-card-title");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
         addButton = new Button(addButtonText);
         addButton.getStyleClass().add("clients-primary-button");
-        header.getChildren().addAll(title, addButton);
+        editButton.getStyleClass().add("clients-filter-button");
+        saveButton.getStyleClass().add("clients-primary-button");
+        cancelButton.getStyleClass().add("clients-filter-button");
+        header.getChildren().addAll(title, spacer, editButton, addButton, saveButton, cancelButton);
+
+        setActionMode(ActionMode.HIDDEN);
 
         getChildren().addAll(header, list);
     }
@@ -32,9 +44,28 @@ final class ClienteResourceSection extends VBox {
         return addButton;
     }
 
-    void setAddButtonVisible(boolean visible) {
-        addButton.setVisible(visible);
-        addButton.setManaged(visible);
+    Button editButton() {
+        return editButton;
+    }
+
+    Button saveButton() {
+        return saveButton;
+    }
+
+    Button cancelButton() {
+        return cancelButton;
+    }
+
+    void showViewActions() {
+        setActionMode(ActionMode.VIEW);
+    }
+
+    void showEditActions(boolean standalone) {
+        setActionMode(standalone ? ActionMode.STANDALONE_EDIT : ActionMode.GLOBAL_EDIT);
+    }
+
+    void hideActions() {
+        setActionMode(ActionMode.HIDDEN);
     }
 
     void clearCards() {
@@ -47,5 +78,24 @@ final class ClienteResourceSection extends VBox {
 
     void removeCard(Node card) {
         list.getChildren().remove(card);
+    }
+
+    private void setActionMode(ActionMode mode) {
+        setVisible(editButton, mode == ActionMode.VIEW);
+        setVisible(addButton, mode == ActionMode.STANDALONE_EDIT || mode == ActionMode.GLOBAL_EDIT);
+        setVisible(saveButton, mode == ActionMode.STANDALONE_EDIT);
+        setVisible(cancelButton, mode == ActionMode.STANDALONE_EDIT);
+    }
+
+    private void setVisible(Button button, boolean visible) {
+        button.setVisible(visible);
+        button.setManaged(visible);
+    }
+
+    private enum ActionMode {
+        HIDDEN,
+        VIEW,
+        STANDALONE_EDIT,
+        GLOBAL_EDIT
     }
 }

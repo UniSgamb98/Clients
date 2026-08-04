@@ -534,6 +534,26 @@ public class SchedaClienteService {
         return editingDraft;
     }
 
+    public List<FornoClienteEditInput> startForniEdit() {
+        ensureProfileLoaded();
+        return currentProfile.forni().stream()
+                .map(FornoClienteEditInput::from)
+                .toList();
+    }
+
+    public List<FornoClienteItem> cancelForniEdit() {
+        ensureProfileLoaded();
+        return currentProfile.forni();
+    }
+
+    public List<FornoClienteItem> saveForniEdit(List<FornoClienteEditInput> forni) {
+        ensureProfileLoaded();
+        saveClienteForni(forni == null ? List.of() : forni);
+        List<FornoClienteItem> savedForni = findClienteForni(currentClienteId);
+        currentProfile = currentProfile.withForni(savedForni);
+        return savedForni;
+    }
+
     public ClienteProfile cancelEdit() {
         ensureProfileLoaded();
         editingDraft = null;
@@ -873,6 +893,11 @@ public class SchedaClienteService {
         }
 
         private ClienteProfile withInterazioni(List<InteractionPreview> interazioni) {
+            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
+        }
+
+        private ClienteProfile withForni(List<FornoClienteItem> forni) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
                     favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
         }
