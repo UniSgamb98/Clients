@@ -25,6 +25,7 @@ import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -238,8 +239,18 @@ public class SchedaClienteService {
             return;
         }
         initializeSchema();
-        try (PreparedStatement delete = database.getConnection().prepareStatement("DELETE FROM CLIENTI_FORNI WHERE CLIENTE_ID = ?");
-             PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO CLIENTI_FORNI (ID, CLIENTE_ID, FORNO_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
+        Connection connection = database.getConnection();
+        boolean originalAutoCommit;
+        try {
+            originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+        } catch (SQLException e) {
+            throw new RuntimeException("Avvio salvataggio forni cliente non riuscito.", e);
+        }
+
+        RuntimeException failure = null;
+        try (PreparedStatement delete = connection.prepareStatement("DELETE FROM CLIENTI_FORNI WHERE CLIENTE_ID = ?");
+             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_FORNI (ID, CLIENTE_ID, FORNO_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
             delete.setString(1, currentClienteId.toString());
             delete.executeUpdate();
             LocalDateTime now = LocalDateTime.now();
@@ -257,8 +268,39 @@ public class SchedaClienteService {
                 insert.addBatch();
             }
             insert.executeBatch();
+            connection.commit();
         } catch (SQLException e) {
-            throw new RuntimeException("Salvataggio forni cliente non riuscito.", e);
+            rollbackForniSave(connection, e);
+            failure = new RuntimeException("Salvataggio forni cliente non riuscito.", e);
+        } catch (RuntimeException e) {
+            rollbackForniSave(connection, e);
+            failure = e;
+        } finally {
+            failure = restoreAutoCommit(connection, originalAutoCommit, failure);
+        }
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    private void rollbackForniSave(Connection connection, Throwable originalError) {
+        try {
+            connection.rollback();
+        } catch (SQLException rollbackError) {
+            originalError.addSuppressed(rollbackError);
+        }
+    }
+
+    private RuntimeException restoreAutoCommit(Connection connection, boolean autoCommit, RuntimeException failure) {
+        try {
+            connection.setAutoCommit(autoCommit);
+            return failure;
+        } catch (SQLException e) {
+            if (failure != null) {
+                failure.addSuppressed(e);
+                return failure;
+            }
+            return new RuntimeException("Ripristino connessione dopo il salvataggio forni non riuscito.", e);
         }
     }
 

@@ -35,6 +35,19 @@ public final class Database {
     private Connection currentConnection;
     private Connection sharedConnection;
 
+    public Database() {
+    }
+
+    Database(Connection connection) {
+        try {
+            currentConnection = connection;
+            jdbcUrl = connection.getMetaData().getURL();
+            sharedConnection = createResilientConnection();
+        } catch (SQLException e) {
+            throw new IllegalArgumentException("Connessione database non valida.", e);
+        }
+    }
+
     public enum DatabaseMode {
         NOT_STARTED,
         HOST,
