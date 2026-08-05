@@ -38,7 +38,7 @@ public class SchedaClienteService {
     private final CurrentOperatoreService currentOperatoreService;
     private final TipoClienteQuery tipoClienteQuery;
     private final StatoTrattativaQuery statoTrattativaQuery;
-    private final ClienteRisorseRepository risorseRepository;
+    private final ClienteRisorseService risorseService;
     private ClienteProfile currentProfile;
     private EditProfileDraft editingDraft;
     private UUID currentClienteId;
@@ -88,7 +88,7 @@ public class SchedaClienteService {
         this.currentOperatoreService = currentOperatoreService;
         this.tipoClienteQuery = tipoClienteQuery;
         this.statoTrattativaQuery = statoTrattativaQuery;
-        this.risorseRepository = database == null ? null : new ClienteRisorseRepository(database);
+        this.risorseService = new ClienteRisorseService(database == null ? null : new ClienteRisorseRepository(database));
     }
 
     public List<String> getTipiCliente() {
@@ -141,9 +141,9 @@ public class SchedaClienteService {
                 toValueItems(record.sitiWeb()),
                 toAddressItems(record.indirizzi()),
                 toContactItems(record.contatti()),
-                findClienteForni(record.clienteId()),
-                findClienteFresatori(record.clienteId()),
-                findClienteMateriali(record.clienteId()),
+                risorseService.findClienteForni(record.clienteId()),
+                risorseService.findClienteFresatori(record.clienteId()),
+                risorseService.findClienteMateriali(record.clienteId()),
                 record.timeline().stream()
                         .map(this::toInteractionPreview)
                         .toList()
@@ -152,45 +152,15 @@ public class SchedaClienteService {
 
 
     public List<FornoCatalogItem> getForniCatalog() {
-        return risorseRepository == null ? List.of() : risorseRepository.findForniCatalog();
+        return risorseService.getForniCatalog();
     }
 
     public List<FresatoreCatalogItem> getFresatoriCatalog() {
-        return risorseRepository == null ? List.of() : risorseRepository.findFresatoriCatalog();
+        return risorseService.getFresatoriCatalog();
     }
 
     public List<MaterialeCatalogItem> getMaterialiCatalog() {
-        return risorseRepository == null ? List.of() : risorseRepository.findMaterialiCatalog();
-    }
-
-    private List<FornoClienteItem> findClienteForni(UUID clienteId) {
-        return risorseRepository == null ? List.of() : risorseRepository.findClienteForni(clienteId);
-    }
-
-    private void saveClienteForni(List<FornoClienteEditInput> forni) {
-        if (risorseRepository != null) {
-            risorseRepository.saveClienteForni(currentClienteId, forni);
-        }
-    }
-
-    private List<FresatoreClienteItem> findClienteFresatori(UUID clienteId) {
-        return risorseRepository == null ? List.of() : risorseRepository.findClienteFresatori(clienteId);
-    }
-
-    private void saveClienteFresatori(List<FresatoreClienteEditInput> fresatori) {
-        if (risorseRepository != null) {
-            risorseRepository.saveClienteFresatori(currentClienteId, fresatori);
-        }
-    }
-
-    private List<MaterialeClienteItem> findClienteMateriali(UUID clienteId) {
-        return risorseRepository == null ? List.of() : risorseRepository.findClienteMateriali(clienteId);
-    }
-
-    private void saveClienteMateriali(List<MaterialeClienteEditInput> materiali) {
-        if (risorseRepository != null) {
-            risorseRepository.saveClienteMateriali(currentClienteId, materiali);
-        }
+        return risorseService.getMaterialiCatalog();
     }
 
     private List<ValueItem> toValueItems(List<ValueRecord> values) {
@@ -301,60 +271,51 @@ public class SchedaClienteService {
 
     public List<FornoClienteEditInput> startForniEdit() {
         ensureProfileLoaded();
-        return currentProfile.forni().stream()
-                .map(FornoClienteEditInput::from)
-                .toList();
+        return risorseService.startForniEdit(currentProfile);
     }
 
     public List<FornoClienteItem> cancelForniEdit() {
         ensureProfileLoaded();
-        return currentProfile.forni();
+        return risorseService.cancelForniEdit(currentProfile);
     }
 
     public List<FornoClienteItem> saveForniEdit(List<FornoClienteEditInput> forni) {
         ensureProfileLoaded();
-        saveClienteForni(forni == null ? List.of() : forni);
-        List<FornoClienteItem> savedForni = findClienteForni(currentClienteId);
+        List<FornoClienteItem> savedForni = risorseService.saveForni(currentClienteId, forni);
         currentProfile = currentProfile.withForni(savedForni);
         return savedForni;
     }
 
     public List<FresatoreClienteEditInput> startFresatoriEdit() {
         ensureProfileLoaded();
-        return currentProfile.fresatori().stream()
-                .map(FresatoreClienteEditInput::from)
-                .toList();
+        return risorseService.startFresatoriEdit(currentProfile);
     }
 
     public List<FresatoreClienteItem> cancelFresatoriEdit() {
         ensureProfileLoaded();
-        return currentProfile.fresatori();
+        return risorseService.cancelFresatoriEdit(currentProfile);
     }
 
     public List<FresatoreClienteItem> saveFresatoriEdit(List<FresatoreClienteEditInput> fresatori) {
         ensureProfileLoaded();
-        saveClienteFresatori(fresatori == null ? List.of() : fresatori);
-        List<FresatoreClienteItem> savedFresatori = findClienteFresatori(currentClienteId);
+        List<FresatoreClienteItem> savedFresatori = risorseService.saveFresatori(currentClienteId, fresatori);
         currentProfile = currentProfile.withFresatori(savedFresatori);
         return savedFresatori;
     }
 
     public List<MaterialeClienteEditInput> startMaterialiEdit() {
         ensureProfileLoaded();
-        return currentProfile.materiali().stream()
-                .map(MaterialeClienteEditInput::from)
-                .toList();
+        return risorseService.startMaterialiEdit(currentProfile);
     }
 
     public List<MaterialeClienteItem> cancelMaterialiEdit() {
         ensureProfileLoaded();
-        return currentProfile.materiali();
+        return risorseService.cancelMaterialiEdit(currentProfile);
     }
 
     public List<MaterialeClienteItem> saveMaterialiEdit(List<MaterialeClienteEditInput> materiali) {
         ensureProfileLoaded();
-        saveClienteMateriali(materiali == null ? List.of() : materiali);
-        List<MaterialeClienteItem> savedMateriali = findClienteMateriali(currentClienteId);
+        List<MaterialeClienteItem> savedMateriali = risorseService.saveMateriali(currentClienteId, materiali);
         currentProfile = currentProfile.withMateriali(savedMateriali);
         return savedMateriali;
     }
@@ -798,7 +759,7 @@ public class SchedaClienteService {
     }
 
     public record FornoClienteEditInput(UUID id, UUID fornoId, String tecnologia, String anno, String marca, String modello, String nota) {
-        private static FornoClienteEditInput from(FornoClienteItem item) {
+        static FornoClienteEditInput from(FornoClienteItem item) {
             return new FornoClienteEditInput(item.id(), item.fornoId(), item.tecnologia(), item.anno(), item.marca(), item.modello(), item.nota());
         }
     }
@@ -810,7 +771,7 @@ public class SchedaClienteService {
     }
 
     public record FresatoreClienteEditInput(UUID id, UUID fresatoreId, String marca, String modello, String nota) {
-        private static FresatoreClienteEditInput from(FresatoreClienteItem item) {
+        static FresatoreClienteEditInput from(FresatoreClienteItem item) {
             return new FresatoreClienteEditInput(item.id(), item.fresatoreId(), item.marca(), item.modello(), item.nota());
         }
     }
@@ -822,7 +783,7 @@ public class SchedaClienteService {
     }
 
     public record MaterialeClienteEditInput(UUID id, UUID materialeId, String materiale, String marchio, String modello, String consumo, String frequenzaAcquisto, String nota) {
-        private static MaterialeClienteEditInput from(MaterialeClienteItem item) {
+        static MaterialeClienteEditInput from(MaterialeClienteItem item) {
             return new MaterialeClienteEditInput(item.id(), item.materialeId(), item.materiale(), item.marchio(), item.modello(), item.consumo(), item.frequenzaAcquisto(), item.nota());
         }
     }
