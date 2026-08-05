@@ -366,6 +366,12 @@
     -fx-font-size: 12px;
 }
 
+.client-profile-material-title {
+    -fx-text-fill: -app-text;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+}
+
 .client-profile-resource-field-label {
     -fx-text-fill: -app-text-muted-2;
     -fx-font-size: 11px;
