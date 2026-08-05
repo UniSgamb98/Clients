@@ -77,18 +77,14 @@ final class ClienteProfileResourcesPanel extends VBox {
         }
     }
 
-    void renderForniEditor(List<FornoClienteEditInput> forni) {
-        renderForniEditor(forni, false);
-    }
-
     void renderStandaloneForniEditor(List<FornoClienteEditInput> forni) {
-        renderForniEditor(forni, true);
+        renderForniEditor(forni);
     }
 
-    private void renderForniEditor(List<FornoClienteEditInput> forni, boolean standalone) {
+    private void renderForniEditor(List<FornoClienteEditInput> forni) {
         forniSection.clearCards();
         fornoEditorRows.clear();
-        forniSection.showEditActions(standalone);
+        forniSection.showEditActions();
 
         if (forni == null || forni.isEmpty()) {
             addFornoEditorRow(emptyForno());
@@ -119,18 +115,14 @@ final class ClienteProfileResourcesPanel extends VBox {
         }
     }
 
-    void renderFresatoriEditor(List<FresatoreClienteEditInput> fresatori) {
-        renderFresatoriEditor(fresatori, false);
-    }
-
     void renderStandaloneFresatoriEditor(List<FresatoreClienteEditInput> fresatori) {
-        renderFresatoriEditor(fresatori, true);
+        renderFresatoriEditor(fresatori);
     }
 
-    private void renderFresatoriEditor(List<FresatoreClienteEditInput> fresatori, boolean standalone) {
+    private void renderFresatoriEditor(List<FresatoreClienteEditInput> fresatori) {
         fresatoriSection.clearCards();
         fresatoreEditorRows.clear();
-        fresatoriSection.showEditActions(standalone);
+        fresatoriSection.showEditActions();
 
         if (fresatori == null || fresatori.isEmpty()) {
             addFresatoreEditorRow(emptyFresatore());
