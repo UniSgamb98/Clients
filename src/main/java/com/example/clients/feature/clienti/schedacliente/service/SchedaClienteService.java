@@ -1,7 +1,6 @@
 package com.example.clients.feature.clienti.schedacliente.service;
 
 import com.example.clients.core.database.Database;
-import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.core.database.model.Cliente;
 import com.example.clients.core.database.model.ContattoCliente;
 import com.example.clients.core.database.model.EmailCliente;
@@ -22,13 +21,9 @@ import com.example.clients.core.database.query.derby.DerbyStatoTrattativaQuery;
 import com.example.clients.core.database.query.derby.DerbyTipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
+import com.example.clients.feature.clienti.schedacliente.repository.ClienteRisorseRepository;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -42,8 +37,7 @@ public class SchedaClienteService {
     private final CurrentOperatoreService currentOperatoreService;
     private final TipoClienteQuery tipoClienteQuery;
     private final StatoTrattativaQuery statoTrattativaQuery;
-    private final Database database;
-    private final SchemaInitializer schemaInitializer;
+    private final ClienteRisorseRepository risorseRepository;
     private ClienteProfile currentProfile;
     private EditProfileDraft editingDraft;
     private UUID currentClienteId;
@@ -93,8 +87,7 @@ public class SchedaClienteService {
         this.currentOperatoreService = currentOperatoreService;
         this.tipoClienteQuery = tipoClienteQuery;
         this.statoTrattativaQuery = statoTrattativaQuery;
-        this.database = database;
-        this.schemaInitializer = database == null ? null : new SchemaInitializer(database);
+        this.risorseRepository = database == null ? null : new ClienteRisorseRepository(database);
     }
 
     public List<String> getTipiCliente() {
@@ -158,491 +151,44 @@ public class SchedaClienteService {
 
 
     public List<FornoCatalogItem> getForniCatalog() {
-        if (database == null) {
-            return List.of();
-        }
-        initializeSchema();
-        String sql = "SELECT ID, TECNOLOGIA, ANNO, MARCA, MODELLO FROM FORNI ORDER BY MARCA, MODELLO, TECNOLOGIA, ANNO";
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            List<FornoCatalogItem> values = new ArrayList<>();
-            while (resultSet.next()) {
-                values.add(new FornoCatalogItem(
-                        getUuid(resultSet, "ID"),
-                        cleanResult(resultSet.getString("TECNOLOGIA")),
-                        cleanResult(resultSet.getString("ANNO")),
-                        cleanResult(resultSet.getString("MARCA")),
-                        cleanResult(resultSet.getString("MODELLO"))));
-            }
-            return values;
-        } catch (SQLException e) {
-            throw new RuntimeException("Caricamento catalogo forni non riuscito.", e);
-        }
+        return risorseRepository == null ? List.of() : risorseRepository.findForniCatalog();
     }
 
     public List<FresatoreCatalogItem> getFresatoriCatalog() {
-        if (database == null) {
-            return List.of();
-        }
-        initializeSchema();
-        String sql = "SELECT ID, MARCA, MODELLO FROM FRESATORI ORDER BY MARCA, MODELLO";
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            List<FresatoreCatalogItem> values = new ArrayList<>();
-            while (resultSet.next()) {
-                values.add(new FresatoreCatalogItem(
-                        getUuid(resultSet, "ID"),
-                        cleanResult(resultSet.getString("MARCA")),
-                        cleanResult(resultSet.getString("MODELLO"))));
-            }
-            return values;
-        } catch (SQLException e) {
-            throw new RuntimeException("Caricamento catalogo fresatori non riuscito.", e);
-        }
+        return risorseRepository == null ? List.of() : risorseRepository.findFresatoriCatalog();
     }
 
     public List<MaterialeCatalogItem> getMaterialiCatalog() {
-        if (database == null) {
-            return List.of();
-        }
-        initializeSchema();
-        String sql = "SELECT ID, MATERIALE, MARCHIO, MODELLO FROM MATERIALI_DI_CONSUMO ORDER BY MATERIALE, MARCHIO, MODELLO";
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            List<MaterialeCatalogItem> values = new ArrayList<>();
-            while (resultSet.next()) {
-                values.add(new MaterialeCatalogItem(
-                        getUuid(resultSet, "ID"),
-                        cleanResult(resultSet.getString("MATERIALE")),
-                        cleanResult(resultSet.getString("MARCHIO")),
-                        cleanResult(resultSet.getString("MODELLO"))));
-            }
-            return values;
-        } catch (SQLException e) {
-            throw new RuntimeException("Caricamento catalogo materiali non riuscito.", e);
-        }
+        return risorseRepository == null ? List.of() : risorseRepository.findMaterialiCatalog();
     }
 
     private List<FornoClienteItem> findClienteForni(UUID clienteId) {
-        if (database == null || clienteId == null) {
-            return List.of();
-        }
-        initializeSchema();
-        String sql = """
-                SELECT CF.ID AS CLIENTE_FORNO_ID, F.ID AS FORNO_ID, F.TECNOLOGIA, F.ANNO, F.MARCA, F.MODELLO, CF.NOTA
-                FROM CLIENTI_FORNI CF
-                JOIN FORNI F ON F.ID = CF.FORNO_ID
-                WHERE CF.CLIENTE_ID = ?
-                ORDER BY F.MARCA, F.MODELLO, F.TECNOLOGIA, F.ANNO
-                """;
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
-            statement.setString(1, clienteId.toString());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                List<FornoClienteItem> values = new ArrayList<>();
-                while (resultSet.next()) {
-                    values.add(new FornoClienteItem(
-                            getUuid(resultSet, "CLIENTE_FORNO_ID"),
-                            getUuid(resultSet, "FORNO_ID"),
-                            cleanResult(resultSet.getString("TECNOLOGIA")),
-                            cleanResult(resultSet.getString("ANNO")),
-                            cleanResult(resultSet.getString("MARCA")),
-                            cleanResult(resultSet.getString("MODELLO")),
-                            cleanResult(resultSet.getString("NOTA"))));
-                }
-                return values;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Caricamento forni cliente non riuscito.", e);
-        }
+        return risorseRepository == null ? List.of() : risorseRepository.findClienteForni(clienteId);
     }
 
     private void saveClienteForni(List<FornoClienteEditInput> forni) {
-        if (database == null || currentClienteId == null) {
-            return;
+        if (risorseRepository != null) {
+            risorseRepository.saveClienteForni(currentClienteId, forni);
         }
-        initializeSchema();
-        Connection connection = database.getConnection();
-        boolean originalAutoCommit;
-        try {
-            originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
-        } catch (SQLException e) {
-            throw new RuntimeException("Avvio salvataggio forni cliente non riuscito.", e);
-        }
-
-        RuntimeException failure = null;
-        try (PreparedStatement delete = connection.prepareStatement("DELETE FROM CLIENTI_FORNI WHERE CLIENTE_ID = ?");
-             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_FORNI (ID, CLIENTE_ID, FORNO_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
-            delete.setString(1, currentClienteId.toString());
-            delete.executeUpdate();
-            LocalDateTime now = LocalDateTime.now();
-            for (FornoClienteEditInput forno : forni) {
-                FornoClienteEditInput cleanForno = cleanForno(forno);
-                if (!hasFornoData(cleanForno)) {
-                    continue;
-                }
-                UUID fornoId = findOrCreateForno(cleanForno);
-                insert.setString(1, idOrNew(cleanForno.id()).toString());
-                insert.setString(2, currentClienteId.toString());
-                insert.setString(3, fornoId.toString());
-                insert.setString(4, nullableClean(cleanForno.nota()));
-                insert.setTimestamp(5, Timestamp.valueOf(now));
-                insert.addBatch();
-            }
-            insert.executeBatch();
-            connection.commit();
-        } catch (SQLException e) {
-            rollbackResourceSave(connection, e);
-            failure = new RuntimeException("Salvataggio forni cliente non riuscito.", e);
-        } catch (RuntimeException e) {
-            rollbackResourceSave(connection, e);
-            failure = e;
-        } finally {
-            failure = restoreAutoCommit(connection, originalAutoCommit, failure);
-        }
-        if (failure != null) {
-            throw failure;
-        }
-    }
-
-    private void rollbackResourceSave(Connection connection, Throwable originalError) {
-        try {
-            connection.rollback();
-        } catch (SQLException rollbackError) {
-            originalError.addSuppressed(rollbackError);
-        }
-    }
-
-    private RuntimeException restoreAutoCommit(Connection connection, boolean autoCommit, RuntimeException failure) {
-        try {
-            connection.setAutoCommit(autoCommit);
-            return failure;
-        } catch (SQLException e) {
-            if (failure != null) {
-                failure.addSuppressed(e);
-                return failure;
-            }
-            return new RuntimeException("Ripristino connessione dopo il salvataggio delle risorse non riuscito.", e);
-        }
-    }
-
-    private UUID findOrCreateForno(FornoClienteEditInput forno) throws SQLException {
-        String findSql = "SELECT ID FROM FORNI WHERE TECNOLOGIA = ? AND COALESCE(ANNO, '') = ? AND MARCA = ? AND MODELLO = ?";
-        try (PreparedStatement find = database.getConnection().prepareStatement(findSql)) {
-            bindFornoIdentity(find, forno);
-            try (ResultSet resultSet = find.executeQuery()) {
-                if (resultSet.next()) {
-                    return getUuid(resultSet, "ID");
-                }
-            }
-        }
-
-        UUID fornoId = UUID.randomUUID();
-        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO FORNI (ID, TECNOLOGIA, ANNO, MARCA, MODELLO) VALUES (?, ?, ?, ?, ?)")) {
-            insert.setString(1, fornoId.toString());
-            bindFornoIdentity(insert, forno, 2);
-            insert.executeUpdate();
-        }
-        return fornoId;
-    }
-
-    private void bindFornoIdentity(PreparedStatement statement, FornoClienteEditInput forno) throws SQLException {
-        bindFornoIdentity(statement, forno, 1);
-    }
-
-    private void bindFornoIdentity(PreparedStatement statement, FornoClienteEditInput forno, int startIndex) throws SQLException {
-        statement.setString(startIndex, forno.tecnologia());
-        statement.setString(startIndex + 1, forno.anno());
-        statement.setString(startIndex + 2, forno.marca());
-        statement.setString(startIndex + 3, forno.modello());
-    }
-
-    private FornoClienteEditInput cleanForno(FornoClienteEditInput forno) {
-        return new FornoClienteEditInput(
-                forno.id(),
-                forno.fornoId(),
-                normalize(forno.tecnologia()),
-                normalize(forno.anno()),
-                normalize(forno.marca()),
-                normalize(forno.modello()),
-                normalize(forno.nota()));
-    }
-
-    private boolean hasFornoData(FornoClienteEditInput forno) {
-        return !forno.tecnologia().isBlank()
-                || !forno.anno().isBlank()
-                || !forno.marca().isBlank()
-                || !forno.modello().isBlank();
     }
 
     private List<FresatoreClienteItem> findClienteFresatori(UUID clienteId) {
-        if (database == null || clienteId == null) {
-            return List.of();
-        }
-        initializeSchema();
-        String sql = """
-                SELECT CF.ID AS CLIENTE_FRESATORE_ID, F.ID AS FRESATORE_ID, F.MARCA, F.MODELLO, CF.NOTA
-                FROM CLIENTI_FRESATORI CF
-                JOIN FRESATORI F ON F.ID = CF.FRESATORE_ID
-                WHERE CF.CLIENTE_ID = ?
-                ORDER BY F.MARCA, F.MODELLO
-                """;
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
-            statement.setString(1, clienteId.toString());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                List<FresatoreClienteItem> values = new ArrayList<>();
-                while (resultSet.next()) {
-                    values.add(new FresatoreClienteItem(
-                            getUuid(resultSet, "CLIENTE_FRESATORE_ID"),
-                            getUuid(resultSet, "FRESATORE_ID"),
-                            cleanResult(resultSet.getString("MARCA")),
-                            cleanResult(resultSet.getString("MODELLO")),
-                            cleanResult(resultSet.getString("NOTA"))));
-                }
-                return values;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Caricamento fresatori cliente non riuscito.", e);
-        }
+        return risorseRepository == null ? List.of() : risorseRepository.findClienteFresatori(clienteId);
     }
 
     private void saveClienteFresatori(List<FresatoreClienteEditInput> fresatori) {
-        if (database == null || currentClienteId == null) {
-            return;
+        if (risorseRepository != null) {
+            risorseRepository.saveClienteFresatori(currentClienteId, fresatori);
         }
-        initializeSchema();
-        Connection connection = database.getConnection();
-        boolean originalAutoCommit;
-        try {
-            originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
-        } catch (SQLException e) {
-            throw new RuntimeException("Avvio salvataggio fresatori cliente non riuscito.", e);
-        }
-
-        RuntimeException failure = null;
-        try (PreparedStatement delete = connection.prepareStatement("DELETE FROM CLIENTI_FRESATORI WHERE CLIENTE_ID = ?");
-             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_FRESATORI (ID, CLIENTE_ID, FRESATORE_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
-            delete.setString(1, currentClienteId.toString());
-            delete.executeUpdate();
-            LocalDateTime now = LocalDateTime.now();
-            for (FresatoreClienteEditInput fresatore : fresatori) {
-                FresatoreClienteEditInput cleanFresatore = cleanFresatore(fresatore);
-                if (!hasFresatoreData(cleanFresatore)) {
-                    continue;
-                }
-                UUID fresatoreId = findOrCreateFresatore(cleanFresatore);
-                insert.setString(1, idOrNew(cleanFresatore.id()).toString());
-                insert.setString(2, currentClienteId.toString());
-                insert.setString(3, fresatoreId.toString());
-                insert.setString(4, nullableClean(cleanFresatore.nota()));
-                insert.setTimestamp(5, Timestamp.valueOf(now));
-                insert.addBatch();
-            }
-            insert.executeBatch();
-            connection.commit();
-        } catch (SQLException e) {
-            rollbackResourceSave(connection, e);
-            failure = new RuntimeException("Salvataggio fresatori cliente non riuscito.", e);
-        } catch (RuntimeException e) {
-            rollbackResourceSave(connection, e);
-            failure = e;
-        } finally {
-            failure = restoreAutoCommit(connection, originalAutoCommit, failure);
-        }
-        if (failure != null) {
-            throw failure;
-        }
-    }
-
-    private UUID findOrCreateFresatore(FresatoreClienteEditInput fresatore) throws SQLException {
-        String findSql = "SELECT ID FROM FRESATORI WHERE MARCA = ? AND MODELLO = ?";
-        try (PreparedStatement find = database.getConnection().prepareStatement(findSql)) {
-            bindFresatoreIdentity(find, fresatore);
-            try (ResultSet resultSet = find.executeQuery()) {
-                if (resultSet.next()) {
-                    return getUuid(resultSet, "ID");
-                }
-            }
-        }
-
-        UUID fresatoreId = UUID.randomUUID();
-        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO FRESATORI (ID, MARCA, MODELLO) VALUES (?, ?, ?)")) {
-            insert.setString(1, fresatoreId.toString());
-            bindFresatoreIdentity(insert, fresatore, 2);
-            insert.executeUpdate();
-        }
-        return fresatoreId;
-    }
-
-    private void bindFresatoreIdentity(PreparedStatement statement, FresatoreClienteEditInput fresatore) throws SQLException {
-        bindFresatoreIdentity(statement, fresatore, 1);
-    }
-
-    private void bindFresatoreIdentity(PreparedStatement statement, FresatoreClienteEditInput fresatore, int startIndex) throws SQLException {
-        statement.setString(startIndex, fresatore.marca());
-        statement.setString(startIndex + 1, fresatore.modello());
-    }
-
-    private FresatoreClienteEditInput cleanFresatore(FresatoreClienteEditInput fresatore) {
-        return new FresatoreClienteEditInput(
-                fresatore.id(),
-                fresatore.fresatoreId(),
-                normalize(fresatore.marca()),
-                normalize(fresatore.modello()),
-                normalize(fresatore.nota()));
-    }
-
-    private boolean hasFresatoreData(FresatoreClienteEditInput fresatore) {
-        return !fresatore.marca().isBlank()
-                || !fresatore.modello().isBlank();
     }
 
     private List<MaterialeClienteItem> findClienteMateriali(UUID clienteId) {
-        if (database == null || clienteId == null) {
-            return List.of();
-        }
-        initializeSchema();
-        String sql = """
-                SELECT CM.ID AS CLIENTE_MATERIALE_ID, M.ID AS MATERIALE_ID, M.MATERIALE, M.MARCHIO, M.MODELLO, CM.CONSUMO, CM.FREQUENZA_ACQUISTO, CM.NOTA
-                FROM CLIENTI_MATERIALI CM
-                JOIN MATERIALI_DI_CONSUMO M ON M.ID = CM.MATERIALE_ID
-                WHERE CM.CLIENTE_ID = ?
-                ORDER BY M.MATERIALE, M.MARCHIO, M.MODELLO, CM.CONSUMO, CM.FREQUENZA_ACQUISTO
-                """;
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
-            statement.setString(1, clienteId.toString());
-            try (ResultSet resultSet = statement.executeQuery()) {
-                List<MaterialeClienteItem> values = new ArrayList<>();
-                while (resultSet.next()) {
-                    values.add(new MaterialeClienteItem(
-                            getUuid(resultSet, "CLIENTE_MATERIALE_ID"),
-                            getUuid(resultSet, "MATERIALE_ID"),
-                            cleanResult(resultSet.getString("MATERIALE")),
-                            cleanResult(resultSet.getString("MARCHIO")),
-                            cleanResult(resultSet.getString("MODELLO")),
-                            cleanResult(resultSet.getString("CONSUMO")),
-                            cleanResult(resultSet.getString("FREQUENZA_ACQUISTO")),
-                            cleanResult(resultSet.getString("NOTA"))));
-                }
-                return values;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Caricamento materiali cliente non riuscito.", e);
-        }
+        return risorseRepository == null ? List.of() : risorseRepository.findClienteMateriali(clienteId);
     }
 
     private void saveClienteMateriali(List<MaterialeClienteEditInput> materiali) {
-        if (database == null || currentClienteId == null) {
-            return;
-        }
-        initializeSchema();
-        Connection connection = database.getConnection();
-        boolean originalAutoCommit;
-        try {
-            originalAutoCommit = connection.getAutoCommit();
-            connection.setAutoCommit(false);
-        } catch (SQLException e) {
-            throw new RuntimeException("Avvio salvataggio materiali cliente non riuscito.", e);
-        }
-
-        RuntimeException failure = null;
-        try (PreparedStatement delete = connection.prepareStatement("DELETE FROM CLIENTI_MATERIALI WHERE CLIENTE_ID = ?");
-             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_MATERIALI (ID, CLIENTE_ID, MATERIALE_ID, NOTA, CONSUMO, FREQUENZA_ACQUISTO, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
-            delete.setString(1, currentClienteId.toString());
-            delete.executeUpdate();
-            LocalDateTime now = LocalDateTime.now();
-            for (MaterialeClienteEditInput materiale : materiali) {
-                MaterialeClienteEditInput cleanMateriale = cleanMateriale(materiale);
-                if (!hasMaterialeData(cleanMateriale)) {
-                    continue;
-                }
-                UUID materialeId = findOrCreateMateriale(cleanMateriale);
-                insert.setString(1, idOrNew(cleanMateriale.id()).toString());
-                insert.setString(2, currentClienteId.toString());
-                insert.setString(3, materialeId.toString());
-                insert.setString(4, nullableClean(cleanMateriale.nota()));
-                insert.setString(5, nullableClean(cleanMateriale.consumo()));
-                insert.setString(6, nullableClean(cleanMateriale.frequenzaAcquisto()));
-                insert.setTimestamp(7, Timestamp.valueOf(now));
-                insert.addBatch();
-            }
-            insert.executeBatch();
-            connection.commit();
-        } catch (SQLException e) {
-            rollbackResourceSave(connection, e);
-            failure = new RuntimeException("Salvataggio materiali cliente non riuscito.", e);
-        } catch (RuntimeException e) {
-            rollbackResourceSave(connection, e);
-            failure = e;
-        } finally {
-            failure = restoreAutoCommit(connection, originalAutoCommit, failure);
-        }
-        if (failure != null) {
-            throw failure;
-        }
-    }
-
-    private UUID findOrCreateMateriale(MaterialeClienteEditInput materiale) throws SQLException {
-        String findSql = "SELECT ID FROM MATERIALI_DI_CONSUMO WHERE MATERIALE = ? AND MARCHIO = ? AND MODELLO = ?";
-        try (PreparedStatement find = database.getConnection().prepareStatement(findSql)) {
-            bindMaterialeIdentity(find, materiale);
-            try (ResultSet resultSet = find.executeQuery()) {
-                if (resultSet.next()) {
-                    return getUuid(resultSet, "ID");
-                }
-            }
-        }
-
-        UUID materialeId = UUID.randomUUID();
-        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO MATERIALI_DI_CONSUMO (ID, MATERIALE, MARCHIO, MODELLO) VALUES (?, ?, ?, ?)")) {
-            insert.setString(1, materialeId.toString());
-            bindMaterialeIdentity(insert, materiale, 2);
-            insert.executeUpdate();
-        }
-        return materialeId;
-    }
-
-    private void bindMaterialeIdentity(PreparedStatement statement, MaterialeClienteEditInput materiale) throws SQLException {
-        bindMaterialeIdentity(statement, materiale, 1);
-    }
-
-    private void bindMaterialeIdentity(PreparedStatement statement, MaterialeClienteEditInput materiale, int startIndex) throws SQLException {
-        statement.setString(startIndex, materiale.materiale());
-        statement.setString(startIndex + 1, materiale.marchio());
-        statement.setString(startIndex + 2, materiale.modello());
-    }
-
-    private MaterialeClienteEditInput cleanMateriale(MaterialeClienteEditInput materiale) {
-        return new MaterialeClienteEditInput(
-                materiale.id(),
-                materiale.materialeId(),
-                normalize(materiale.materiale()),
-                normalize(materiale.marchio()),
-                normalize(materiale.modello()),
-                normalize(materiale.consumo()),
-                normalize(materiale.frequenzaAcquisto()),
-                normalize(materiale.nota()));
-    }
-
-    private boolean hasMaterialeData(MaterialeClienteEditInput materiale) {
-        return !materiale.materiale().isBlank()
-                || !materiale.marchio().isBlank()
-                || !materiale.modello().isBlank();
-    }
-
-    private UUID getUuid(ResultSet resultSet, String column) throws SQLException {
-        String value = resultSet.getString(column);
-        return value == null || value.isBlank() ? null : UUID.fromString(value);
-    }
-
-    private String cleanResult(String value) {
-        return value == null ? "" : value;
-    }
-
-    private void initializeSchema() {
-        if (schemaInitializer != null) {
-            schemaInitializer.initialize();
+        if (risorseRepository != null) {
+            risorseRepository.saveClienteMateriali(currentClienteId, materiali);
         }
     }
 
