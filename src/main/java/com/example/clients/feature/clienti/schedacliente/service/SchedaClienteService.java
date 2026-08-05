@@ -149,6 +149,7 @@ public class SchedaClienteService {
                 toContactItems(record.contatti()),
                 findClienteForni(record.clienteId()),
                 findClienteFresatori(record.clienteId()),
+                findClienteMateriali(record.clienteId()),
                 record.timeline().stream()
                         .map(this::toInteractionPreview)
                         .toList()
@@ -197,6 +198,30 @@ public class SchedaClienteService {
             return values;
         } catch (SQLException e) {
             throw new RuntimeException("Caricamento catalogo fresatori non riuscito.", e);
+        }
+    }
+
+    public List<MaterialeCatalogItem> getMaterialiCatalog() {
+        if (database == null) {
+            return List.of();
+        }
+        initializeSchema();
+        String sql = "SELECT ID, MATERIALE, MARCHIO, MODELLO, CONSUMO, FREQUENZA_ACQUISTO FROM MATERIALI_DI_CONSUMO ORDER BY MATERIALE, MARCHIO, MODELLO, CONSUMO, FREQUENZA_ACQUISTO";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            List<MaterialeCatalogItem> values = new ArrayList<>();
+            while (resultSet.next()) {
+                values.add(new MaterialeCatalogItem(
+                        getUuid(resultSet, "ID"),
+                        cleanResult(resultSet.getString("MATERIALE")),
+                        cleanResult(resultSet.getString("MARCHIO")),
+                        cleanResult(resultSet.getString("MODELLO")),
+                        cleanResult(resultSet.getString("CONSUMO")),
+                        cleanResult(resultSet.getString("FREQUENZA_ACQUISTO"))));
+            }
+            return values;
+        } catch (SQLException e) {
+            throw new RuntimeException("Caricamento catalogo materiali non riuscito.", e);
         }
     }
 
@@ -475,6 +500,141 @@ public class SchedaClienteService {
                 || !fresatore.modello().isBlank();
     }
 
+    private List<MaterialeClienteItem> findClienteMateriali(UUID clienteId) {
+        if (database == null || clienteId == null) {
+            return List.of();
+        }
+        initializeSchema();
+        String sql = """
+                SELECT CM.ID AS CLIENTE_MATERIALE_ID, M.ID AS MATERIALE_ID, M.MATERIALE, M.MARCHIO, M.MODELLO, M.CONSUMO, M.FREQUENZA_ACQUISTO, CM.NOTA
+                FROM CLIENTI_MATERIALI CM
+                JOIN MATERIALI_DI_CONSUMO M ON M.ID = CM.MATERIALE_ID
+                WHERE CM.CLIENTE_ID = ?
+                ORDER BY M.MATERIALE, M.MARCHIO, M.MODELLO, M.CONSUMO, M.FREQUENZA_ACQUISTO
+                """;
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<MaterialeClienteItem> values = new ArrayList<>();
+                while (resultSet.next()) {
+                    values.add(new MaterialeClienteItem(
+                            getUuid(resultSet, "CLIENTE_MATERIALE_ID"),
+                            getUuid(resultSet, "MATERIALE_ID"),
+                            cleanResult(resultSet.getString("MATERIALE")),
+                            cleanResult(resultSet.getString("MARCHIO")),
+                            cleanResult(resultSet.getString("MODELLO")),
+                            cleanResult(resultSet.getString("CONSUMO")),
+                            cleanResult(resultSet.getString("FREQUENZA_ACQUISTO")),
+                            cleanResult(resultSet.getString("NOTA"))));
+                }
+                return values;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Caricamento materiali cliente non riuscito.", e);
+        }
+    }
+
+    private void saveClienteMateriali(List<MaterialeClienteEditInput> materiali) {
+        if (database == null || currentClienteId == null) {
+            return;
+        }
+        initializeSchema();
+        Connection connection = database.getConnection();
+        boolean originalAutoCommit;
+        try {
+            originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+        } catch (SQLException e) {
+            throw new RuntimeException("Avvio salvataggio materiali cliente non riuscito.", e);
+        }
+
+        RuntimeException failure = null;
+        try (PreparedStatement delete = connection.prepareStatement("DELETE FROM CLIENTI_MATERIALI WHERE CLIENTE_ID = ?");
+             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_MATERIALI (ID, CLIENTE_ID, MATERIALE_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
+            delete.setString(1, currentClienteId.toString());
+            delete.executeUpdate();
+            LocalDateTime now = LocalDateTime.now();
+            for (MaterialeClienteEditInput materiale : materiali) {
+                MaterialeClienteEditInput cleanMateriale = cleanMateriale(materiale);
+                if (!hasMaterialeData(cleanMateriale)) {
+                    continue;
+                }
+                UUID materialeId = findOrCreateMateriale(cleanMateriale);
+                insert.setString(1, idOrNew(cleanMateriale.id()).toString());
+                insert.setString(2, currentClienteId.toString());
+                insert.setString(3, materialeId.toString());
+                insert.setString(4, nullableClean(cleanMateriale.nota()));
+                insert.setTimestamp(5, Timestamp.valueOf(now));
+                insert.addBatch();
+            }
+            insert.executeBatch();
+            connection.commit();
+        } catch (SQLException e) {
+            rollbackResourceSave(connection, e);
+            failure = new RuntimeException("Salvataggio materiali cliente non riuscito.", e);
+        } catch (RuntimeException e) {
+            rollbackResourceSave(connection, e);
+            failure = e;
+        } finally {
+            failure = restoreAutoCommit(connection, originalAutoCommit, failure);
+        }
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    private UUID findOrCreateMateriale(MaterialeClienteEditInput materiale) throws SQLException {
+        String findSql = "SELECT ID FROM MATERIALI_DI_CONSUMO WHERE MATERIALE = ? AND MARCHIO = ? AND MODELLO = ? AND COALESCE(CONSUMO, '') = ? AND COALESCE(FREQUENZA_ACQUISTO, '') = ?";
+        try (PreparedStatement find = database.getConnection().prepareStatement(findSql)) {
+            bindMaterialeIdentity(find, materiale);
+            try (ResultSet resultSet = find.executeQuery()) {
+                if (resultSet.next()) {
+                    return getUuid(resultSet, "ID");
+                }
+            }
+        }
+
+        UUID materialeId = UUID.randomUUID();
+        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO MATERIALI_DI_CONSUMO (ID, MATERIALE, MARCHIO, MODELLO, CONSUMO, FREQUENZA_ACQUISTO) VALUES (?, ?, ?, ?, ?, ?)")) {
+            insert.setString(1, materialeId.toString());
+            bindMaterialeIdentity(insert, materiale, 2);
+            insert.executeUpdate();
+        }
+        return materialeId;
+    }
+
+    private void bindMaterialeIdentity(PreparedStatement statement, MaterialeClienteEditInput materiale) throws SQLException {
+        bindMaterialeIdentity(statement, materiale, 1);
+    }
+
+    private void bindMaterialeIdentity(PreparedStatement statement, MaterialeClienteEditInput materiale, int startIndex) throws SQLException {
+        statement.setString(startIndex, materiale.materiale());
+        statement.setString(startIndex + 1, materiale.marchio());
+        statement.setString(startIndex + 2, materiale.modello());
+        statement.setString(startIndex + 3, materiale.consumo());
+        statement.setString(startIndex + 4, materiale.frequenzaAcquisto());
+    }
+
+    private MaterialeClienteEditInput cleanMateriale(MaterialeClienteEditInput materiale) {
+        return new MaterialeClienteEditInput(
+                materiale.id(),
+                materiale.materialeId(),
+                normalize(materiale.materiale()),
+                normalize(materiale.marchio()),
+                normalize(materiale.modello()),
+                normalize(materiale.consumo()),
+                normalize(materiale.frequenzaAcquisto()),
+                normalize(materiale.nota()));
+    }
+
+    private boolean hasMaterialeData(MaterialeClienteEditInput materiale) {
+        return !materiale.materiale().isBlank()
+                || !materiale.marchio().isBlank()
+                || !materiale.modello().isBlank()
+                || !materiale.consumo().isBlank()
+                || !materiale.frequenzaAcquisto().isBlank();
+    }
+
     private UUID getUuid(ResultSet resultSet, String column) throws SQLException {
         String value = resultSet.getString(column);
         return value == null || value.isBlank() ? null : UUID.fromString(value);
@@ -535,6 +695,7 @@ public class SchedaClienteService {
                 "",
                 null,
                 false,
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -633,6 +794,26 @@ public class SchedaClienteService {
         List<FresatoreClienteItem> savedFresatori = findClienteFresatori(currentClienteId);
         currentProfile = currentProfile.withFresatori(savedFresatori);
         return savedFresatori;
+    }
+
+    public List<MaterialeClienteEditInput> startMaterialiEdit() {
+        ensureProfileLoaded();
+        return currentProfile.materiali().stream()
+                .map(MaterialeClienteEditInput::from)
+                .toList();
+    }
+
+    public List<MaterialeClienteItem> cancelMaterialiEdit() {
+        ensureProfileLoaded();
+        return currentProfile.materiali();
+    }
+
+    public List<MaterialeClienteItem> saveMaterialiEdit(List<MaterialeClienteEditInput> materiali) {
+        ensureProfileLoaded();
+        saveClienteMateriali(materiali == null ? List.of() : materiali);
+        List<MaterialeClienteItem> savedMateriali = findClienteMateriali(currentClienteId);
+        currentProfile = currentProfile.withMateriali(savedMateriali);
+        return savedMateriali;
     }
 
     public ClienteProfile cancelEdit() {
@@ -930,6 +1111,7 @@ public class SchedaClienteService {
             List<ContactItem> contatti,
             List<FornoClienteItem> forni,
             List<FresatoreClienteItem> fresatori,
+            List<MaterialeClienteItem> materiali,
             List<InteractionPreview> interazioni
     ) {
         public ClienteProfile {
@@ -940,32 +1122,38 @@ public class SchedaClienteService {
             contatti = List.copyOf(contatti);
             forni = List.copyOf(forni);
             fresatori = List.copyOf(fresatori);
+            materiali = List.copyOf(materiali);
             interazioni = List.copyOf(interazioni);
         }
 
         private ClienteProfile withCoinvolgimento(Integer coinvolgimento) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, materiali, interazioni);
         }
 
         private ClienteProfile withFavorite(boolean favorite) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, materiali, interazioni);
         }
 
         private ClienteProfile withInterazioni(List<InteractionPreview> interazioni) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, materiali, interazioni);
         }
 
         private ClienteProfile withForni(List<FornoClienteItem> forni) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, materiali, interazioni);
         }
 
         private ClienteProfile withFresatori(List<FresatoreClienteItem> fresatori) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, materiali, interazioni);
+        }
+
+        private ClienteProfile withMateriali(List<MaterialeClienteItem> materiali) {
+            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, materiali, interazioni);
         }
     }
 
@@ -1063,6 +1251,18 @@ public class SchedaClienteService {
     public record FresatoreClienteEditInput(UUID id, UUID fresatoreId, String marca, String modello, String nota) {
         private static FresatoreClienteEditInput from(FresatoreClienteItem item) {
             return new FresatoreClienteEditInput(item.id(), item.fresatoreId(), item.marca(), item.modello(), item.nota());
+        }
+    }
+
+    public record MaterialeCatalogItem(UUID materialeId, String materiale, String marchio, String modello, String consumo, String frequenzaAcquisto) {
+    }
+
+    public record MaterialeClienteItem(UUID id, UUID materialeId, String materiale, String marchio, String modello, String consumo, String frequenzaAcquisto, String nota) {
+    }
+
+    public record MaterialeClienteEditInput(UUID id, UUID materialeId, String materiale, String marchio, String modello, String consumo, String frequenzaAcquisto, String nota) {
+        private static MaterialeClienteEditInput from(MaterialeClienteItem item) {
+            return new MaterialeClienteEditInput(item.id(), item.materialeId(), item.materiale(), item.marchio(), item.modello(), item.consumo(), item.frequenzaAcquisto(), item.nota());
         }
     }
 
