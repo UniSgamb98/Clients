@@ -14,7 +14,7 @@ public class ImpostazioniController {
     public ImpostazioniController(ImpostazioniView view, ImpostazioniService service) {
         this.view = view;
         this.service = service;
-        configure("MATERIALI_DI_CONSUMO", List.of("MATERIALE", "MARCHIO", "MODELLO", "CONSUMO", "FREQUENZA_ACQUISTO"));
+        configure("MATERIALI_DI_CONSUMO", List.of("MATERIALE", "MARCHIO", "MODELLO", "CONSUMO"));
         configure("CANALI_DI_ACQUISTO", List.of("MODALITA", "NOTA"));
         configure("FRESATORI", List.of("MARCA", "MODELLO"));
         configure("FORNI", List.of("TECNOLOGIA", "ANNO", "MARCA", "MODELLO"));

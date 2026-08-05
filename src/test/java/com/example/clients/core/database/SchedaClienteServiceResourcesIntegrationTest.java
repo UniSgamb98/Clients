@@ -296,7 +296,7 @@ class SchedaClienteServiceResourcesIntegrationTest {
     @Test
     void savesMaterialiWithCatalogReuseCreationNotesAndPreservesOtherResources() throws SQLException {
         UUID clienteId = insertCliente("Cliente materiali");
-        UUID existingMaterialeId = insertMateriale("Zirconia", "Marchio esistente", "Modello esistente", "5 blocchi", "Mensile");
+        UUID existingMaterialeId = insertMateriale("Zirconia", "Marchio esistente", "Modello esistente", "5 blocchi");
         SchedaClienteService service = loadService(clienteId);
         service.saveForniEdit(List.of(input("Tecnologia materiali", "2024", "Marca forno materiali", "Modello forno materiali", "Nota forno")));
         service.saveFresatoriEdit(List.of(fresatoreInput("Marca fresatore materiali", "Modello fresatore materiali", "Nota fresatore")));
@@ -387,16 +387,15 @@ class SchedaClienteServiceResourcesIntegrationTest {
         return id;
     }
 
-    private UUID insertMateriale(String materiale, String marchio, String modello, String consumo, String frequenzaAcquisto) throws SQLException {
+    private UUID insertMateriale(String materiale, String marchio, String modello, String consumo) throws SQLException {
         UUID id = UUID.randomUUID();
         try (PreparedStatement statement = database.getConnection().prepareStatement(
-                "INSERT INTO MATERIALI_DI_CONSUMO (ID, MATERIALE, MARCHIO, MODELLO, CONSUMO, FREQUENZA_ACQUISTO) VALUES (?, ?, ?, ?, ?, ?)")) {
+                "INSERT INTO MATERIALI_DI_CONSUMO (ID, MATERIALE, MARCHIO, MODELLO, CONSUMO) VALUES (?, ?, ?, ?, ?)")) {
             statement.setString(1, id.toString());
             statement.setString(2, materiale);
             statement.setString(3, marchio);
             statement.setString(4, modello);
             statement.setString(5, consumo);
-            statement.setString(6, frequenzaAcquisto);
             statement.executeUpdate();
         }
         return id;

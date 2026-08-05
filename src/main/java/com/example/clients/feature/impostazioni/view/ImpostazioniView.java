@@ -92,7 +92,7 @@ public class ImpostazioniView extends BorderPane {
 
     private VBox createSection(String title) {
         String table = switch (title) { case "Materiale di Consumo" -> "MATERIALI_DI_CONSUMO"; case "Canali di acquisto" -> "CANALI_DI_ACQUISTO"; case "Parco Fresatori" -> "FRESATORI"; default -> "FORNI"; };
-        List<String> fields = switch (table) { case "MATERIALI_DI_CONSUMO" -> List.of("Materiale", "Marchio", "Modello", "Consumo", "Frequenza acquisto"); case "CANALI_DI_ACQUISTO" -> List.of("Modalità", "Nota"); case "FRESATORI" -> List.of("Marca", "Modello"); default -> List.of("Tecnologia", "Anno", "Marca", "Modello"); };
+        List<String> fields = switch (table) { case "MATERIALI_DI_CONSUMO" -> List.of("Materiale", "Marchio", "Modello", "Consumo"); case "CANALI_DI_ACQUISTO" -> List.of("Modalità", "Nota"); case "FRESATORI" -> List.of("Marca", "Modello"); default -> List.of("Tecnologia", "Anno", "Marca", "Modello"); };
         ImpostazioniEditorSection editor = new ImpostazioniEditorSection(title, fields); editors.put(table, editor); return editor;
     }
 

@@ -206,7 +206,7 @@ public class SchedaClienteService {
             return List.of();
         }
         initializeSchema();
-        String sql = "SELECT ID, MATERIALE, MARCHIO, MODELLO, CONSUMO, FREQUENZA_ACQUISTO FROM MATERIALI_DI_CONSUMO ORDER BY MATERIALE, MARCHIO, MODELLO, CONSUMO, FREQUENZA_ACQUISTO";
+        String sql = "SELECT ID, MATERIALE, MARCHIO, MODELLO, CONSUMO FROM MATERIALI_DI_CONSUMO ORDER BY MATERIALE, MARCHIO, MODELLO, CONSUMO";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
             List<MaterialeCatalogItem> values = new ArrayList<>();
@@ -216,8 +216,7 @@ public class SchedaClienteService {
                         cleanResult(resultSet.getString("MATERIALE")),
                         cleanResult(resultSet.getString("MARCHIO")),
                         cleanResult(resultSet.getString("MODELLO")),
-                        cleanResult(resultSet.getString("CONSUMO")),
-                        cleanResult(resultSet.getString("FREQUENZA_ACQUISTO"))));
+                        cleanResult(resultSet.getString("CONSUMO"))));
             }
             return values;
         } catch (SQLException e) {
@@ -506,11 +505,11 @@ public class SchedaClienteService {
         }
         initializeSchema();
         String sql = """
-                SELECT CM.ID AS CLIENTE_MATERIALE_ID, M.ID AS MATERIALE_ID, M.MATERIALE, M.MARCHIO, M.MODELLO, M.CONSUMO, M.FREQUENZA_ACQUISTO, CM.NOTA
+                SELECT CM.ID AS CLIENTE_MATERIALE_ID, M.ID AS MATERIALE_ID, M.MATERIALE, M.MARCHIO, M.MODELLO, M.CONSUMO, CM.FREQUENZA_ACQUISTO, CM.NOTA
                 FROM CLIENTI_MATERIALI CM
                 JOIN MATERIALI_DI_CONSUMO M ON M.ID = CM.MATERIALE_ID
                 WHERE CM.CLIENTE_ID = ?
-                ORDER BY M.MATERIALE, M.MARCHIO, M.MODELLO, M.CONSUMO, M.FREQUENZA_ACQUISTO
+                ORDER BY M.MATERIALE, M.MARCHIO, M.MODELLO, M.CONSUMO, CM.FREQUENZA_ACQUISTO
                 """;
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
@@ -550,7 +549,7 @@ public class SchedaClienteService {
 
         RuntimeException failure = null;
         try (PreparedStatement delete = connection.prepareStatement("DELETE FROM CLIENTI_MATERIALI WHERE CLIENTE_ID = ?");
-             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_MATERIALI (ID, CLIENTE_ID, MATERIALE_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
+             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_MATERIALI (ID, CLIENTE_ID, MATERIALE_ID, NOTA, FREQUENZA_ACQUISTO, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?)")) {
             delete.setString(1, currentClienteId.toString());
             delete.executeUpdate();
             LocalDateTime now = LocalDateTime.now();
@@ -564,7 +563,8 @@ public class SchedaClienteService {
                 insert.setString(2, currentClienteId.toString());
                 insert.setString(3, materialeId.toString());
                 insert.setString(4, nullableClean(cleanMateriale.nota()));
-                insert.setTimestamp(5, Timestamp.valueOf(now));
+                insert.setString(5, nullableClean(cleanMateriale.frequenzaAcquisto()));
+                insert.setTimestamp(6, Timestamp.valueOf(now));
                 insert.addBatch();
             }
             insert.executeBatch();
@@ -584,7 +584,7 @@ public class SchedaClienteService {
     }
 
     private UUID findOrCreateMateriale(MaterialeClienteEditInput materiale) throws SQLException {
-        String findSql = "SELECT ID FROM MATERIALI_DI_CONSUMO WHERE MATERIALE = ? AND MARCHIO = ? AND MODELLO = ? AND COALESCE(CONSUMO, '') = ? AND COALESCE(FREQUENZA_ACQUISTO, '') = ?";
+        String findSql = "SELECT ID FROM MATERIALI_DI_CONSUMO WHERE MATERIALE = ? AND MARCHIO = ? AND MODELLO = ? AND COALESCE(CONSUMO, '') = ?";
         try (PreparedStatement find = database.getConnection().prepareStatement(findSql)) {
             bindMaterialeIdentity(find, materiale);
             try (ResultSet resultSet = find.executeQuery()) {
@@ -595,7 +595,7 @@ public class SchedaClienteService {
         }
 
         UUID materialeId = UUID.randomUUID();
-        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO MATERIALI_DI_CONSUMO (ID, MATERIALE, MARCHIO, MODELLO, CONSUMO, FREQUENZA_ACQUISTO) VALUES (?, ?, ?, ?, ?, ?)")) {
+        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO MATERIALI_DI_CONSUMO (ID, MATERIALE, MARCHIO, MODELLO, CONSUMO) VALUES (?, ?, ?, ?, ?)")) {
             insert.setString(1, materialeId.toString());
             bindMaterialeIdentity(insert, materiale, 2);
             insert.executeUpdate();
@@ -612,7 +612,6 @@ public class SchedaClienteService {
         statement.setString(startIndex + 1, materiale.marchio());
         statement.setString(startIndex + 2, materiale.modello());
         statement.setString(startIndex + 3, materiale.consumo());
-        statement.setString(startIndex + 4, materiale.frequenzaAcquisto());
     }
 
     private MaterialeClienteEditInput cleanMateriale(MaterialeClienteEditInput materiale) {
@@ -631,8 +630,7 @@ public class SchedaClienteService {
         return !materiale.materiale().isBlank()
                 || !materiale.marchio().isBlank()
                 || !materiale.modello().isBlank()
-                || !materiale.consumo().isBlank()
-                || !materiale.frequenzaAcquisto().isBlank();
+                || !materiale.consumo().isBlank();
     }
 
     private UUID getUuid(ResultSet resultSet, String column) throws SQLException {
@@ -1254,7 +1252,7 @@ public class SchedaClienteService {
         }
     }
 
-    public record MaterialeCatalogItem(UUID materialeId, String materiale, String marchio, String modello, String consumo, String frequenzaAcquisto) {
+    public record MaterialeCatalogItem(UUID materialeId, String materiale, String marchio, String modello, String consumo) {
     }
 
     public record MaterialeClienteItem(UUID id, UUID materialeId, String materiale, String marchio, String modello, String consumo, String frequenzaAcquisto, String nota) {
