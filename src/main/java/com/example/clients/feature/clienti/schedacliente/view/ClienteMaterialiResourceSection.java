@@ -129,9 +129,9 @@ final class ClienteMaterialiResourceSection {
         });
 
         card.getChildren().addAll(
-                createEditorLine("Materiale", materialeField, "Marchio", marchio),
-                createModelConsumptionLine(modello, consumo),
-                createFrequencyLine(frequenzaAcquisto),
+                createSingleAutocompleteLine("Materiale", materialeField),
+                createEditorLine("Marchio", marchio, "Modello", modello),
+                createConsumptionFrequencyLine(consumo, frequenzaAcquisto),
                 nota,
                 remove
         );
@@ -206,17 +206,17 @@ final class ClienteMaterialiResourceSection {
         return row;
     }
 
-    private HBox createModelConsumptionLine(ResourceAutocompleteComboBox modello, TextField consumo) {
+    private HBox createSingleAutocompleteLine(String label, ResourceAutocompleteComboBox field) {
         HBox row = new HBox(10);
         row.getStyleClass().add("client-profile-forno-row");
-        row.getChildren().addAll(createEditorField("Modello", modello), createTextField("Consumo", consumo));
+        row.getChildren().add(createEditorField(label, field));
         return row;
     }
 
-    private HBox createFrequencyLine(TextField frequenzaAcquisto) {
+    private HBox createConsumptionFrequencyLine(TextField consumo, TextField frequenzaAcquisto) {
         HBox row = new HBox(10);
         row.getStyleClass().add("client-profile-forno-row");
-        row.getChildren().add(createTextField("Frequenza acquisto", frequenzaAcquisto));
+        row.getChildren().addAll(createTextField("Consumo", consumo), createTextField("Frequenza acquisto", frequenzaAcquisto));
         return row;
     }
 
