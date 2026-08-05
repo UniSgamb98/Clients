@@ -3,6 +3,8 @@ package com.example.clients.core.database;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteItem;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -21,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class SchedaClienteServiceForniIntegrationTest {
+class SchedaClienteServiceResourcesIntegrationTest {
 
     private static Database database;
 
@@ -163,6 +165,96 @@ class SchedaClienteServiceForniIntegrationTest {
         assertEquals(1, countTelefoni(clienteId));
     }
 
+    @Test
+    void reusesAnExistingFresatoreCatalogCombination() throws SQLException {
+        UUID clienteId = insertCliente("Cliente fresatore esistente");
+        UUID existingFresatoreId = insertFresatore("Marca fresatore esistente", "Modello fresatore esistente");
+        SchedaClienteService service = loadService(clienteId);
+
+        List<FresatoreClienteItem> saved = service.saveFresatoriEdit(List.of(fresatoreInput(
+                "Marca fresatore esistente", "Modello fresatore esistente", "Nota fresatore")));
+
+        assertEquals(1, saved.size());
+        assertEquals(existingFresatoreId, saved.getFirst().fresatoreId());
+        assertEquals(1, countFresatori("Marca fresatore esistente", "Modello fresatore esistente"));
+    }
+
+    @Test
+    void createsANewFresatoreAndUpdatesTheAssociationNote() throws SQLException {
+        UUID clienteId = insertCliente("Cliente nuovo fresatore");
+        SchedaClienteService service = loadService(clienteId);
+        service.saveFresatoriEdit(List.of(fresatoreInput("Nuova marca fresatore", "Nuovo modello fresatore", "Nota originale")));
+        FresatoreClienteEditInput existing = service.startFresatoriEdit().getFirst();
+
+        List<FresatoreClienteItem> saved = service.saveFresatoriEdit(List.of(new FresatoreClienteEditInput(
+                existing.id(), existing.fresatoreId(), existing.marca(), existing.modello(), "Nota aggiornata")));
+
+        assertEquals(1, countFresatori("Nuova marca fresatore", "Nuovo modello fresatore"));
+        assertEquals("Nota aggiornata", saved.getFirst().nota());
+        assertEquals(1, countFresatoreAssociations(clienteId));
+    }
+
+    @Test
+    void addsAndRemovesMultipleFresatori() {
+        UUID clienteId = insertCliente("Cliente più fresatori");
+        SchedaClienteService service = loadService(clienteId);
+        service.saveFresatoriEdit(List.of(
+                fresatoreInput("Marca fresatore A", "Modello fresatore A", ""),
+                fresatoreInput("Marca fresatore B", "Modello fresatore B", ""),
+                fresatoreInput("Marca fresatore C", "Modello fresatore C", "")));
+        List<FresatoreClienteEditInput> current = service.startFresatoriEdit();
+
+        List<FresatoreClienteItem> saved = service.saveFresatoriEdit(List.of(current.get(0), current.get(2)));
+
+        assertEquals(2, saved.size());
+        assertEquals(2, countFresatoreAssociations(clienteId));
+        assertFalse(saved.stream().anyMatch(fresatore -> "Marca fresatore B".equals(fresatore.marca())));
+    }
+
+    @Test
+    void fresatoreEditorCanBeCancelledAndReopened() {
+        UUID clienteId = insertCliente("Cliente annullamento fresatore");
+        SchedaClienteService service = loadService(clienteId);
+        service.saveFresatoriEdit(List.of(fresatoreInput("Marca annulla fresatore", "Modello annulla fresatore", "Originale")));
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            FresatoreClienteEditInput draft = service.startFresatoriEdit().getFirst();
+            assertEquals("Originale", draft.nota());
+            assertEquals("Originale", service.cancelFresatoriEdit().getFirst().nota());
+        }
+
+        assertEquals("Originale", fresatoreAssociationNote(clienteId));
+    }
+
+    @Test
+    void fresatoreDatabaseErrorRollsBackCatalogAndAssociations() throws SQLException {
+        UUID clienteId = insertCliente("Cliente rollback fresatore");
+        SchedaClienteService service = loadService(clienteId);
+        service.saveFresatoriEdit(List.of(fresatoreInput("Marca stabile fresatore", "Modello stabile fresatore", "Nota stabile")));
+
+        RuntimeException error = assertThrows(RuntimeException.class, () -> service.saveFresatoriEdit(List.of(
+                fresatoreInput("Marca rollback fresatore", "Modello rollback fresatore", "x".repeat(501)))));
+
+        assertTrue(error.getMessage().contains("Salvataggio fresatori"));
+        assertEquals(1, countFresatoreAssociations(clienteId));
+        assertEquals("Nota stabile", fresatoreAssociationNote(clienteId));
+        assertEquals(0, countFresatori("Marca rollback fresatore", "Modello rollback fresatore"));
+    }
+
+    @Test
+    void savingFresatoriPreservesClientDataAndForni() throws SQLException {
+        UUID clienteId = insertCliente("Cliente conservazione fresatori");
+        insertTelefono(clienteId, "+39 0987654321");
+        SchedaClienteService service = loadService(clienteId);
+        service.saveForniEdit(List.of(input("Tecnologia conservata", "2023", "Marca forno conservata", "Modello forno conservato", "")));
+
+        service.saveFresatoriEdit(List.of(fresatoreInput("Marca conservazione fresatore", "Modello conservazione fresatore", "")));
+
+        assertEquals(1, countAssociations(clienteId));
+        assertEquals(1, countTelefoni(clienteId));
+        assertEquals("Cliente conservazione fresatori", clientName(clienteId));
+    }
+
     private SchedaClienteService loadService(UUID clienteId) {
         SchedaClienteService service = new SchedaClienteService(database);
         service.loadProfile(clienteId);
@@ -202,6 +294,18 @@ class SchedaClienteServiceForniIntegrationTest {
         return id;
     }
 
+    private UUID insertFresatore(String marca, String modello) throws SQLException {
+        UUID id = UUID.randomUUID();
+        try (PreparedStatement statement = database.getConnection().prepareStatement(
+                "INSERT INTO FRESATORI (ID, MARCA, MODELLO) VALUES (?, ?, ?)")) {
+            statement.setString(1, id.toString());
+            statement.setString(2, marca);
+            statement.setString(3, modello);
+            statement.executeUpdate();
+        }
+        return id;
+    }
+
     private void insertTelefono(UUID clienteId, String value) throws SQLException {
         try (PreparedStatement statement = database.getConnection().prepareStatement(
                 "INSERT INTO TELEFONI_CLIENTE (ID, CLIENTE_ID, DESCRIZIONE) VALUES (?, ?, ?)")) {
@@ -216,6 +320,10 @@ class SchedaClienteServiceForniIntegrationTest {
         return new FornoClienteEditInput(null, null, tecnologia, anno, marca, modello, nota);
     }
 
+    private FresatoreClienteEditInput fresatoreInput(String marca, String modello, String nota) {
+        return new FresatoreClienteEditInput(null, null, marca, modello, nota);
+    }
+
     private int countForni(String marca, String modello) throws SQLException {
         return count("SELECT COUNT(*) FROM FORNI WHERE MARCA = ? AND MODELLO = ?", marca, modello);
     }
@@ -223,6 +331,18 @@ class SchedaClienteServiceForniIntegrationTest {
     private int countAssociations(UUID clienteId) {
         try {
             return count("SELECT COUNT(*) FROM CLIENTI_FORNI WHERE CLIENTE_ID = ?", clienteId.toString());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private int countFresatori(String marca, String modello) throws SQLException {
+        return count("SELECT COUNT(*) FROM FRESATORI WHERE MARCA = ? AND MODELLO = ?", marca, modello);
+    }
+
+    private int countFresatoreAssociations(UUID clienteId) {
+        try {
+            return count("SELECT COUNT(*) FROM CLIENTI_FRESATORI WHERE CLIENTE_ID = ?", clienteId.toString());
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -254,6 +374,30 @@ class SchedaClienteServiceForniIntegrationTest {
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private String fresatoreAssociationNote(UUID clienteId) {
+        try (PreparedStatement statement = database.getConnection().prepareStatement(
+                "SELECT NOTA FROM CLIENTI_FRESATORI WHERE CLIENTE_ID = ?")) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                assertTrue(resultSet.next());
+                return resultSet.getString("NOTA");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String clientName(UUID clienteId) throws SQLException {
+        try (PreparedStatement statement = database.getConnection().prepareStatement(
+                "SELECT RAGIONE_SOCIALE FROM CLIENTI WHERE ID = ?")) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                assertTrue(resultSet.next());
+                return resultSet.getString("RAGIONE_SOCIALE");
+            }
         }
     }
 }

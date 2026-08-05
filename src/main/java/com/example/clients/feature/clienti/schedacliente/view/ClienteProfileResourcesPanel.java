@@ -107,7 +107,7 @@ final class ClienteProfileResourcesPanel extends VBox {
     void renderFresatori(List<FresatoreClienteItem> fresatori) {
         fresatoriSection.clearCards();
         fresatoreEditorRows.clear();
-        fresatoriSection.hideActions();
+        fresatoriSection.showViewActions();
 
         if (fresatori == null || fresatori.isEmpty()) {
             fresatoriSection.addCard(createEmptyLabel("Nessun fresatore associato"));
@@ -120,9 +120,17 @@ final class ClienteProfileResourcesPanel extends VBox {
     }
 
     void renderFresatoriEditor(List<FresatoreClienteEditInput> fresatori) {
+        renderFresatoriEditor(fresatori, false);
+    }
+
+    void renderStandaloneFresatoriEditor(List<FresatoreClienteEditInput> fresatori) {
+        renderFresatoriEditor(fresatori, true);
+    }
+
+    private void renderFresatoriEditor(List<FresatoreClienteEditInput> fresatori, boolean standalone) {
         fresatoriSection.clearCards();
         fresatoreEditorRows.clear();
-        fresatoriSection.showEditActions(false);
+        fresatoriSection.showEditActions(standalone);
 
         if (fresatori == null || fresatori.isEmpty()) {
             addFresatoreEditorRow(emptyFresatore());
@@ -374,6 +382,18 @@ final class ClienteProfileResourcesPanel extends VBox {
 
     Button cancelForniButton() {
         return forniSection.cancelButton();
+    }
+
+    Button editFresatoriButton() {
+        return fresatoriSection.editButton();
+    }
+
+    Button saveFresatoriButton() {
+        return fresatoriSection.saveButton();
+    }
+
+    Button cancelFresatoriButton() {
+        return fresatoriSection.cancelButton();
     }
 
     private record FornoEditorRow(
