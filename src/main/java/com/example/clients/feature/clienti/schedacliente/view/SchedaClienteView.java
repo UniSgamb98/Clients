@@ -10,6 +10,9 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
@@ -110,6 +113,7 @@ public class SchedaClienteView extends BorderPane {
         timelineSection.render(profile.interazioni());
         resourcesPanel.renderForni(profile.forni());
         resourcesPanel.renderFresatori(profile.fresatori());
+        resourcesPanel.renderMateriali(profile.materiali());
     }
 
     public void renderEditableProfile(EditProfileDraft draft) {
@@ -202,8 +206,36 @@ public class SchedaClienteView extends BorderPane {
         resourcesPanel.setForniCatalog(forniCatalog);
     }
 
+    public Button getEditMaterialiButton() {
+        return resourcesPanel.editMaterialiButton();
+    }
+
+    public Button getSaveMaterialiButton() {
+        return resourcesPanel.saveMaterialiButton();
+    }
+
+    public Button getCancelMaterialiButton() {
+        return resourcesPanel.cancelMaterialiButton();
+    }
+
+    public void renderStandaloneMaterialiEditor(List<MaterialeClienteEditInput> materiali) {
+        resourcesPanel.renderStandaloneMaterialiEditor(materiali);
+    }
+
+    public void renderMateriali(List<MaterialeClienteItem> materiali) {
+        resourcesPanel.renderMateriali(materiali);
+    }
+
+    public List<MaterialeClienteEditInput> collectMateriali() {
+        return resourcesPanel.collectMateriali();
+    }
+
     public void setFresatoriCatalog(List<FresatoreCatalogItem> fresatoriCatalog) {
         resourcesPanel.setFresatoriCatalog(fresatoriCatalog);
+    }
+
+    public void setMaterialiCatalog(List<MaterialeCatalogItem> materialiCatalog) {
+        resourcesPanel.setMaterialiCatalog(materialiCatalog);
     }
 
     public void setFavorite(boolean favorite) {

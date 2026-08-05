@@ -6,6 +6,9 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreCatalogItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteItem;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
@@ -26,10 +29,13 @@ final class ClienteProfileResourcesPanel extends VBox {
     private final FlowPane resources = new FlowPane(12, 12);
     private final ClienteResourceSection forniSection = new ClienteResourceSection("Forni", "+ Forno");
     private final ClienteResourceSection fresatoriSection = new ClienteResourceSection("Fresatori", "+ Fresatore");
+    private final ClienteResourceSection materialiSection = new ClienteResourceSection("Materiali", "+ Materiale");
     private final List<FornoCatalogItem> forniCatalog = new ArrayList<>();
     private final List<FresatoreCatalogItem> fresatoriCatalog = new ArrayList<>();
+    private final List<MaterialeCatalogItem> materialiCatalog = new ArrayList<>();
     private final List<FornoEditorRow> fornoEditorRows = new ArrayList<>();
     private final List<FresatoreEditorRow> fresatoreEditorRows = new ArrayList<>();
+    private final List<MaterialeEditorRow> materialeEditorRows = new ArrayList<>();
     ClienteProfileResourcesPanel() {
         super(12);
         getStyleClass().add("client-profile-resources-panel");
@@ -38,10 +44,12 @@ final class ClienteProfileResourcesPanel extends VBox {
         title.getStyleClass().add("client-profile-resources-title");
 
         resources.getStyleClass().add("client-profile-resources-flow");
-        resources.getChildren().setAll(forniSection, fresatoriSection);
+        resources.getChildren().setAll(forniSection, fresatoriSection, materialiSection);
         forniSection.addButton().setOnAction(event -> addFornoEditorRow(emptyForno()));
         fresatoriSection.addButton().setOnAction(event -> addFresatoreEditorRow(emptyFresatore()));
+        materialiSection.addButton().setOnAction(event -> addMaterialeEditorRow(emptyMateriale()));
         fresatoriSection.hideActions();
+        materialiSection.hideActions();
 
         getChildren().addAll(title, resources);
     }
@@ -60,6 +68,14 @@ final class ClienteProfileResourcesPanel extends VBox {
             fresatoriCatalog.addAll(values);
         }
         fresatoreEditorRows.forEach(this::refreshSuggestions);
+    }
+
+    void setMaterialiCatalog(List<MaterialeCatalogItem> values) {
+        materialiCatalog.clear();
+        if (values != null) {
+            materialiCatalog.addAll(values);
+        }
+        materialeEditorRows.forEach(this::refreshSuggestions);
     }
 
     void renderForni(List<FornoClienteItem> forni) {
@@ -138,6 +154,44 @@ final class ClienteProfileResourcesPanel extends VBox {
                 .toList();
     }
 
+    void renderMateriali(List<MaterialeClienteItem> materiali) {
+        materialiSection.clearCards();
+        materialeEditorRows.clear();
+        materialiSection.showViewActions();
+
+        if (materiali == null || materiali.isEmpty()) {
+            materialiSection.addCard(createEmptyLabel("Nessun materiale associato"));
+            return;
+        }
+
+        for (MaterialeClienteItem materiale : materiali) {
+            materialiSection.addCard(createMaterialeCard(materiale));
+        }
+    }
+
+    void renderStandaloneMaterialiEditor(List<MaterialeClienteEditInput> materiali) {
+        renderMaterialiEditor(materiali);
+    }
+
+    private void renderMaterialiEditor(List<MaterialeClienteEditInput> materiali) {
+        materialiSection.clearCards();
+        materialeEditorRows.clear();
+        materialiSection.showEditActions();
+
+        if (materiali == null || materiali.isEmpty()) {
+            addMaterialeEditorRow(emptyMateriale());
+            return;
+        }
+
+        materiali.forEach(this::addMaterialeEditorRow);
+    }
+
+    List<MaterialeClienteEditInput> collectMateriali() {
+        return materialeEditorRows.stream()
+                .map(MaterialeEditorRow::toInput)
+                .toList();
+    }
+
     private VBox createFornoCard(FornoClienteItem forno) {
         VBox card = new VBox(8);
         card.getStyleClass().add("client-profile-forno-card");
@@ -159,6 +213,22 @@ final class ClienteProfileResourcesPanel extends VBox {
         card.getChildren().add(createFornoDisplayRow("Marca: " + display(fresatore.marca()), "Modello: " + display(fresatore.modello())));
         if (fresatore.nota() != null && !fresatore.nota().isBlank()) {
             Label note = new Label("Nota: " + fresatore.nota());
+            note.getStyleClass().add("client-profile-resource-note");
+            card.getChildren().add(note);
+        }
+        return card;
+    }
+
+    private VBox createMaterialeCard(MaterialeClienteItem materiale) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("client-profile-forno-card");
+        card.getChildren().addAll(
+                createFornoDisplayRow("Materiale: " + display(materiale.materiale()), "Marchio: " + display(materiale.marchio())),
+                createFornoDisplayRow("Modello: " + display(materiale.modello()), "Consumo: " + display(materiale.consumo())),
+                createFornoDisplayRow("Frequenza acquisto: " + display(materiale.frequenzaAcquisto()), "")
+        );
+        if (materiale.nota() != null && !materiale.nota().isBlank()) {
+            Label note = new Label("Nota: " + materiale.nota());
             note.getStyleClass().add("client-profile-resource-note");
             card.getChildren().add(note);
         }
@@ -237,10 +307,51 @@ final class ClienteProfileResourcesPanel extends VBox {
         refreshSuggestions(editorRow);
     }
 
+    private void addMaterialeEditorRow(MaterialeClienteEditInput materiale) {
+        VBox card = new VBox(8);
+        card.getStyleClass().add("client-profile-forno-card");
+
+        ResourceAutocompleteComboBox materialeField = createMaterialeAutocompleteComboBox(materiale.materiale(), "Materiale");
+        ResourceAutocompleteComboBox marchio = createMaterialeAutocompleteComboBox(materiale.marchio(), "Marchio");
+        ResourceAutocompleteComboBox modello = createMaterialeAutocompleteComboBox(materiale.modello(), "Modello");
+        ResourceAutocompleteComboBox consumo = createMaterialeAutocompleteComboBox(materiale.consumo(), "Consumo");
+        ResourceAutocompleteComboBox frequenzaAcquisto = createMaterialeAutocompleteComboBox(materiale.frequenzaAcquisto(), "Frequenza acquisto");
+        TextArea nota = new TextArea(display(materiale.nota()));
+        nota.setPromptText("Nota cliente-materiale");
+        nota.getStyleClass().add("client-profile-resource-note-editor");
+
+        Button remove = new Button("−");
+        remove.getStyleClass().add("client-profile-delete-interaction-button");
+
+        MaterialeEditorRow editorRow = new MaterialeEditorRow(materiale.id(), materiale.materialeId(), card, materialeField, marchio, modello, consumo, frequenzaAcquisto, nota);
+        materialeEditorRows.add(editorRow);
+        remove.setOnAction(event -> {
+            materialeEditorRows.remove(editorRow);
+            materialiSection.removeCard(card);
+        });
+
+        card.getChildren().addAll(
+                createFornoEditorLine("Materiale", materialeField, "Marchio", marchio),
+                createFornoEditorLine("Modello", modello, "Consumo", consumo),
+                createSingleEditorLine("Frequenza acquisto", frequenzaAcquisto),
+                nota,
+                remove
+        );
+        materialiSection.addCard(card);
+        refreshSuggestions(editorRow);
+    }
+
     private HBox createFornoEditorLine(String firstLabel, ResourceAutocompleteComboBox firstField, String secondLabel, ResourceAutocompleteComboBox secondField) {
         HBox row = new HBox(10);
         row.getStyleClass().add("client-profile-forno-row");
         row.getChildren().addAll(createFornoEditorField(firstLabel, firstField), createFornoEditorField(secondLabel, secondField));
+        return row;
+    }
+
+    private HBox createSingleEditorLine(String label, ResourceAutocompleteComboBox field) {
+        HBox row = new HBox(10);
+        row.getStyleClass().add("client-profile-forno-row");
+        row.getChildren().add(createFornoEditorField(label, field));
         return row;
     }
 
@@ -276,6 +387,18 @@ final class ClienteProfileResourcesPanel extends VBox {
         return comboBox;
     }
 
+    private ResourceAutocompleteComboBox createMaterialeAutocompleteComboBox(String value, String prompt) {
+        ResourceAutocompleteComboBox comboBox = new ResourceAutocompleteComboBox(value, prompt, field -> materialeEditorRows.stream()
+                .filter(row -> row.contains(field))
+                .findFirst()
+                .ifPresent(row -> refreshSuggestions(row, field)));
+        comboBox.setOnShowing(event -> materialeEditorRows.stream()
+                .filter(row -> row.contains(comboBox))
+                .findFirst()
+                .ifPresent(this::refreshSuggestions));
+        return comboBox;
+    }
+
     private void refreshSuggestions(FornoEditorRow row) {
         refreshSuggestions(row, null);
     }
@@ -301,6 +424,22 @@ final class ClienteProfileResourcesPanel extends VBox {
     }
 
     private void updateSuggestions(ResourceAutocompleteComboBox field, Function<FresatoreCatalogItem, String> extractor, FresatoreEditorRow row, ResourceAutocompleteComboBox activeField) {
+        field.setSuggestions(suggestionsFor(extractor, row, field), field == activeField);
+    }
+
+    private void refreshSuggestions(MaterialeEditorRow row) {
+        refreshSuggestions(row, null);
+    }
+
+    private void refreshSuggestions(MaterialeEditorRow row, ResourceAutocompleteComboBox activeField) {
+        updateSuggestions(row.materiale(), MaterialeCatalogItem::materiale, row, activeField);
+        updateSuggestions(row.marchio(), MaterialeCatalogItem::marchio, row, activeField);
+        updateSuggestions(row.modello(), MaterialeCatalogItem::modello, row, activeField);
+        updateSuggestions(row.consumo(), MaterialeCatalogItem::consumo, row, activeField);
+        updateSuggestions(row.frequenzaAcquisto(), MaterialeCatalogItem::frequenzaAcquisto, row, activeField);
+    }
+
+    private void updateSuggestions(ResourceAutocompleteComboBox field, Function<MaterialeCatalogItem, String> extractor, MaterialeEditorRow row, ResourceAutocompleteComboBox activeField) {
         field.setSuggestions(suggestionsFor(extractor, row, field), field == activeField);
     }
 
@@ -334,6 +473,23 @@ final class ClienteProfileResourcesPanel extends VBox {
         return new ArrayList<>(values);
     }
 
+    private List<String> suggestionsFor(Function<MaterialeCatalogItem, String> extractor, MaterialeEditorRow row, ResourceAutocompleteComboBox field) {
+        Set<String> values = new LinkedHashSet<>();
+        for (MaterialeCatalogItem item : materialiCatalog) {
+            if (matches(row.materiale(), item.materiale(), field)
+                    && matches(row.marchio(), item.marchio(), field)
+                    && matches(row.modello(), item.modello(), field)
+                    && matches(row.consumo(), item.consumo(), field)
+                    && matches(row.frequenzaAcquisto(), item.frequenzaAcquisto(), field)) {
+                String value = extractor.apply(item);
+                if (value != null && !value.isBlank()) {
+                    values.add(value);
+                }
+            }
+        }
+        return new ArrayList<>(values);
+    }
+
     private boolean matches(ResourceAutocompleteComboBox field, String candidate, ResourceAutocompleteComboBox ignoredField) {
         if (field == ignoredField) {
             return true;
@@ -354,6 +510,10 @@ final class ClienteProfileResourcesPanel extends VBox {
 
     private FresatoreClienteEditInput emptyFresatore() {
         return new FresatoreClienteEditInput(null, null, "", "", "");
+    }
+
+    private MaterialeClienteEditInput emptyMateriale() {
+        return new MaterialeClienteEditInput(null, null, "", "", "", "", "", "");
     }
 
     private String textOf(ResourceAutocompleteComboBox field) {
@@ -386,6 +546,18 @@ final class ClienteProfileResourcesPanel extends VBox {
 
     Button cancelFresatoriButton() {
         return fresatoriSection.cancelButton();
+    }
+
+    Button editMaterialiButton() {
+        return materialiSection.editButton();
+    }
+
+    Button saveMaterialiButton() {
+        return materialiSection.saveButton();
+    }
+
+    Button cancelMaterialiButton() {
+        return materialiSection.cancelButton();
     }
 
     private record FornoEditorRow(
@@ -424,6 +596,30 @@ final class ClienteProfileResourcesPanel extends VBox {
 
         private FresatoreClienteEditInput toInput() {
             return new FresatoreClienteEditInput(id, fresatoreId, text(marca), text(modello), nota.getText());
+        }
+
+        private static String text(ResourceAutocompleteComboBox field) {
+            return field.trimmedTextValue();
+        }
+    }
+
+    private record MaterialeEditorRow(
+            UUID id,
+            UUID materialeId,
+            VBox card,
+            ResourceAutocompleteComboBox materiale,
+            ResourceAutocompleteComboBox marchio,
+            ResourceAutocompleteComboBox modello,
+            ResourceAutocompleteComboBox consumo,
+            ResourceAutocompleteComboBox frequenzaAcquisto,
+            TextArea nota
+    ) {
+        private boolean contains(ResourceAutocompleteComboBox field) {
+            return materiale == field || marchio == field || modello == field || consumo == field || frequenzaAcquisto == field;
+        }
+
+        private MaterialeClienteEditInput toInput() {
+            return new MaterialeClienteEditInput(id, materialeId, text(materiale), text(marchio), text(modello), text(consumo), text(frequenzaAcquisto), nota.getText());
         }
 
         private static String text(ResourceAutocompleteComboBox field) {

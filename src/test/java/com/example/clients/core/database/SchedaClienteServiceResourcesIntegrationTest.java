@@ -6,6 +6,8 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteItem;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -291,6 +293,38 @@ class SchedaClienteServiceResourcesIntegrationTest {
         assertEquals(1, countFresatoreAssociations(clienteId));
     }
 
+    @Test
+    void savesMaterialiWithCatalogReuseCreationNotesAndPreservesOtherResources() throws SQLException {
+        UUID clienteId = insertCliente("Cliente materiali");
+        UUID existingMaterialeId = insertMateriale("Zirconia", "Marchio esistente", "Modello esistente", "5 blocchi", "Mensile");
+        SchedaClienteService service = loadService(clienteId);
+        service.saveForniEdit(List.of(input("Tecnologia materiali", "2024", "Marca forno materiali", "Modello forno materiali", "Nota forno")));
+        service.saveFresatoriEdit(List.of(fresatoreInput("Marca fresatore materiali", "Modello fresatore materiali", "Nota fresatore")));
+
+        List<MaterialeClienteItem> saved = service.saveMaterialiEdit(List.of(
+                materialeInput("Zirconia", "Marchio esistente", "Modello esistente", "5 blocchi", "Mensile", "Nota materiale esistente"),
+                materialeInput("PMMA", "Nuovo marchio", "Nuovo modello", "2 dischi", "Trimestrale", "Nota materiale nuovo")));
+
+        assertEquals(2, saved.size());
+        assertTrue(saved.stream().anyMatch(materiale -> existingMaterialeId.equals(materiale.materialeId())));
+        assertEquals(1, countMateriali("Nuovo marchio", "Nuovo modello"));
+        assertEquals(2, countMaterialeAssociations(clienteId));
+        assertEquals(1, countAssociations(clienteId));
+        assertEquals(1, countFresatoreAssociations(clienteId));
+
+        List<MaterialeClienteEditInput> current = service.startMaterialiEdit();
+        MaterialeClienteEditInput updated = current.stream()
+                .filter(materiale -> "PMMA".equals(materiale.materiale()))
+                .findFirst()
+                .orElseThrow();
+        saved = service.saveMaterialiEdit(List.of(new MaterialeClienteEditInput(
+                updated.id(), updated.materialeId(), updated.materiale(), updated.marchio(), updated.modello(), updated.consumo(), updated.frequenzaAcquisto(), "Nota aggiornata")));
+
+        assertEquals(1, saved.size());
+        assertEquals("Nota aggiornata", saved.getFirst().nota());
+        assertEquals(1, countMaterialeAssociations(clienteId));
+    }
+
     private SchedaClienteService loadService(UUID clienteId) {
         SchedaClienteService service = new SchedaClienteService(database);
         service.loadProfile(clienteId);
@@ -353,6 +387,21 @@ class SchedaClienteServiceResourcesIntegrationTest {
         return id;
     }
 
+    private UUID insertMateriale(String materiale, String marchio, String modello, String consumo, String frequenzaAcquisto) throws SQLException {
+        UUID id = UUID.randomUUID();
+        try (PreparedStatement statement = database.getConnection().prepareStatement(
+                "INSERT INTO MATERIALI_DI_CONSUMO (ID, MATERIALE, MARCHIO, MODELLO, CONSUMO, FREQUENZA_ACQUISTO) VALUES (?, ?, ?, ?, ?, ?)")) {
+            statement.setString(1, id.toString());
+            statement.setString(2, materiale);
+            statement.setString(3, marchio);
+            statement.setString(4, modello);
+            statement.setString(5, consumo);
+            statement.setString(6, frequenzaAcquisto);
+            statement.executeUpdate();
+        }
+        return id;
+    }
+
     private void insertTelefono(UUID clienteId, String value) throws SQLException {
         try (PreparedStatement statement = database.getConnection().prepareStatement(
                 "INSERT INTO TELEFONI_CLIENTE (ID, CLIENTE_ID, DESCRIZIONE) VALUES (?, ?, ?)")) {
@@ -369,6 +418,10 @@ class SchedaClienteServiceResourcesIntegrationTest {
 
     private FresatoreClienteEditInput fresatoreInput(String marca, String modello, String nota) {
         return new FresatoreClienteEditInput(null, null, marca, modello, nota);
+    }
+
+    private MaterialeClienteEditInput materialeInput(String materiale, String marchio, String modello, String consumo, String frequenzaAcquisto, String nota) {
+        return new MaterialeClienteEditInput(null, null, materiale, marchio, modello, consumo, frequenzaAcquisto, nota);
     }
 
     private int countForni(String marca, String modello) throws SQLException {
@@ -390,6 +443,18 @@ class SchedaClienteServiceResourcesIntegrationTest {
     private int countFresatoreAssociations(UUID clienteId) {
         try {
             return count("SELECT COUNT(*) FROM CLIENTI_FRESATORI WHERE CLIENTE_ID = ?", clienteId.toString());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private int countMateriali(String marchio, String modello) throws SQLException {
+        return count("SELECT COUNT(*) FROM MATERIALI_DI_CONSUMO WHERE MARCHIO = ? AND MODELLO = ?", marchio, modello);
+    }
+
+    private int countMaterialeAssociations(UUID clienteId) {
+        try {
+            return count("SELECT COUNT(*) FROM CLIENTI_MATERIALI WHERE CLIENTE_ID = ?", clienteId.toString());
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

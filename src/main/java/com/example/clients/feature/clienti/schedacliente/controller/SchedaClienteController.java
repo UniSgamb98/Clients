@@ -45,6 +45,9 @@ public class SchedaClienteController {
         view.getEditFresatoriButton().setOnAction(event -> openFresatoriEditor());
         view.getCancelFresatoriButton().setOnAction(event -> closeFresatoriEditor());
         view.getSaveFresatoriButton().setOnAction(event -> saveFresatoriEditor());
+        view.getEditMaterialiButton().setOnAction(event -> openMaterialiEditor());
+        view.getCancelMaterialiButton().setOnAction(event -> closeMaterialiEditor());
+        view.getSaveMaterialiButton().setOnAction(event -> saveMaterialiEditor());
         view.getNewNoteButton().setOnAction(event -> openNoteEditor());
         view.getNewCallButton().setOnAction(event -> openCallEditor());
         view.getAllFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.ALL));
@@ -130,10 +133,39 @@ public class SchedaClienteController {
         }
     }
 
+    private void openMaterialiEditor() {
+        try {
+            view.setMaterialiCatalog(service.getMaterialiCatalog());
+            view.renderStandaloneMaterialiEditor(service.startMaterialiEdit());
+            setResourceEditorsDisabled(true);
+        } catch (RuntimeException e) {
+            showError("Apertura modifica materiali non riuscita", e);
+        }
+    }
+
+    private void closeMaterialiEditor() {
+        try {
+            view.renderMateriali(service.cancelMaterialiEdit());
+            setResourceEditorsDisabled(false);
+        } catch (RuntimeException e) {
+            showError("Annullamento modifica materiali non riuscito", e);
+        }
+    }
+
+    private void saveMaterialiEditor() {
+        try {
+            view.renderMateriali(service.saveMaterialiEdit(view.collectMateriali()));
+            setResourceEditorsDisabled(false);
+        } catch (RuntimeException e) {
+            showError("Salvataggio materiali non riuscito", e);
+        }
+    }
+
     private void setResourceEditorsDisabled(boolean disabled) {
         view.getEditProfileButton().setDisable(disabled);
         view.getEditForniButton().setDisable(disabled);
         view.getEditFresatoriButton().setDisable(disabled);
+        view.getEditMaterialiButton().setDisable(disabled);
     }
 
     private void openNoteEditor() {
