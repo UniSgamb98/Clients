@@ -110,7 +110,8 @@ final class ClienteMaterialiResourceSection {
         ResourceAutocompleteComboBox materialeField = createAutocompleteComboBox(materiale.materiale(), "Materiale");
         ResourceAutocompleteComboBox marchio = createAutocompleteComboBox(materiale.marchio(), "Marchio");
         ResourceAutocompleteComboBox modello = createAutocompleteComboBox(materiale.modello(), "Modello");
-        ResourceAutocompleteComboBox consumo = createAutocompleteComboBox(materiale.consumo(), "Consumo");
+        TextField consumo = new TextField(display(materiale.consumo()));
+        consumo.setPromptText("Consumo");
         TextField frequenzaAcquisto = new TextField(display(materiale.frequenzaAcquisto()));
         frequenzaAcquisto.setPromptText("Frequenza acquisto");
         TextArea nota = new TextArea(display(materiale.nota()));
@@ -129,7 +130,7 @@ final class ClienteMaterialiResourceSection {
 
         card.getChildren().addAll(
                 createEditorLine("Materiale", materialeField, "Marchio", marchio),
-                createEditorLine("Modello", modello, "Consumo", consumo),
+                createModelConsumptionLine(modello, consumo),
                 createFrequencyLine(frequenzaAcquisto),
                 nota,
                 remove
@@ -158,7 +159,6 @@ final class ClienteMaterialiResourceSection {
         updateSuggestions(row.materiale(), MaterialeCatalogItem::materiale, row, activeField);
         updateSuggestions(row.marchio(), MaterialeCatalogItem::marchio, row, activeField);
         updateSuggestions(row.modello(), MaterialeCatalogItem::modello, row, activeField);
-        updateSuggestions(row.consumo(), MaterialeCatalogItem::consumo, row, activeField);
     }
 
     private void updateSuggestions(ResourceAutocompleteComboBox field, Function<MaterialeCatalogItem, String> extractor, MaterialeEditorRow row, ResourceAutocompleteComboBox activeField) {
@@ -170,8 +170,7 @@ final class ClienteMaterialiResourceSection {
         for (MaterialeCatalogItem item : catalog) {
             if (matches(row.materiale(), item.materiale(), field)
                     && matches(row.marchio(), item.marchio(), field)
-                    && matches(row.modello(), item.modello(), field)
-                    && matches(row.consumo(), item.consumo(), field)) {
+                    && matches(row.modello(), item.modello(), field)) {
                 String value = extractor.apply(item);
                 if (value != null && !value.isBlank()) {
                     values.add(value);
@@ -207,15 +206,26 @@ final class ClienteMaterialiResourceSection {
         return row;
     }
 
+    private HBox createModelConsumptionLine(ResourceAutocompleteComboBox modello, TextField consumo) {
+        HBox row = new HBox(10);
+        row.getStyleClass().add("client-profile-forno-row");
+        row.getChildren().addAll(createEditorField("Modello", modello), createTextField("Consumo", consumo));
+        return row;
+    }
+
     private HBox createFrequencyLine(TextField frequenzaAcquisto) {
         HBox row = new HBox(10);
         row.getStyleClass().add("client-profile-forno-row");
-        VBox wrapper = new VBox(4);
-        Label label = new Label("Frequenza acquisto:");
-        label.getStyleClass().add("client-profile-resource-field-label");
-        wrapper.getChildren().addAll(label, frequenzaAcquisto);
-        row.getChildren().add(wrapper);
+        row.getChildren().add(createTextField("Frequenza acquisto", frequenzaAcquisto));
         return row;
+    }
+
+    private VBox createTextField(String labelText, TextField field) {
+        VBox wrapper = new VBox(4);
+        Label label = new Label(labelText + ":");
+        label.getStyleClass().add("client-profile-resource-field-label");
+        wrapper.getChildren().addAll(label, field);
+        return wrapper;
     }
 
     private VBox createEditorField(String labelText, ResourceAutocompleteComboBox field) {
@@ -247,16 +257,16 @@ final class ClienteMaterialiResourceSection {
             ResourceAutocompleteComboBox materiale,
             ResourceAutocompleteComboBox marchio,
             ResourceAutocompleteComboBox modello,
-            ResourceAutocompleteComboBox consumo,
+            TextField consumo,
             TextField frequenzaAcquisto,
             TextArea nota
     ) {
         private boolean contains(ResourceAutocompleteComboBox field) {
-            return materiale == field || marchio == field || modello == field || consumo == field;
+            return materiale == field || marchio == field || modello == field;
         }
 
         private MaterialeClienteEditInput toInput() {
-            return new MaterialeClienteEditInput(id, materialeId, text(materiale), text(marchio), text(modello), text(consumo), frequenzaAcquisto.getText().trim(), nota.getText());
+            return new MaterialeClienteEditInput(id, materialeId, text(materiale), text(marchio), text(modello), consumo.getText().trim(), frequenzaAcquisto.getText().trim(), nota.getText());
         }
 
         private static String text(ResourceAutocompleteComboBox field) {
