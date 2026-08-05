@@ -126,8 +126,6 @@ public class SchedaClienteView extends BorderPane {
         relatedSections.renderContactsEditor(draft.contatti());
         relatedSections.renderAddressesEditor(draft.indirizzi());
         timelineSection.renderEditor(draft.interazioni());
-        resourcesPanel.renderForniEditor(draft.forni());
-        resourcesPanel.renderFresatoriEditor(draft.fresatori());
     }
 
     public EditProfileDraft collectEditDraft() {
@@ -144,8 +142,6 @@ public class SchedaClienteView extends BorderPane {
                 dataSection.sitiWeb(),
                 relatedSections.collectAddresses(),
                 relatedSections.collectContacts(),
-                resourcesPanel.collectForni(),
-                resourcesPanel.collectFresatori(),
                 timelineSection.collectInteractions()
         );
     }

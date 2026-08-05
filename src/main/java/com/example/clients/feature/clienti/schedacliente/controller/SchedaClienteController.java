@@ -70,16 +70,15 @@ public class SchedaClienteController {
         applyTimelineFilter(TimelineFilter.ALL);
         view.setTipoClienteOptions(service.getTipiCliente());
         view.setStatoTrattativaOptions(service.getStatiTrattativa());
-        view.setForniCatalog(service.getForniCatalog());
-        view.setFresatoriCatalog(service.getFresatoriCatalog());
         view.renderEditableProfile(service.startEdit());
+        setResourceEditorsDisabled(true);
     }
 
     private void openForniEditor() {
         try {
             view.setForniCatalog(service.getForniCatalog());
             view.renderStandaloneForniEditor(service.startForniEdit());
-            setStandaloneResourceEditActive(true);
+            setResourceEditorsDisabled(true);
         } catch (RuntimeException e) {
             showError("Apertura modifica forni non riuscita", e);
         }
@@ -88,7 +87,7 @@ public class SchedaClienteController {
     private void closeForniEditor() {
         try {
             view.renderForni(service.cancelForniEdit());
-            setStandaloneResourceEditActive(false);
+            setResourceEditorsDisabled(false);
         } catch (RuntimeException e) {
             showError("Annullamento modifica forni non riuscito", e);
         }
@@ -97,7 +96,7 @@ public class SchedaClienteController {
     private void saveForniEditor() {
         try {
             view.renderForni(service.saveForniEdit(view.collectForni()));
-            setStandaloneResourceEditActive(false);
+            setResourceEditorsDisabled(false);
         } catch (RuntimeException e) {
             showError("Salvataggio forni non riuscito", e);
         }
@@ -107,7 +106,7 @@ public class SchedaClienteController {
         try {
             view.setFresatoriCatalog(service.getFresatoriCatalog());
             view.renderStandaloneFresatoriEditor(service.startFresatoriEdit());
-            setStandaloneResourceEditActive(true);
+            setResourceEditorsDisabled(true);
         } catch (RuntimeException e) {
             showError("Apertura modifica fresatori non riuscita", e);
         }
@@ -116,7 +115,7 @@ public class SchedaClienteController {
     private void closeFresatoriEditor() {
         try {
             view.renderFresatori(service.cancelFresatoriEdit());
-            setStandaloneResourceEditActive(false);
+            setResourceEditorsDisabled(false);
         } catch (RuntimeException e) {
             showError("Annullamento modifica fresatori non riuscito", e);
         }
@@ -125,16 +124,16 @@ public class SchedaClienteController {
     private void saveFresatoriEditor() {
         try {
             view.renderFresatori(service.saveFresatoriEdit(view.collectFresatori()));
-            setStandaloneResourceEditActive(false);
+            setResourceEditorsDisabled(false);
         } catch (RuntimeException e) {
             showError("Salvataggio fresatori non riuscito", e);
         }
     }
 
-    private void setStandaloneResourceEditActive(boolean active) {
-        view.getEditProfileButton().setDisable(active);
-        view.getEditForniButton().setDisable(active);
-        view.getEditFresatoriButton().setDisable(active);
+    private void setResourceEditorsDisabled(boolean disabled) {
+        view.getEditProfileButton().setDisable(disabled);
+        view.getEditForniButton().setDisable(disabled);
+        view.getEditFresatoriButton().setDisable(disabled);
     }
 
     private void openNoteEditor() {
@@ -202,7 +201,7 @@ public class SchedaClienteController {
 
     private void render(ClienteProfile profile) {
         view.renderProfile(profile);
-        setStandaloneResourceEditActive(false);
+        setResourceEditorsDisabled(false);
     }
 
     public SchedaClienteView getView() {

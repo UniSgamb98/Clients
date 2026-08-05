@@ -1,6 +1,7 @@
 package com.example.clients.core.database;
 
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.EditProfileDraft;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
@@ -18,6 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import static com.example.clients.core.database.service.CurrentOperatoreService.DEFAULT_OPERATORE_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -31,6 +33,7 @@ class SchedaClienteServiceResourcesIntegrationTest {
     static void startDatabase() throws SQLException {
         database = new Database(DriverManager.getConnection("jdbc:derby:memory:forni-verification-" + UUID.randomUUID() + ";create=true"));
         new SchemaInitializer(database).initialize();
+        insertDefaultOperatore();
     }
 
     @AfterAll
@@ -255,10 +258,54 @@ class SchedaClienteServiceResourcesIntegrationTest {
         assertEquals("Cliente conservazione fresatori", clientName(clienteId));
     }
 
+    @Test
+    void globalProfileEditDoesNotSaveOrRemoveResources() {
+        UUID clienteId = insertCliente("Cliente modifica globale");
+        SchedaClienteService service = loadService(clienteId);
+        service.saveForniEdit(List.of(input("Tecnologia globale", "2022", "Marca forno globale", "Modello forno globale", "Nota forno")));
+        service.saveFresatoriEdit(List.of(fresatoreInput("Marca fresatore globale", "Modello fresatore globale", "Nota fresatore")));
+        EditProfileDraft current = service.startEdit();
+        EditProfileDraft updated = new EditProfileDraft(
+                "Cliente modifica globale aggiornato",
+                current.tipoCliente(),
+                current.statoTrattativa(),
+                current.coinvolgimento(),
+                current.partitaIva(),
+                current.codiceFiscale(),
+                current.acquisizione(),
+                current.telefoni(),
+                current.email(),
+                current.sitiWeb(),
+                current.indirizzi(),
+                current.contatti(),
+                current.interazioni());
+
+        SchedaClienteService.ClienteProfile saved = service.saveEdit(updated);
+
+        assertEquals("Cliente modifica globale aggiornato", saved.ragioneSociale());
+        assertEquals(1, saved.forni().size());
+        assertEquals("Nota forno", saved.forni().getFirst().nota());
+        assertEquals(1, saved.fresatori().size());
+        assertEquals("Nota fresatore", saved.fresatori().getFirst().nota());
+        assertEquals(1, countAssociations(clienteId));
+        assertEquals(1, countFresatoreAssociations(clienteId));
+    }
+
     private SchedaClienteService loadService(UUID clienteId) {
         SchedaClienteService service = new SchedaClienteService(database);
         service.loadProfile(clienteId);
         return service;
+    }
+
+    private static void insertDefaultOperatore() throws SQLException {
+        try (PreparedStatement statement = database.getConnection().prepareStatement(
+                "INSERT INTO OPERATORI (ID, NOME, COGNOME, USERNAME) VALUES (?, ?, ?, ?)")) {
+            statement.setString(1, DEFAULT_OPERATORE_ID.toString());
+            statement.setString(2, "Operatore");
+            statement.setString(3, "Test");
+            statement.setString(4, "operatore-test");
+            statement.executeUpdate();
+        }
     }
 
     private UUID insertCliente(String ragioneSociale) {

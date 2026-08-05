@@ -672,8 +672,6 @@ public class SchedaClienteService {
                 combine(toEmail(draft.email(), null), contactModels.email()),
                 toInterazioneUpdates(draft.interazioni(), now)
         );
-        saveClienteForni(draft.forni());
-        saveClienteFresatori(draft.fresatori());
 
         editingDraft = null;
         currentFilter = TimelineFilter.ALL;
@@ -984,8 +982,6 @@ public class SchedaClienteService {
             List<ValueEditInput> sitiWeb,
             List<AddressEditInput> indirizzi,
             List<ContactEditInput> contatti,
-            List<FornoClienteEditInput> forni,
-            List<FresatoreClienteEditInput> fresatori,
             List<InteractionEditInput> interazioni
     ) {
         public EditProfileDraft {
@@ -994,8 +990,6 @@ public class SchedaClienteService {
             sitiWeb = List.copyOf(sitiWeb);
             indirizzi = List.copyOf(indirizzi);
             contatti = List.copyOf(contatti);
-            forni = List.copyOf(forni);
-            fresatori = List.copyOf(fresatori);
             interazioni = List.copyOf(interazioni);
         }
 
@@ -1041,12 +1035,6 @@ public class SchedaClienteService {
                     toEditInputs(profile.sitiWeb()),
                     toAddressEditInputs(profile.indirizzi()),
                     toContactEditInputs(profile.contatti()),
-                    profile.forni().stream()
-                            .map(FornoClienteEditInput::from)
-                            .toList(),
-                    profile.fresatori().stream()
-                            .map(FresatoreClienteEditInput::from)
-                            .toList(),
                     profile.interazioni().stream()
                             .map(InteractionEditInput::from)
                             .toList()

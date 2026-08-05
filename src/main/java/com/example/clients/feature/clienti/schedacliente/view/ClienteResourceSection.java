@@ -60,8 +60,8 @@ final class ClienteResourceSection extends VBox {
         setActionMode(ActionMode.VIEW);
     }
 
-    void showEditActions(boolean standalone) {
-        setActionMode(standalone ? ActionMode.STANDALONE_EDIT : ActionMode.GLOBAL_EDIT);
+    void showEditActions() {
+        setActionMode(ActionMode.EDIT);
     }
 
     void hideActions() {
@@ -82,9 +82,9 @@ final class ClienteResourceSection extends VBox {
 
     private void setActionMode(ActionMode mode) {
         setVisible(editButton, mode == ActionMode.VIEW);
-        setVisible(addButton, mode == ActionMode.STANDALONE_EDIT || mode == ActionMode.GLOBAL_EDIT);
-        setVisible(saveButton, mode == ActionMode.STANDALONE_EDIT);
-        setVisible(cancelButton, mode == ActionMode.STANDALONE_EDIT);
+        setVisible(addButton, mode == ActionMode.EDIT);
+        setVisible(saveButton, mode == ActionMode.EDIT);
+        setVisible(cancelButton, mode == ActionMode.EDIT);
     }
 
     private void setVisible(Button button, boolean visible) {
@@ -95,7 +95,6 @@ final class ClienteResourceSection extends VBox {
     private enum ActionMode {
         HIDDEN,
         VIEW,
-        STANDALONE_EDIT,
-        GLOBAL_EDIT
+        EDIT
     }
 }
