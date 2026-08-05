@@ -90,10 +90,12 @@ final class ClienteMaterialiResourceSection {
     private VBox createCard(MaterialeClienteItem materiale) {
         VBox card = new VBox(8);
         card.getStyleClass().add("client-profile-forno-card");
+        Label materialTitle = new Label(display(materiale.materiale()).isBlank() ? "Materiale" : display(materiale.materiale()));
+        materialTitle.getStyleClass().add("client-profile-material-title");
         card.getChildren().addAll(
-                createDisplayRow("Materiale: " + display(materiale.materiale()), "Marchio: " + display(materiale.marchio())),
-                createDisplayRow("Modello: " + display(materiale.modello()), "Consumo: " + display(materiale.consumo())),
-                createDisplayRow("Frequenza acquisto: " + display(materiale.frequenzaAcquisto()), "")
+                materialTitle,
+                createDisplayRow("Marchio: " + display(materiale.marchio()), "Modello: " + display(materiale.modello())),
+                createDisplayRow("Consumo: " + display(materiale.consumo()), "Frequenza acquisto: " + display(materiale.frequenzaAcquisto()))
         );
         if (materiale.nota() != null && !materiale.nota().isBlank()) {
             Label note = new Label("Nota: " + materiale.nota());
