@@ -1,8 +1,8 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoCatalogItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteItem;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;

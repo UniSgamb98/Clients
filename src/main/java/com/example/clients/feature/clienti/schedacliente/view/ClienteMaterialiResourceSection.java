@@ -1,8 +1,8 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeCatalogItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteItem;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;

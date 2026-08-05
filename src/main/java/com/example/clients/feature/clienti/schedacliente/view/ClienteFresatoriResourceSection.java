@@ -1,8 +1,8 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreCatalogItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteItem;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
