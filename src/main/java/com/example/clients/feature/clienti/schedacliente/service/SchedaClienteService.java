@@ -270,10 +270,10 @@ public class SchedaClienteService {
             insert.executeBatch();
             connection.commit();
         } catch (SQLException e) {
-            rollbackForniSave(connection, e);
+            rollbackResourceSave(connection, e);
             failure = new RuntimeException("Salvataggio forni cliente non riuscito.", e);
         } catch (RuntimeException e) {
-            rollbackForniSave(connection, e);
+            rollbackResourceSave(connection, e);
             failure = e;
         } finally {
             failure = restoreAutoCommit(connection, originalAutoCommit, failure);
@@ -283,7 +283,7 @@ public class SchedaClienteService {
         }
     }
 
-    private void rollbackForniSave(Connection connection, Throwable originalError) {
+    private void rollbackResourceSave(Connection connection, Throwable originalError) {
         try {
             connection.rollback();
         } catch (SQLException rollbackError) {
@@ -300,7 +300,7 @@ public class SchedaClienteService {
                 failure.addSuppressed(e);
                 return failure;
             }
-            return new RuntimeException("Ripristino connessione dopo il salvataggio forni non riuscito.", e);
+            return new RuntimeException("Ripristino connessione dopo il salvataggio delle risorse non riuscito.", e);
         }
     }
 
@@ -389,8 +389,18 @@ public class SchedaClienteService {
             return;
         }
         initializeSchema();
-        try (PreparedStatement delete = database.getConnection().prepareStatement("DELETE FROM CLIENTI_FRESATORI WHERE CLIENTE_ID = ?");
-             PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO CLIENTI_FRESATORI (ID, CLIENTE_ID, FRESATORE_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
+        Connection connection = database.getConnection();
+        boolean originalAutoCommit;
+        try {
+            originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+        } catch (SQLException e) {
+            throw new RuntimeException("Avvio salvataggio fresatori cliente non riuscito.", e);
+        }
+
+        RuntimeException failure = null;
+        try (PreparedStatement delete = connection.prepareStatement("DELETE FROM CLIENTI_FRESATORI WHERE CLIENTE_ID = ?");
+             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_FRESATORI (ID, CLIENTE_ID, FRESATORE_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
             delete.setString(1, currentClienteId.toString());
             delete.executeUpdate();
             LocalDateTime now = LocalDateTime.now();
@@ -408,8 +418,18 @@ public class SchedaClienteService {
                 insert.addBatch();
             }
             insert.executeBatch();
+            connection.commit();
         } catch (SQLException e) {
-            throw new RuntimeException("Salvataggio fresatori cliente non riuscito.", e);
+            rollbackResourceSave(connection, e);
+            failure = new RuntimeException("Salvataggio fresatori cliente non riuscito.", e);
+        } catch (RuntimeException e) {
+            rollbackResourceSave(connection, e);
+            failure = e;
+        } finally {
+            failure = restoreAutoCommit(connection, originalAutoCommit, failure);
+        }
+        if (failure != null) {
+            throw failure;
         }
     }
 
@@ -594,6 +614,26 @@ public class SchedaClienteService {
         List<FornoClienteItem> savedForni = findClienteForni(currentClienteId);
         currentProfile = currentProfile.withForni(savedForni);
         return savedForni;
+    }
+
+    public List<FresatoreClienteEditInput> startFresatoriEdit() {
+        ensureProfileLoaded();
+        return currentProfile.fresatori().stream()
+                .map(FresatoreClienteEditInput::from)
+                .toList();
+    }
+
+    public List<FresatoreClienteItem> cancelFresatoriEdit() {
+        ensureProfileLoaded();
+        return currentProfile.fresatori();
+    }
+
+    public List<FresatoreClienteItem> saveFresatoriEdit(List<FresatoreClienteEditInput> fresatori) {
+        ensureProfileLoaded();
+        saveClienteFresatori(fresatori == null ? List.of() : fresatori);
+        List<FresatoreClienteItem> savedFresatori = findClienteFresatori(currentClienteId);
+        currentProfile = currentProfile.withFresatori(savedFresatori);
+        return savedFresatori;
     }
 
     public ClienteProfile cancelEdit() {
@@ -940,6 +980,11 @@ public class SchedaClienteService {
         }
 
         private ClienteProfile withForni(List<FornoClienteItem> forni) {
+            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
+                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
+        }
+
+        private ClienteProfile withFresatori(List<FresatoreClienteItem> fresatori) {
             return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
                     favorite, telefoni, email, sitiWeb, indirizzi, contatti, forni, fresatori, interazioni);
         }

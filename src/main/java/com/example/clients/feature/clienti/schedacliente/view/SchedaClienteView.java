@@ -7,6 +7,8 @@ import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteSe
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteItem;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
@@ -174,6 +176,30 @@ public class SchedaClienteView extends BorderPane {
 
     public List<FornoClienteEditInput> collectForni() {
         return resourcesPanel.collectForni();
+    }
+
+    public Button getEditFresatoriButton() {
+        return resourcesPanel.editFresatoriButton();
+    }
+
+    public Button getSaveFresatoriButton() {
+        return resourcesPanel.saveFresatoriButton();
+    }
+
+    public Button getCancelFresatoriButton() {
+        return resourcesPanel.cancelFresatoriButton();
+    }
+
+    public void renderStandaloneFresatoriEditor(List<FresatoreClienteEditInput> fresatori) {
+        resourcesPanel.renderStandaloneFresatoriEditor(fresatori);
+    }
+
+    public void renderFresatori(List<FresatoreClienteItem> fresatori) {
+        resourcesPanel.renderFresatori(fresatori);
+    }
+
+    public List<FresatoreClienteEditInput> collectFresatori() {
+        return resourcesPanel.collectFresatori();
     }
 
     public void setForniCatalog(List<FornoCatalogItem> forniCatalog) {
