@@ -1,9 +1,9 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionPreview;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionType;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.TimelineFilter;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;

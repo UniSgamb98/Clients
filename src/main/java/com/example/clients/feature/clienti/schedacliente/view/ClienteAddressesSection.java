@@ -1,7 +1,7 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.AddressEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.AddressItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.AddressEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.AddressItem;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.TextField;

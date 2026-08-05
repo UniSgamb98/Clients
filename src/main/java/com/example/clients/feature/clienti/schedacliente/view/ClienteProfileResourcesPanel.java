@@ -1,14 +1,14 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoCatalogItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreCatalogItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeCatalogItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteItem;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;

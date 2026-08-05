@@ -1,13 +1,14 @@
 package com.example.clients.core.database;
 
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.EditProfileDraft;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FornoClienteItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.FresatoreClienteItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.MaterialeClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ClienteProfile;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.EditProfileDraft;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteItem;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -282,7 +283,7 @@ class SchedaClienteServiceResourcesIntegrationTest {
                 current.contatti(),
                 current.interazioni());
 
-        SchedaClienteService.ClienteProfile saved = service.saveEdit(updated);
+        ClienteProfile saved = service.saveEdit(updated);
 
         assertEquals("Cliente modifica globale aggiornato", saved.ragioneSociale());
         assertEquals(1, saved.forni().size());

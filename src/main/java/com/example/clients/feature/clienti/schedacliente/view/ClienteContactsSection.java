@@ -1,9 +1,9 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ContactEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ContactItem;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ValueEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ValueItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ContactEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ContactItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ValueEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ValueItem;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;

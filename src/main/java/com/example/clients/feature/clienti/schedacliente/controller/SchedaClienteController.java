@@ -2,8 +2,8 @@ package com.example.clients.feature.clienti.schedacliente.controller;
 
 import com.example.clients.feature.clienti.navigator.ClientiNav;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ClienteProfile;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ClienteProfile;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.TimelineFilter;
 import com.example.clients.feature.clienti.schedacliente.view.SchedaClienteView;
 
 import java.util.UUID;
