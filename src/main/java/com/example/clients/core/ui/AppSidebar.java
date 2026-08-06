@@ -27,7 +27,7 @@ public class AppSidebar extends VBox {
 
         setSpacing(6);
         setPadding(new Insets(16, 12, 16, 12));
-        setPrefWidth(150);
+        setPrefWidth(135);
         getStyleClass().add("sidebar");
 
         getChildren().addAll(
