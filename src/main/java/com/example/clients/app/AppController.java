@@ -37,7 +37,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class AppController implements DashboardNav, ClientiNav, LoginNav {
-    private static final double INITIAL_SCENE_WIDTH = 1300;
+    private static final double INITIAL_SCENE_WIDTH = 1350;
     private static final double INITIAL_SCENE_HEIGHT = 900;
 
     private final Stage stage;
