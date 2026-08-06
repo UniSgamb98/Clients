@@ -1,7 +1,20 @@
 @echo off
 setlocal EnableExtensions
-
 set "ROOT=%~dp0"
+
+call :run_import
+set "FINAL_EXIT=%ERRORLEVEL%"
+echo.
+if "%FINAL_EXIT%"=="0" (
+  echo Operazione terminata correttamente.
+) else (
+  echo Operazione terminata con errori. Codice: %FINAL_EXIT%.
+)
+echo.
+pause
+endlocal & exit /b %FINAL_EXIT%
+
+:run_import
 set "NOTES_DIR=%ROOT%notes to merge"
 set "SCRIPTS_DIR=%ROOT%scripts"
 set "IMPORT_DIR=%ROOT%import scripts"
@@ -9,6 +22,7 @@ set "MERGE_PS1=%NOTES_DIR%\merge.ps1"
 set "MERGED_NOTES=%NOTES_DIR%\tutte_le_note.txt"
 set "GENERATOR=%SCRIPTS_DIR%\generate_import_sql.py"
 set "IMPORT_SQL=%IMPORT_DIR%\import all.sql"
+set "IMPORT_LOG=%ROOT%import_legacy_data.log"
 set "DERBY_LIB=C:\Apache\db-derby-10.17.1.0-bin\lib"
 set "DERBY_JAR=%DERBY_LIB%\derbyrun.jar"
 
@@ -87,10 +101,15 @@ set "IJ_SQL=%TEMP%\ij_import_all_%RANDOM%.sql"
 ) > "%IJ_SQL%"
 
 pushd "%IMPORT_DIR%" || exit /b 1
-java -jar "%DERBY_JAR%" ij "%IJ_SQL%"
+java -jar "%DERBY_JAR%" ij "%IJ_SQL%" > "%IMPORT_LOG%" 2>&1
 set "IJ_EXIT=%ERRORLEVEL%"
 popd
 del /Q "%IJ_SQL%" >nul 2>nul
+type "%IMPORT_LOG%"
+echo.
+echo Log completo: "%IMPORT_LOG%"
+findstr /R /C:"^ERROR [0-9A-Z][0-9A-Z]*:" "%IMPORT_LOG%" >nul
+if not errorlevel 1 set "IJ_EXIT=1"
 
 if not "%IJ_EXIT%"=="0" (
   echo ERRORE: Derby IJ terminato con codice %IJ_EXIT%.
@@ -98,4 +117,4 @@ if not "%IJ_EXIT%"=="0" (
 )
 
 echo Import completato.
-endlocal
+exit /b 0
