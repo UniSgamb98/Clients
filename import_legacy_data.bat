@@ -17,6 +17,7 @@ endlocal & exit /b %FINAL_EXIT%
 :run_import
 set "NOTES_DIR=%ROOT%notes to merge"
 set "SCRIPTS_DIR=%ROOT%scripts"
+set "DATA_DIR=%ROOT%txt data"
 set "IMPORT_DIR=%ROOT%import scripts"
 set "MERGE_PS1=%NOTES_DIR%\merge.ps1"
 set "MERGED_NOTES=%NOTES_DIR%\tutte_le_note.txt"
@@ -42,8 +43,8 @@ if not exist "%GENERATOR%" (
   exit /b 1
 )
 
-if not exist "%SCRIPTS_DIR%\clients.txt" (
-  echo ERRORE: file non trovato: "%SCRIPTS_DIR%\clients.txt"
+if not exist "%DATA_DIR%\clients.txt" (
+  echo ERRORE: file non trovato: "%DATA_DIR%\clients.txt"
   exit /b 1
 )
 
@@ -66,7 +67,7 @@ if not exist "%MERGED_NOTES%" (
   echo ERRORE: merge.ps1 non ha generato "%MERGED_NOTES%".
   exit /b 1
 )
-copy /Y "%MERGED_NOTES%" "%SCRIPTS_DIR%\tutte_le_note.txt" >nul
+copy /Y "%MERGED_NOTES%" "%DATA_DIR%\tutte_le_note.txt" >nul
 if errorlevel 1 (
   echo ERRORE: copia di tutte_le_note.txt non riuscita.
   exit /b 1

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate Derby SQL import scripts from legacy CRM exports.
 
-By default input files are read from the script directory (with legacy fallbacks) and SQL files are written to ../import scripts:
+By default input files are read from ../txt data and SQL files are written to ../import scripts, relative to this script:
 - clients.txt: semicolon-separated customer rows
 - tutte_le_note.txt: concatenated XML note documents delimited by FILE/END FILE markers
 """
@@ -26,22 +26,9 @@ def find_project_root() -> Path:
 
 
 ROOT = find_project_root()
-IMPORT_DIR_CANDIDATES = (
-    SCRIPT_DIR,
-    (SCRIPT_DIR / "../txt data").resolve(),
-    ROOT / "src/main/resources/importa",
-)
-
-
-def find_import_dir() -> Path:
-    for candidate in IMPORT_DIR_CANDIDATES:
-        if (candidate / "clients.txt").is_file() and (candidate / "tutte_le_note.txt").is_file():
-            return candidate
-    searched = ", ".join(str(candidate) for candidate in IMPORT_DIR_CANDIDATES)
-    raise FileNotFoundError(f"File di importazione non trovati. Cartelle controllate: {searched}")
-
-
-IMPORT_DIR = find_import_dir()
+DEFAULT_IMPORT_DIR = (SCRIPT_DIR / "../txt data").resolve()
+LEGACY_IMPORT_DIR = ROOT / "src/main/resources/importa"
+IMPORT_DIR = DEFAULT_IMPORT_DIR if DEFAULT_IMPORT_DIR.is_dir() else LEGACY_IMPORT_DIR
 OUT_DIR = (SCRIPT_DIR / "../import scripts").resolve()
 CLIENTS_FILE = IMPORT_DIR / "clients.txt"
 NOTES_FILE = IMPORT_DIR / "tutte_le_note.txt"
