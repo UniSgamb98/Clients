@@ -20,8 +20,8 @@ public class ClientePreviewDetailPanel extends VBox {
         super(16);
         getStyleClass().add("clients-detail-panel");
         setPadding(new Insets(18));
-        setPrefWidth(300);
-        setMinWidth(280);
+        setPrefWidth(280);
+        setMinWidth(260);
 
         companyNameButton = new Button();
         companyNameButton.getStyleClass().add("clients-detail-company-button");
