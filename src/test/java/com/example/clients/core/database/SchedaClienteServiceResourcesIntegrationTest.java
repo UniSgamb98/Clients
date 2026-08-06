@@ -49,14 +49,18 @@ class SchedaClienteServiceResourcesIntegrationTest {
     @Test
     void reusesAnExistingCatalogCombination() throws SQLException {
         UUID clienteId = insertCliente("Cliente combinazione esistente");
-        UUID existingFornoId = insertForno("Pressatura", "2020", "Marca esistente", "Modello esistente");
+        UUID existingFornoId = insertForno("Pressatura", "Marca esistente", "Modello esistente");
         SchedaClienteService service = loadService(clienteId);
 
         List<FornoClienteItem> saved = service.saveForniEdit(List.of(input("Pressatura", "2020", "Marca esistente", "Modello esistente", "Nota")));
 
         assertEquals(1, saved.size());
         assertEquals(existingFornoId, saved.getFirst().fornoId());
+        assertEquals("2020", saved.getFirst().anno());
         assertEquals(1, countForni("Marca esistente", "Modello esistente"));
+        assertFalse(columnExists("FORNI", "ANNO"));
+        assertTrue(columnExists("CLIENTI_FORNI", "ANNO"));
+        assertEquals("2020", associationYear(clienteId));
     }
 
     @Test
@@ -362,18 +366,34 @@ class SchedaClienteServiceResourcesIntegrationTest {
         }
     }
 
-    private UUID insertForno(String tecnologia, String anno, String marca, String modello) throws SQLException {
+    private UUID insertForno(String tecnologia, String marca, String modello) throws SQLException {
         UUID id = UUID.randomUUID();
         try (PreparedStatement statement = database.getConnection().prepareStatement(
-                "INSERT INTO FORNI (ID, TECNOLOGIA, ANNO, MARCA, MODELLO) VALUES (?, ?, ?, ?, ?)")) {
+                "INSERT INTO FORNI (ID, TECNOLOGIA, MARCA, MODELLO) VALUES (?, ?, ?, ?)")) {
             statement.setString(1, id.toString());
             statement.setString(2, tecnologia);
-            statement.setString(3, anno);
-            statement.setString(4, marca);
-            statement.setString(5, modello);
+            statement.setString(3, marca);
+            statement.setString(4, modello);
             statement.executeUpdate();
         }
         return id;
+    }
+
+    private boolean columnExists(String table, String column) throws SQLException {
+        try (ResultSet columns = database.getConnection().getMetaData().getColumns(null, null, table, column)) {
+            return columns.next();
+        }
+    }
+
+    private String associationYear(UUID clienteId) throws SQLException {
+        try (PreparedStatement statement = database.getConnection().prepareStatement(
+                "SELECT ANNO FROM CLIENTI_FORNI WHERE CLIENTE_ID = ?")) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                assertTrue(resultSet.next());
+                return resultSet.getString("ANNO");
+            }
+        }
     }
 
     private UUID insertFresatore(String marca, String modello) throws SQLException {

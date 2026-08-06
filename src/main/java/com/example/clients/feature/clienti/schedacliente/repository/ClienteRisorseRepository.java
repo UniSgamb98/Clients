@@ -35,7 +35,7 @@ public final class ClienteRisorseRepository {
 
     public List<FornoCatalogItem> findForniCatalog() {
         initializeSchema();
-        String sql = "SELECT ID, TECNOLOGIA, ANNO, MARCA, MODELLO FROM FORNI ORDER BY MARCA, MODELLO, TECNOLOGIA, ANNO";
+        String sql = "SELECT ID, TECNOLOGIA, MARCA, MODELLO FROM FORNI ORDER BY MARCA, MODELLO, TECNOLOGIA";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
             List<FornoCatalogItem> values = new ArrayList<>();
@@ -43,7 +43,6 @@ public final class ClienteRisorseRepository {
                 values.add(new FornoCatalogItem(
                         getUuid(resultSet, "ID"),
                         cleanResult(resultSet.getString("TECNOLOGIA")),
-                        cleanResult(resultSet.getString("ANNO")),
                         cleanResult(resultSet.getString("MARCA")),
                         cleanResult(resultSet.getString("MODELLO"))));
             }
@@ -96,11 +95,11 @@ public final class ClienteRisorseRepository {
         }
         initializeSchema();
         String sql = """
-                SELECT CF.ID AS CLIENTE_FORNO_ID, F.ID AS FORNO_ID, F.TECNOLOGIA, F.ANNO, F.MARCA, F.MODELLO, CF.NOTA
+                SELECT CF.ID AS CLIENTE_FORNO_ID, F.ID AS FORNO_ID, F.TECNOLOGIA, CF.ANNO, F.MARCA, F.MODELLO, CF.NOTA
                 FROM CLIENTI_FORNI CF
                 JOIN FORNI F ON F.ID = CF.FORNO_ID
                 WHERE CF.CLIENTE_ID = ?
-                ORDER BY F.MARCA, F.MODELLO, F.TECNOLOGIA, F.ANNO
+                ORDER BY F.MARCA, F.MODELLO, F.TECNOLOGIA, CF.ANNO
                 """;
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
@@ -139,7 +138,7 @@ public final class ClienteRisorseRepository {
 
         RuntimeException failure = null;
         try (PreparedStatement delete = connection.prepareStatement("DELETE FROM CLIENTI_FORNI WHERE CLIENTE_ID = ?");
-             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_FORNI (ID, CLIENTE_ID, FORNO_ID, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?)")) {
+             PreparedStatement insert = connection.prepareStatement("INSERT INTO CLIENTI_FORNI (ID, CLIENTE_ID, FORNO_ID, ANNO, NOTA, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?)")) {
             delete.setString(1, clienteId.toString());
             delete.executeUpdate();
             LocalDateTime now = LocalDateTime.now();
@@ -152,8 +151,9 @@ public final class ClienteRisorseRepository {
                 insert.setString(1, idOrNew(cleanForno.id()).toString());
                 insert.setString(2, clienteId.toString());
                 insert.setString(3, fornoId.toString());
-                insert.setString(4, nullableClean(cleanForno.nota()));
-                insert.setTimestamp(5, Timestamp.valueOf(now));
+                insert.setString(4, nullableClean(cleanForno.anno()));
+                insert.setString(5, nullableClean(cleanForno.nota()));
+                insert.setTimestamp(6, Timestamp.valueOf(now));
                 insert.addBatch();
             }
             insert.executeBatch();
@@ -338,7 +338,7 @@ public final class ClienteRisorseRepository {
     }
 
     private UUID findOrCreateForno(FornoClienteEditInput forno) throws SQLException {
-        String findSql = "SELECT ID FROM FORNI WHERE TECNOLOGIA = ? AND COALESCE(ANNO, '') = ? AND MARCA = ? AND MODELLO = ?";
+        String findSql = "SELECT ID FROM FORNI WHERE TECNOLOGIA = ? AND MARCA = ? AND MODELLO = ?";
         try (PreparedStatement find = database.getConnection().prepareStatement(findSql)) {
             bindFornoIdentity(find, forno);
             try (ResultSet resultSet = find.executeQuery()) {
@@ -349,7 +349,7 @@ public final class ClienteRisorseRepository {
         }
 
         UUID fornoId = UUID.randomUUID();
-        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO FORNI (ID, TECNOLOGIA, ANNO, MARCA, MODELLO) VALUES (?, ?, ?, ?, ?)")) {
+        try (PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO FORNI (ID, TECNOLOGIA, MARCA, MODELLO) VALUES (?, ?, ?, ?)")) {
             insert.setString(1, fornoId.toString());
             bindFornoIdentity(insert, forno, 2);
             insert.executeUpdate();
@@ -363,9 +363,8 @@ public final class ClienteRisorseRepository {
 
     private void bindFornoIdentity(PreparedStatement statement, FornoClienteEditInput forno, int startIndex) throws SQLException {
         statement.setString(startIndex, forno.tecnologia());
-        statement.setString(startIndex + 1, forno.anno());
-        statement.setString(startIndex + 2, forno.marca());
-        statement.setString(startIndex + 3, forno.modello());
+        statement.setString(startIndex + 1, forno.marca());
+        statement.setString(startIndex + 2, forno.modello());
     }
 
     private FornoClienteEditInput cleanForno(FornoClienteEditInput forno) {
