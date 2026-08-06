@@ -20,7 +20,7 @@ public class ClientiResultsTable extends HBox {
     private static final double CONTACT_COLUMN_WIDTH = 120;
     private static final double OPERATOR_COLUMN_WIDTH = 115;
     private static final double STATUS_COLUMN_WIDTH = 105;
-    private static final double LAST_CONTACT_COLUMN_WIDTH = 110;
+    private static final double LAST_CONTACT_COLUMN_WIDTH = 95;
     private static final double ACTIONS_COLUMN_WIDTH = 64;
 
     private final VBox tableRows = new VBox();
