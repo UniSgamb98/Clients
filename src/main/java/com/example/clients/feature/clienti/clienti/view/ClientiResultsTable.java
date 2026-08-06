@@ -21,7 +21,7 @@ public class ClientiResultsTable extends HBox {
     private static final double OPERATOR_COLUMN_WIDTH = 115;
     private static final double STATUS_COLUMN_WIDTH = 105;
     private static final double LAST_CONTACT_COLUMN_WIDTH = 95;
-    private static final double ACTIONS_COLUMN_WIDTH = 64;
+    private static final double ACTIONS_COLUMN_WIDTH = 52;
 
     private final VBox tableRows = new VBox();
     private final HBox emptyRow = createMessageRow("Nessun cliente caricato. Usa \"+ Nuovo cliente\" per iniziare.");

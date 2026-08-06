@@ -27,7 +27,7 @@ public class ClientiView extends BorderPane {
     private static final double OPERATOR_COLUMN_WIDTH = 115;
     private static final double STATUS_COLUMN_WIDTH = 105;
     private static final double LAST_CONTACT_COLUMN_WIDTH = 95;
-    private static final double ACTIONS_COLUMN_WIDTH = 64;
+    private static final double ACTIONS_COLUMN_WIDTH = 52;
 
     private final AppSidebar sidebar;
     private final TextField searchField;
