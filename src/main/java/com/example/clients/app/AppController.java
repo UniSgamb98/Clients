@@ -40,6 +40,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class AppController implements DashboardNav, ClientiNav, LoginNav {
+    private static final double INITIAL_SCENE_WIDTH = 1300;
+    private static final double INITIAL_SCENE_HEIGHT = 900;
+
     private final Stage stage;
     private Scene scene;
     private AppContainer app;
@@ -181,7 +184,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     // La Scene viene creata solo al primo caricamento: durante la navigazione cambia solo il root.
     private void showView(Parent root, String... extraCss) {
         if (scene == null) {
-            scene = new Scene(root, 900, 700);
+            scene = new Scene(root, INITIAL_SCENE_WIDTH, INITIAL_SCENE_HEIGHT);
             stage.setScene(scene);
         } else {
             scene.setRoot(root);
