@@ -172,7 +172,7 @@ public final class SchedaClienteModels {
         }
     }
 
-    public record FornoCatalogItem(UUID fornoId, String tecnologia, String anno, String marca, String modello) {
+    public record FornoCatalogItem(UUID fornoId, String tecnologia, String marca, String modello) {
     }
 
     public record FornoClienteItem(UUID id, UUID fornoId, String tecnologia, String anno, String marca, String modello, String nota) {

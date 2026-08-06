@@ -150,9 +150,18 @@ final class ClienteForniResourceSection {
 
     private void refreshSuggestions(FornoEditorRow row, ResourceAutocompleteComboBox activeField) {
         updateSuggestions(row.tecnologia(), FornoCatalogItem::tecnologia, row, false, activeField);
-        updateSuggestions(row.anno(), FornoCatalogItem::anno, row, false, activeField);
+        updateAnnoSuggestions(row, activeField);
         updateSuggestions(row.marca(), FornoCatalogItem::marca, row, false, activeField);
         updateSuggestions(row.modello(), FornoCatalogItem::modello, row, true, activeField);
+    }
+
+    private void updateAnnoSuggestions(FornoEditorRow row, ResourceAutocompleteComboBox activeField) {
+        List<String> values = editorRows.stream()
+                .map(editorRow -> editorRow.anno().trimmedTextValue())
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .toList();
+        row.anno().setSuggestions(values, row.anno() == activeField);
     }
 
     private void updateSuggestions(ResourceAutocompleteComboBox field, Function<FornoCatalogItem, String> extractor, FornoEditorRow row, boolean filterByMarca, ResourceAutocompleteComboBox activeField) {
@@ -163,7 +172,6 @@ final class ClienteForniResourceSection {
         Set<String> values = new LinkedHashSet<>();
         for (FornoCatalogItem item : catalog) {
             if (matches(row.tecnologia(), item.tecnologia(), field)
-                    && matches(row.anno(), item.anno(), field)
                     && matches(row.marca(), item.marca(), field)
                     && (!filterByMarca || matches(row.marca(), item.marca(), null))) {
                 String value = extractor.apply(item);

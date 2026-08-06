@@ -50,11 +50,11 @@ public class ImpostazioniView extends BorderPane {
     public void onAddForno(Runnable action) { addForno.setOnAction(event -> action.run()); }
 
     public void setForni(List<Forno> forni) { forniRows.getChildren().clear(); forni.forEach(this::addFornoRow); setForniEditable(modificaForni.isSelected()); }
-    public void addEmptyForno() { addFornoRow(new Forno(null, "", "", "", "")); setForniEditable(true); }
+    public void addEmptyForno() { addFornoRow(new Forno(null, "", "", "")); setForniEditable(true); }
 
     public List<Forno> getForni() {
         List<Forno> result = new ArrayList<>();
-        for (var node : forniRows.getChildren()) if (node instanceof VBox row) result.add(new Forno((java.util.UUID) row.getProperties().get("id"), ((TextField) row.getProperties().get("t")).getText(), ((TextField) row.getProperties().get("a")).getText(), ((TextField) row.getProperties().get("m")).getText(), ((TextField) row.getProperties().get("mo")).getText()));
+        for (var node : forniRows.getChildren()) if (node instanceof VBox row) result.add(new Forno((java.util.UUID) row.getProperties().get("id"), ((TextField) row.getProperties().get("t")).getText(), ((TextField) row.getProperties().get("m")).getText(), ((TextField) row.getProperties().get("mo")).getText()));
         return result;
     }
 
@@ -92,7 +92,7 @@ public class ImpostazioniView extends BorderPane {
 
     private VBox createSection(String title) {
         String table = switch (title) { case "Materiale di Consumo" -> "MATERIALI_DI_CONSUMO"; case "Canali di acquisto" -> "CANALI_DI_ACQUISTO"; case "Parco Fresatori" -> "FRESATORI"; default -> "FORNI"; };
-        List<String> fields = switch (table) { case "MATERIALI_DI_CONSUMO" -> List.of("Materiale", "Marchio", "Modello"); case "CANALI_DI_ACQUISTO" -> List.of("Modalità", "Nota"); case "FRESATORI" -> List.of("Marca", "Modello"); default -> List.of("Tecnologia", "Anno", "Marca", "Modello"); };
+        List<String> fields = switch (table) { case "MATERIALI_DI_CONSUMO" -> List.of("Materiale", "Marchio", "Modello"); case "CANALI_DI_ACQUISTO" -> List.of("Modalità", "Nota"); case "FRESATORI" -> List.of("Marca", "Modello"); default -> List.of("Tecnologia", "Marca", "Modello"); };
         ImpostazioniEditorSection editor = new ImpostazioniEditorSection(title, fields); editors.put(table, editor); return editor;
     }
 
@@ -107,18 +107,17 @@ public class ImpostazioniView extends BorderPane {
     private void addFornoRow(Forno forno) {
         VBox row = new VBox(5); row.getStyleClass().add("settings-forno-row");
         TextField tecnologia = new TextField(forno.tecnologia()); tecnologia.setPromptText("Tecnologia");
-        TextField anno = new TextField(forno.anno()); anno.setPromptText("Anno");
         TextField marca = new TextField(forno.marca()); marca.setPromptText("Marca");
         TextField modello = new TextField(forno.modello()); modello.setPromptText("Modello");
         Button remove = new Button("−"); remove.getStyleClass().add("settings-remove-button"); remove.setOnAction(event -> forniRows.getChildren().remove(row));
-        row.getProperties().put("id", forno.id()); row.getProperties().put("t", tecnologia); row.getProperties().put("a", anno); row.getProperties().put("m", marca); row.getProperties().put("mo", modello); row.getProperties().put("r", remove);
-        row.getChildren().addAll(tecnologia, anno, marca, modello, remove); forniRows.getChildren().add(row);
+        row.getProperties().put("id", forno.id()); row.getProperties().put("t", tecnologia); row.getProperties().put("m", marca); row.getProperties().put("mo", modello); row.getProperties().put("r", remove);
+        row.getChildren().addAll(tecnologia, marca, modello, remove); forniRows.getChildren().add(row);
     }
 
     private void setForniEditable(boolean editable) {
         addForno.setVisible(editable); addForno.setManaged(editable);
         for (var node : forniRows.getChildren()) if (node instanceof VBox row) {
-            ((TextField) row.getProperties().get("t")).setEditable(editable); ((TextField) row.getProperties().get("a")).setEditable(editable); ((TextField) row.getProperties().get("m")).setEditable(editable); ((TextField) row.getProperties().get("mo")).setEditable(editable);
+            ((TextField) row.getProperties().get("t")).setEditable(editable); ((TextField) row.getProperties().get("m")).setEditable(editable); ((TextField) row.getProperties().get("mo")).setEditable(editable);
             Button remove = (Button) row.getProperties().get("r"); remove.setVisible(editable); remove.setManaged(editable);
         }
     }
