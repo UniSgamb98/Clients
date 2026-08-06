@@ -4,14 +4,20 @@ set "ROOT=%~dp0"
 
 call :run_import
 set "FINAL_EXIT=%ERRORLEVEL%"
+goto :show_result
+
+:show_result
 echo.
 if "%FINAL_EXIT%"=="0" (
   echo Operazione terminata correttamente.
 ) else (
   echo Operazione terminata con errori. Codice: %FINAL_EXIT%.
+  echo La finestra rimarra aperta per permetterti di leggere il messaggio.
+  if exist "%ROOT%import_legacy_data.log" echo Log completo: "%ROOT%import_legacy_data.log"
 )
 echo.
-pause
+echo Premi un tasto per chiudere questa finestra...
+pause >nul
 endlocal & exit /b %FINAL_EXIT%
 
 :run_import
