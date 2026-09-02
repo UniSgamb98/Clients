@@ -1,0 +1,22 @@
+IMPORT LEGACY CRM - REPORT
+Clienti letti: 1107
+Documenti XML letti: 929
+Documenti XML collegati: 901
+Documenti XML non collegati: 28
+Chiamate XML importate: 3322
+Operatori distinti: 5
+Righe clienti malformate: 0
+Coinvolgimenti non validi: 14
+Date non valide: 0
+XML non validi: 0
+NoteId duplicati: 0
+
+Ordine di esecuzione e statement:
+1. import_operatori.sql: 5
+2. import_clienti.sql: 1107
+3. import_contatti.sql: 699
+4. import_indirizzi.sql: 1100
+5. import_telefoni.sql: 1030
+6. import_email.sql: 1047
+7. import_siti.sql: 410
+8. import_note_interazioni.sql: 6733
