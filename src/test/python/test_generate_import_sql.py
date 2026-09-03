@@ -50,6 +50,9 @@ class ImportGeneratorTest(unittest.TestCase):
         self.assertEqual(sorted(positions), positions)
         self.assertIn('set "SCRIPT_DIR=%~dp0"', launcher)
         self.assertIn('set "IMPORT_DIR=%SCRIPT_DIR%..\\import scripts"', launcher)
+        self.assertIn('set "CLIENTS_DB_URL_IJ=%CLIENTS_DB_URL:\\=/%"', launcher)
+        self.assertIn("jdbc:derby:I:/Clizr/Tommaso/Clients", launcher)
+        self.assertIn("ij.database=%CLIENTS_DB_URL_IJ%", launcher)
         self.assertIn('ij -p "%IJ_PROPERTIES%" "%IJ_COMMANDS%"', launcher)
         self.assertIn('findstr /C:"ERROR "', launcher)
 

@@ -5,7 +5,7 @@ rem Configurazione predefinita. I valori possono essere sovrascritti tramite
 rem le variabili di ambiente DERBY_LIB, CLIENTS_DB_URL, CLIENTS_DB_USER e
 rem CLIENTS_DB_PASSWORD prima di avviare questo file.
 if not defined DERBY_LIB set "DERBY_LIB=C:\Apache\db-derby-10.17.1.0-bin\lib"
-if not defined CLIENTS_DB_URL set "CLIENTS_DB_URL=jdbc:derby:I:\Clizr\Tommaso\Clients"
+if not defined CLIENTS_DB_URL set "CLIENTS_DB_URL=jdbc:derby:I:/Clizr/Tommaso/Clients"
 if not defined CLIENTS_DB_USER set "CLIENTS_DB_USER=APP"
 if not defined CLIENTS_DB_PASSWORD set "CLIENTS_DB_PASSWORD=pw"
 
@@ -39,8 +39,11 @@ call :require_sql "import_note_interazioni.sql" || exit /b 4
 
 rem IJ accetta anche slash in stile Unix: evitano ambiguita nei percorsi RUN.
 set "IMPORT_DIR_IJ=%IMPORT_DIR:\=/%"
+rem Nei file Java .properties il backslash e' un carattere di escape. Convertirlo
+rem evita che I:\Clizr\Tommaso\Clients diventi erroneamente I:ClizrTommasoClients.
+set "CLIENTS_DB_URL_IJ=%CLIENTS_DB_URL:\=/%"
 
-> "%IJ_PROPERTIES%" echo ij.database=%CLIENTS_DB_URL%;user=%CLIENTS_DB_USER%;password=%CLIENTS_DB_PASSWORD%
+> "%IJ_PROPERTIES%" echo ij.database=%CLIENTS_DB_URL_IJ%;user=%CLIENTS_DB_USER%;password=%CLIENTS_DB_PASSWORD%
 
 > "%IJ_COMMANDS%" (
     echo RUN '%IMPORT_DIR_IJ%/import_operatori.sql';
@@ -55,7 +58,7 @@ set "IMPORT_DIR_IJ=%IMPORT_DIR:\=/%"
 )
 
 echo Connessione a Derby e importazione in corso...
-echo Database: %CLIENTS_DB_URL%
+echo Database: %CLIENTS_DB_URL_IJ%
 echo Log: "%IMPORT_LOG%"
 echo.
 

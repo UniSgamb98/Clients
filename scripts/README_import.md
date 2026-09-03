@@ -80,7 +80,7 @@ scripts\esegui_import_derby.bat
 ```
 
 Il BAT si collega per impostazione predefinita a
-`jdbc:derby:I:\Clizr\Tommaso\Clients` con utente `APP`, password `pw`, e usa
+`jdbc:derby:I:/Clizr/Tommaso/Clients` con utente `APP`, password `pw`, e usa
 `C:\Apache\db-derby-10.17.1.0-bin\lib\derbyrun.jar`. Verifica prima la presenza
 di Java, Derby e di tutti gli SQL, quindi li esegue nel seguente ordine:
 
@@ -107,6 +107,12 @@ set "CLIENTS_DB_USER=APP"
 set "CLIENTS_DB_PASSWORD=pw"
 scripts\esegui_import_derby.bat
 ```
+
+Il BAT converte automaticamente gli eventuali `\` presenti in `CLIENTS_DB_URL`
+in `/` prima di scrivere il file Java `.properties`. Questo passaggio è
+necessario perché nei file `.properties` il backslash è un carattere di escape:
+senza la conversione `I:\Clizr\Tommaso\Clients` verrebbe letto erroneamente come
+`I:ClizrTommasoClients`.
 
 Gli script dei clienti non sono idempotenti: eseguire l'import completo una
 sola volta su un database con lo schema già creato e senza i clienti importati.
