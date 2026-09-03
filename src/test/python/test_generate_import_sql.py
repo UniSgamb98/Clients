@@ -14,6 +14,13 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ImportGeneratorTest(unittest.TestCase):
+    def test_windows_launcher_is_location_independent_and_forwards_arguments(self):
+        launcher = (SCRIPT.parent / "genera_import.bat").read_text(encoding="utf-8")
+        self.assertIn("set \"SCRIPT_DIR=%~dp0\"", launcher)
+        self.assertIn("%SCRIPT_DIR%generate_import_sql.py", launcher)
+        self.assertIn('py -3 "%GENERATOR%" %*', launcher)
+        self.assertIn('python "%GENERATOR%" %*', launcher)
+
     def test_generates_linked_note_and_interaction_and_latest_interest(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
