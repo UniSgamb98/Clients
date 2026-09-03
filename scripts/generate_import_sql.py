@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 import uuid
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
@@ -18,6 +19,8 @@ from pathlib import Path
 from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_CLIENTS_FILE = ROOT / "scripts" / "clients.txt"
+DEFAULT_NOTES_FILE = ROOT / "scripts" / "tutte_le_note.txt"
 SPECIAL_NULLS = {"", "?", "??", "???", "BLANK", "NULL", "NULLO"}
 NS = uuid.UUID("8a05d4bc-97cc-4df0-bf06-000000000000")
 FIELDS = [
@@ -297,17 +300,31 @@ def generate(clients_file: Path, notes_file: Path, out_dir: Path) -> dict[str, i
     return counts
 
 
-def default_input(filename: str) -> Path:
-    resource = ROOT / "src/main/resources/importa" / filename
-    return resource if resource.is_file() else ROOT / "scripts" / filename
+def display_path(path: Path) -> str:
+    """Mostra i file del progetto con un percorso breve e comprensibile."""
+    try:
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def require_input_files(paths: Iterable[Path]) -> None:
+    missing = [path for path in paths if not path.is_file()]
+    if not missing:
+        return
+    print("ERRORE: file di input non trovati:", file=sys.stderr)
+    for path in missing:
+        print(f"- {display_path(path)}", file=sys.stderr)
+    raise SystemExit(2)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--clients", type=Path, default=default_input("clients.txt"))
-    parser.add_argument("--notes", type=Path, default=default_input("tutte_le_note.txt"))
+    parser.add_argument("--clients", type=Path, default=DEFAULT_CLIENTS_FILE)
+    parser.add_argument("--notes", type=Path, default=DEFAULT_NOTES_FILE)
     parser.add_argument("--output", type=Path, default=ROOT / "import scripts")
     args = parser.parse_args()
+    require_input_files((args.clients, args.notes))
     generate(args.clients, args.notes, args.output)
 
 

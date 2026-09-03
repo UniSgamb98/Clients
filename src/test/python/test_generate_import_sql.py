@@ -1,4 +1,6 @@
 import importlib.util
+import contextlib
+import io
 import sys
 import tempfile
 import unittest
@@ -14,6 +16,19 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ImportGeneratorTest(unittest.TestCase):
+    def test_default_inputs_are_only_the_files_in_scripts(self):
+        self.assertEqual(SCRIPT.parent / "clients.txt", MODULE.DEFAULT_CLIENTS_FILE)
+        self.assertEqual(SCRIPT.parent / "tutte_le_note.txt", MODULE.DEFAULT_NOTES_FILE)
+
+    def test_missing_inputs_are_listed_and_stop_generation(self):
+        error = io.StringIO()
+        missing = [MODULE.ROOT / "scripts/clients.txt.missing", MODULE.ROOT / "scripts/tutte_le_note.txt.missing"]
+        with contextlib.redirect_stderr(error), self.assertRaises(SystemExit) as exit_status:
+            MODULE.require_input_files(missing)
+        self.assertEqual(2, exit_status.exception.code)
+        self.assertIn("scripts/clients.txt.missing", error.getvalue())
+        self.assertIn("scripts/tutte_le_note.txt.missing", error.getvalue())
+
     def test_windows_launcher_is_location_independent_and_forwards_arguments(self):
         launcher = (SCRIPT.parent / "genera_import.bat").read_text(encoding="utf-8")
         self.assertIn("set \"SCRIPT_DIR=%~dp0\"", launcher)

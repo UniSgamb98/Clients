@@ -1,8 +1,14 @@
 # Importazione del vecchio CRM
 
-Lo script `generate_import_sql.py` legge `clients.txt` e `tutte_le_note.txt` da
-`src/main/resources/importa`. Se la cartella non è presente usa, per compatibilità,
-i file nella cartella `scripts`.
+Lo script `generate_import_sql.py` legge esclusivamente questi file predefiniti:
+
+```text
+scripts/clients.txt
+scripts/tutte_le_note.txt
+```
+
+Non cerca file in `src/main/resources/importa`. Se uno o entrambi gli input non
+esistono, termina senza generare gli SQL ed elenca chiaramente i file mancanti.
 
 ```bash
 python3 scripts/generate_import_sql.py
