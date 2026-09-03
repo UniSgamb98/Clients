@@ -254,12 +254,12 @@ public final class SchedaClienteModels {
         }
     }
 
-    public record InteractionEditInput(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
+    public record InteractionEditInput(UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
         public static InteractionEditInput from(InteractionPreview interaction) {
-            return new InteractionEditInput(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), interaction.testo());
+            return new InteractionEditInput(interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), interaction.testo());
         }
     }
 
-    public record InteractionPreview(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
+    public record InteractionPreview(UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
     }
 }
