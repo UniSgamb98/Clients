@@ -1,41 +1,30 @@
 #!/usr/bin/env python3
-"""Generate Derby SQL import scripts from legacy CRM exports.
+"""Genera gli script Derby per importare l'esportazione del vecchio CRM.
 
-By default input files are read from ../txt data and SQL files are written to ../import scripts, relative to this script:
-- clients.txt: semicolon-separated customer rows
-- tutte_le_note.txt: concatenated XML note documents delimited by FILE/END FILE markers
+Il comando non modifica il database.  Produce file SQL ordinati, rieseguibili solo
+su un database vuoto (gli operatori sono invece inseriti con una guardia), e un
+report con le anomalie riscontrate.
 """
 from __future__ import annotations
 
+import argparse
 import re
+import sys
 import uuid
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Iterable
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-
-
-def find_project_root() -> Path:
-    for candidate in (SCRIPT_DIR, *SCRIPT_DIR.parents):
-        if (candidate / "pom.xml").is_file():
-            return candidate
-    return SCRIPT_DIR.parent
-
-
-ROOT = find_project_root()
-DEFAULT_IMPORT_DIR = (SCRIPT_DIR / "../txt data").resolve()
-LEGACY_IMPORT_DIR = ROOT / "src/main/resources/importa"
-IMPORT_DIR = DEFAULT_IMPORT_DIR if DEFAULT_IMPORT_DIR.is_dir() else LEGACY_IMPORT_DIR
-OUT_DIR = (SCRIPT_DIR / "../import scripts").resolve()
-CLIENTS_FILE = IMPORT_DIR / "clients.txt"
-NOTES_FILE = IMPORT_DIR / "tutte_le_note.txt"
-
+ROOT = SCRIPT_DIR.parent
+DEFAULT_INPUT_DIR = (SCRIPT_DIR / "../txt data").resolve()
+DEFAULT_CLIENTS_FILE = DEFAULT_INPUT_DIR / "clients.txt"
+DEFAULT_NOTES_FILE = DEFAULT_INPUT_DIR / "tutte_le_note.txt"
 SPECIAL_NULLS = {"", "?", "??", "???", "BLANK", "NULL", "NULLO"}
 NS = uuid.UUID("8a05d4bc-97cc-4df0-bf06-000000000000")
-
 FIELDS = [
     "ragione_sociale", "persona_riferimento", "email_referente", "telefono", "paese", "regione", "citta",
     "indirizzo", "numero_civico", "provincia", "cap", "interessamento", "tipo_cliente", "partita_iva",
@@ -43,10 +32,16 @@ FIELDS = [
     "volte_contattati", "ultima_chiamata", "prossima_chiamata", "coinvolgimento", "acquisizione", "checkpoint",
     "telefono2", "cellulare",
 ]
+MARKER = re.compile(
+    r"===== FILE:\s*(.+?)\.xml(?:\.txt)?\s*=====\s*(.*?)\s*===== END FILE:\s*\1\.xml(?:\.txt)?\s*=====",
+    re.DOTALL,
+)
+
 
 @dataclass
 class Call:
     note_id: str
+    ordinal: int
     number: str | None
     data: str | None
     operatore: str | None
@@ -57,220 +52,323 @@ class Call:
     messaggio: str | None
     text: str
 
+
 @dataclass
 class Client:
     rownum: int
     raw: dict[str, str | None]
-    id: str = field(init=False)
     calls: list[Call] = field(default_factory=list)
+    id: str = field(init=False)
 
     def __post_init__(self) -> None:
-        natural = self.raw.get("note_id") or f"row-{self.rownum}-{self.raw.get('ragione_sociale') or ''}"
-        self.id = uid("cliente", natural)
+        key = self.raw.get("note_id") or f"riga-{self.rownum}-{self.raw.get('ragione_sociale') or ''}"
+        self.id = uid("cliente", key)
+
+
+@dataclass
+class Diagnostics:
+    invalid_dates: set[str] = field(default_factory=set)
+    invalid_involvement_rows: list[int] = field(default_factory=list)
+    xml_errors: list[str] = field(default_factory=list)
+    duplicate_note_ids: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ClientRowIssue:
+    rownum: int
+    customer: str
+    field_count: int
+
+
+class ClientFormatError(ValueError):
+    def __init__(self, issues: list[ClientRowIssue]):
+        super().__init__(f"{len(issues)} righe clienti hanno un numero di campi errato")
+        self.issues = issues
 
 
 def clean(value: str | None) -> str | None:
     if value is None:
         return None
-    value = value.strip()
-    if value.upper() in SPECIAL_NULLS:
-        return None
-    return value
+    stripped = value.strip()
+    return None if stripped.upper() in SPECIAL_NULLS else stripped
 
 
-def sql(value: str | None) -> str:
+def normalized_operator(value: str | None) -> str | None:
     value = clean(value)
-    if value is None:
-        return "NULL"
-    return "'" + value.replace("'", "''") + "'"
-
-
-def sql_date(value: str | None) -> str:
-    value = clean(value)
-    if not value or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
-        return "NULL"
-    return f"DATE('{value}')"
+    return value.upper() if value else None
 
 
 def uid(kind: str, key: str) -> str:
     return str(uuid.uuid5(NS, f"{kind}:{key}"))
 
 
-def parse_coinvolgimento(value: str | None) -> int | None:
+def sql(value: str | None) -> str:
+    value = clean(value)
+    return "NULL" if value is None else "'" + value.replace("'", "''") + "'"
+
+
+def valid_iso_date(value: str | None) -> str | None:
+    value = clean(value)
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value).isoformat()
+    except ValueError:
+        return None
+
+
+def sql_date(value: str | None, diagnostics: Diagnostics) -> str:
+    parsed = valid_iso_date(value)
+    if parsed:
+        return f"DATE('{parsed}')"
+    if clean(value):
+        diagnostics.invalid_dates.add(clean(value) or "")
+    return "NULL"
+
+
+def parse_involvement(value: str | None) -> int | None:
     value = clean(value)
     if value is None:
         return None
     try:
-        number = int(Decimal(value))
+        parsed = Decimal(value)
+        integer = int(parsed)
     except (InvalidOperation, ValueError):
         return None
-    return number if 1 <= number <= 5 else None
+    return integer if parsed == integer and 1 <= integer <= 5 else None
 
 
-def parse_clients() -> list[Client]:
+def parse_clients(path: Path, diagnostics: Diagnostics) -> list[Client]:
     clients: list[Client] = []
-    for rownum, line in enumerate(CLIENTS_FILE.read_text(encoding="utf-8").splitlines(), start=1):
+    issues: list[ClientRowIssue] = []
+    for rownum, line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), 1):
         if not line.strip():
             continue
         parts = line.split(";")
-        if len(parts) < len(FIELDS):
-            parts += [""] * (len(FIELDS) - len(parts))
-        raw = {field: clean(parts[index]) for index, field in enumerate(FIELDS)}
-        clients.append(Client(rownum=rownum, raw=raw))
+        # È ammesso un solo separatore finale; altri campi mancanti/eccedenti sono segnalati.
+        logical_length = len(parts) - 1 if parts and parts[-1] == "" else len(parts)
+        if logical_length != len(FIELDS):
+            customer = clean(parts[0]) if parts else None
+            issues.append(ClientRowIssue(rownum, customer or "<ragione sociale vuota>", logical_length))
+            continue
+        parts = (parts + [""] * len(FIELDS))[:len(FIELDS)]
+        raw = {name: clean(parts[index]) for index, name in enumerate(FIELDS)}
+        if raw["coinvolgimento"] and parse_involvement(raw["coinvolgimento"]) is None:
+            diagnostics.invalid_involvement_rows.append(rownum)
+        clients.append(Client(rownum, raw))
+    if issues:
+        raise ClientFormatError(issues)
     return clients
 
 
-def parse_notes() -> dict[str, list[Call]]:
-    text = NOTES_FILE.read_text(encoding="utf-8")
-    # Legacy exports can use either `.xml` or `.xml.txt` in FILE markers.
-    # Accept both forms so note documents are detected and INTERAZIONI inserts are generated.
-    pattern = re.compile(r"===== FILE: ([^.]+)\.xml(?:\.txt)? =====\s*(.*?)\s*===== END FILE:", re.S)
-    notes: dict[str, list[Call]] = {}
-    for note_id, xml_text in pattern.findall(text):
+def print_client_format_error(error: ClientFormatError) -> None:
+    print("ERRORE: generazione interrotta; righe clienti con numero di campi errato:", file=sys.stderr)
+    for issue in error.issues:
+        difference = issue.field_count - len(FIELDS)
+        amount = abs(difference)
+        noun = "campo" if amount == 1 else "campi"
+        if difference > 0:
+            problem = f"{amount} {noun} extra"
+        else:
+            problem = f"{amount} {noun} {'mancante' if amount == 1 else 'mancanti'}"
+        print(
+            f"- riga {issue.rownum}: {issue.customer} "
+            f"(trovati {issue.field_count}, attesi {len(FIELDS)}: {problem})",
+            file=sys.stderr,
+        )
+    print("Controllare eventuali caratteri ';' presenti dentro i campi testuali.", file=sys.stderr)
+
+
+def parse_notes(path: Path, diagnostics: Diagnostics) -> dict[str, list[Call]]:
+    documents: dict[str, list[Call]] = {}
+    for note_id, xml_text in MARKER.findall(path.read_text(encoding="utf-8-sig")):
+        note_id = note_id.strip()
+        if note_id in documents:
+            diagnostics.duplicate_note_ids.append(note_id)
+            continue
         try:
             root = ET.fromstring(xml_text.strip())
-        except ET.ParseError:
+        except ET.ParseError as error:
+            diagnostics.xml_errors.append(f"{note_id}: {error}")
             continue
-        calls = []
-        for elem in root.findall("chiamata"):
+        calls: list[Call] = []
+        for ordinal, elem in enumerate(root.findall("chiamata")):
             calls.append(Call(
-                note_id=note_id,
-                number=clean(elem.get("number")),
-                data=clean(elem.get("data")),
-                operatore=clean(elem.get("operatore")),
-                previous_interest=clean(elem.get("previousInterest")),
-                new_interest=clean(elem.get("newInterest")),
-                checkpoint=clean(elem.get("checkpoint")),
-                durata=clean(elem.get("durata")),
-                messaggio=clean(elem.get("messaggio")),
-                text=(elem.text or "").strip(),
+                note_id, ordinal, clean(elem.get("number")), clean(elem.get("data")),
+                normalized_operator(elem.get("operatore")), clean(elem.get("previousInterest")),
+                clean(elem.get("newInterest")), clean(elem.get("checkpoint")), clean(elem.get("durata")),
+                clean(elem.get("messaggio")), "".join(elem.itertext()).strip(),
             ))
-        notes[note_id] = calls
-    return notes
+        documents[note_id] = calls
+    return documents
 
 
-def operator_id(username: str) -> str:
-    return uid("operatore", username.upper())
-
-
-def collect_operators(clients: list[Client]) -> list[str]:
-    operators: set[str] = set()
-    for client in clients:
-        if client.raw.get("operatore"):
-            operators.add(client.raw["operatore"] or "")
-        for call in client.calls:
-            if call.operatore:
-                operators.add(call.operatore)
-    return sorted(operators, key=str.upper)
+def chronological_key(call: Call) -> tuple[str, int, int]:
+    number = int(call.number) if (call.number or "").isdigit() else -1
+    return (valid_iso_date(call.data) or "9999-12-31", number, call.ordinal)
 
 
 def final_interest(client: Client) -> str | None:
-    valid = [call for call in client.calls if call.new_interest and call.data]
-    if valid:
-        valid.sort(key=lambda c: (c.data or "", int(c.number) if (c.number or "").isdigit() else 0))
-        if valid[-1].new_interest:
-            return valid[-1].new_interest
-    return client.raw.get("interessamento")
+    # Senza una data valida non è possibile stabilire che una chiamata sia cronologicamente l'ultima.
+    changes = [call for call in client.calls if call.new_interest and valid_iso_date(call.data)]
+    return max(changes, key=chronological_key).new_interest if changes else client.raw.get("interessamento")
 
 
 def note_text(call: Call) -> str:
-    lines = []
+    lines: list[str] = []
     if call.number:
         lines.append(f"[Chiamata #{call.number}]")
-    meta = [
-        ("Stato precedente", call.previous_interest),
-        ("Nuovo stato", call.new_interest),
-        ("Checkpoint", call.checkpoint),
-        ("Durata", call.durata),
-        ("Messaggio", call.messaggio),
-    ]
-    lines.extend(f"{label}: {value}" for label, value in meta if value)
+    for label, value in (
+        ("Stato precedente", call.previous_interest), ("Nuovo stato", call.new_interest),
+        ("Checkpoint", call.checkpoint), ("Durata", call.durata), ("Messaggio", call.messaggio),
+    ):
+        if value:
+            lines.append(f"{label}: {value}")
     if lines and call.text:
         lines.append("")
-    lines.append(call.text)
-    return "\n".join(lines).strip()
+    if call.text:
+        lines.append(call.text)
+    return "\n".join(lines)
 
 
-def write(name: str, statements: Iterable[str]) -> int:
-    content = ["-- Auto-generato da scripts/generate_import_sql.py.\n"]
-    count = 0
-    for statement in statements:
-        content.append(statement.rstrip() + "\n")
-        count += 1
-    (OUT_DIR / name).write_text("".join(content), encoding="utf-8")
-    return count
+def operator_expression(operator: str | None) -> str:
+    operator = normalized_operator(operator)
+    return f"(SELECT ID FROM OPERATORI WHERE USERNAME = {sql(operator)})" if operator else "NULL"
 
 
-def main() -> None:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    clients = parse_clients()
-    notes = parse_notes()
+def write_sql(out_dir: Path, name: str, statements: Iterable[str]) -> int:
+    rows = list(statements)
+    header = "-- Auto-generato da scripts/generate_import_sql.py; eseguire nell'ordine indicato nel report.\n"
+    (out_dir / name).write_text(header + "\n".join(rows) + ("\n" if rows else ""), encoding="utf-8")
+    return len(rows)
+
+
+def generate(clients_file: Path, notes_file: Path, out_dir: Path) -> dict[str, int]:
+    diagnostics = Diagnostics()
+    clients = parse_clients(clients_file, diagnostics)
+    notes = parse_notes(notes_file, diagnostics)
     for client in clients:
-        note_id = client.raw.get("note_id")
-        client.calls = notes.get(note_id or "", [])
+        client.calls = notes.get(client.raw.get("note_id") or "", [])
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    counts = {}
-    counts["operatori"] = write("import_operatori.sql", (
-        f"INSERT INTO OPERATORI (ID, USERNAME, ATTIVO) SELECT '{operator_id(op)}', {sql(op)}, 1 FROM SYSIBM.SYSDUMMY1 WHERE NOT EXISTS (SELECT 1 FROM OPERATORI WHERE USERNAME = {sql(op)});"
-        for op in collect_operators(clients)
+    operators = sorted({operator for client in clients for operator in
+                        ([normalized_operator(client.raw.get("operatore"))] + [call.operatore for call in client.calls])
+                        if operator})
+    counts: dict[str, int] = {}
+    counts["import_operatori.sql"] = write_sql(out_dir, "import_operatori.sql", (
+        f"INSERT INTO OPERATORI (ID, USERNAME, ATTIVO) SELECT '{uid('operatore', op)}', {sql(op)}, 1 "
+        f"FROM SYSIBM.SYSDUMMY1 WHERE NOT EXISTS (SELECT 1 FROM OPERATORI WHERE USERNAME = {sql(op)});"
+        for op in operators
     ))
-
-    counts["clienti"] = write("import_clienti.sql", (
-        "INSERT INTO CLIENTI (ID, RAGIONE_SOCIALE, TIPO_CLIENTE, STATO_TRATTATIVA, COINVOLGIMENTO, PARTITA_IVA, CODICE_FISCALE, ACQUISIZIONE, OPERATORE_ID) VALUES "
+    counts["import_clienti.sql"] = write_sql(out_dir, "import_clienti.sql", (
+        "INSERT INTO CLIENTI (ID, RAGIONE_SOCIALE, TIPO_CLIENTE, STATO_TRATTATIVA, COINVOLGIMENTO, "
+        "PARTITA_IVA, CODICE_FISCALE, ACQUISIZIONE, OPERATORE_ID) VALUES "
         f"('{c.id}', {sql(c.raw.get('ragione_sociale'))}, {sql(c.raw.get('tipo_cliente'))}, {sql(final_interest(c))}, "
-        f"{parse_coinvolgimento(c.raw.get('coinvolgimento')) if parse_coinvolgimento(c.raw.get('coinvolgimento')) is not None else 'NULL'}, "
-        f"{sql(c.raw.get('partita_iva'))}, {sql(c.raw.get('codice_fiscale'))}, {sql_date(c.raw.get('acquisizione'))}, "
-        f"{('(SELECT ID FROM OPERATORI WHERE USERNAME = ' + sql(c.raw.get('operatore')) + ')') if c.raw.get('operatore') else 'NULL'});"
-        for c in clients
+        f"{parse_involvement(c.raw.get('coinvolgimento')) or 'NULL'}, {sql(c.raw.get('partita_iva'))}, "
+        f"{sql(c.raw.get('codice_fiscale'))}, {sql_date(c.raw.get('acquisizione'), diagnostics)}, "
+        f"{operator_expression(c.raw.get('operatore'))});" for c in clients
     ))
-
-    counts["contatti"] = write("import_contatti.sql", (
-        f"INSERT INTO CONTATTI_CLIENTE (ID, CLIENTE_ID, DESCRIZIONE) VALUES ('{uid('contatto', c.id + ':' + label)}', '{c.id}', {sql(value)});"
+    counts["import_contatti.sql"] = write_sql(out_dir, "import_contatti.sql", (
+        f"INSERT INTO CONTATTI_CLIENTE (ID, CLIENTE_ID, DESCRIZIONE) VALUES "
+        f"('{uid('contatto', c.id + ':' + label)}', '{c.id}', {sql(value)});"
         for c in clients for label, value in (("persona", c.raw.get("persona_riferimento")), ("titolare", c.raw.get("titolare"))) if value
     ))
-    counts["indirizzi"] = write("import_indirizzi.sql", (
-        f"INSERT INTO INDIRIZZI_CLIENTE (ID, CLIENTE_ID, PAESE, REGIONE, PROVINCIA, CITTA, INDIRIZZO, NUMERO_CIVICO, CAP, PRINCIPALE) VALUES ('{uid('indirizzo', c.id)}', '{c.id}', {sql(c.raw.get('paese'))}, {sql(c.raw.get('regione'))}, {sql(c.raw.get('provincia'))}, {sql(c.raw.get('citta'))}, {sql(c.raw.get('indirizzo'))}, {sql(c.raw.get('numero_civico'))}, {sql(c.raw.get('cap'))}, 1);"
-        for c in clients if any(c.raw.get(k) for k in ("paese", "regione", "provincia", "citta", "indirizzo", "numero_civico", "cap"))
+    counts["import_indirizzi.sql"] = write_sql(out_dir, "import_indirizzi.sql", (
+        "INSERT INTO INDIRIZZI_CLIENTE (ID, CLIENTE_ID, PAESE, REGIONE, PROVINCIA, CITTA, INDIRIZZO, NUMERO_CIVICO, CAP, PRINCIPALE) VALUES "
+        f"('{uid('indirizzo', c.id)}', '{c.id}', {sql(c.raw.get('paese'))}, {sql(c.raw.get('regione'))}, "
+        f"{sql(c.raw.get('provincia'))}, {sql(c.raw.get('citta'))}, {sql(c.raw.get('indirizzo'))}, "
+        f"{sql(c.raw.get('numero_civico'))}, {sql(c.raw.get('cap'))}, 1);"
+        for c in clients if any(c.raw.get(key) for key in ("paese", "regione", "provincia", "citta", "indirizzo", "numero_civico", "cap"))
     ))
-    counts["telefoni"] = write("import_telefoni.sql", (
+    counts["import_telefoni.sql"] = write_sql(out_dir, "import_telefoni.sql", (
         f"INSERT INTO TELEFONI_CLIENTE (ID, CLIENTE_ID, DESCRIZIONE) VALUES ('{uid('telefono', c.id + ':' + label)}', '{c.id}', {sql(value)});"
         for c in clients for label, value in (("telefono", c.raw.get("telefono")), ("telefono2", c.raw.get("telefono2")), ("cellulare", c.raw.get("cellulare"))) if value
     ))
-    counts["email"] = write("import_email.sql", (
+    counts["import_email.sql"] = write_sql(out_dir, "import_email.sql", (
         f"INSERT INTO EMAIL_CLIENTE (ID, CLIENTE_ID, DESCRIZIONE) VALUES ('{uid('email', c.id + ':' + label)}', '{c.id}', {sql(value)});"
         for c in clients for label, value in (("referente", c.raw.get("email_referente")), ("generica", c.raw.get("email_generica")), ("pec", c.raw.get("email_certificata"))) if value
     ))
-    counts["siti"] = write("import_siti.sql", (
+    counts["import_siti.sql"] = write_sql(out_dir, "import_siti.sql", (
         f"INSERT INTO SITI_WEB_CLIENTE (ID, CLIENTE_ID, DESCRIZIONE) VALUES ('{uid('sito', c.id)}', '{c.id}', {sql(c.raw.get('sito_web'))});"
         for c in clients if c.raw.get("sito_web")
     ))
 
-    note_statements = []
-    for c in clients:
-        sorted_calls = sorted(c.calls, key=lambda call: (call.data or "9999-99-99", int(call.number) if (call.number or "").isdigit() else 0))
-        for idx, call in enumerate(sorted_calls):
-            iid = uid("interazione", f"{c.id}:{call.note_id}:{call.number}:{call.data}:{idx}")
-            op_expr = f"(SELECT ID FROM OPERATORI WHERE USERNAME = {sql(call.operatore)})" if call.operatore else "NULL"
-            next_date = c.raw.get("prossima_chiamata") if idx == len(sorted_calls) - 1 else None
-            note_statements.append(f"INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, TIPO, DATA_CONTATTO, PROSSIMO_CONTATTO, TESTO) VALUES ('{iid}', '{c.id}', {op_expr}, 'CHIAMATA', {sql_date(call.data)}, {sql_date(next_date)}, {sql(note_text(call))});")
-        if not sorted_calls and (c.raw.get("ultima_chiamata") or c.raw.get("prossima_chiamata")):
-            iid = uid("interazione-sintetica", c.id)
-            op_expr = f"(SELECT ID FROM OPERATORI WHERE USERNAME = {sql(c.raw.get('operatore'))})" if c.raw.get("operatore") else "NULL"
-            note_statements.append(f"INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, TIPO, DATA_CONTATTO, PROSSIMO_CONTATTO) VALUES ('{iid}', '{c.id}', {op_expr}, 'CHIAMATA', {sql_date(c.raw.get('ultima_chiamata'))}, {sql_date(c.raw.get('prossima_chiamata'))});")
-    counts["note_interazioni"] = write("import_note_interazioni.sql", note_statements)
+    note_rows: list[str] = []
+    for client in clients:
+        calls = sorted(client.calls, key=chronological_key)
+        for index, call in enumerate(calls):
+            base = f"{client.id}:{call.note_id}:{call.ordinal}"
+            note_id, interaction_id = uid("nota", base), uid("interazione", base)
+            next_contact = client.raw.get("prossima_chiamata") if index == len(calls) - 1 else None
+            note_rows.append(
+                f"INSERT INTO NOTE_CLIENTE (ID, CLIENTE_ID, OPERATORE_ID, TESTO) VALUES "
+                f"('{note_id}', '{client.id}', {operator_expression(call.operatore)}, {sql(note_text(call))});")
+            note_rows.append(
+                "INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, NOTA_ID, DATA_CONTATTO, PROSSIMO_CONTATTO) VALUES "
+                f"('{interaction_id}', '{client.id}', {operator_expression(call.operatore)}, '{note_id}', "
+                f"{sql_date(call.data, diagnostics)}, {sql_date(next_contact, diagnostics)});")
+        if not calls and (client.raw.get("ultima_chiamata") or client.raw.get("prossima_chiamata")):
+            interaction_id = uid("interazione-sintetica", client.id)
+            note_rows.append(
+                "INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, NOTA_ID, DATA_CONTATTO, PROSSIMO_CONTATTO) VALUES "
+                f"('{interaction_id}', '{client.id}', {operator_expression(client.raw.get('operatore'))}, NULL, "
+                f"{sql_date(client.raw.get('ultima_chiamata'), diagnostics)}, {sql_date(client.raw.get('prossima_chiamata'), diagnostics)});")
+    counts["import_note_interazioni.sql"] = write_sql(out_dir, "import_note_interazioni.sql", note_rows)
 
+    linked_ids = {c.raw.get("note_id") for c in clients if c.raw.get("note_id") in notes}
+    call_count = sum(len(c.calls) for c in clients)
     report = [
-        "Import legacy CRM\n",
-        f"Cartella sorgente: {IMPORT_DIR}\n",
-        f"Clienti letti: {len(clients)}\n",
-        f"Documenti note letti: {len(notes)}\n",
-        f"Documenti note collegati: {sum(1 for c in clients if c.calls)}\n",
-        f"Chiamate XML importate: {sum(len(c.calls) for c in clients)}\n",
-        f"Operatori distinti: {counts['operatori']}\n",
-        "\nStatement generati:\n",
+        "IMPORT LEGACY CRM - REPORT\n",
+        f"Clienti letti: {len(clients)}\n", f"Documenti XML letti: {len(notes)}\n",
+        f"Documenti XML collegati: {len(linked_ids)}\n", f"Documenti XML non collegati: {len(set(notes) - linked_ids)}\n",
+        f"Chiamate XML importate: {call_count}\n", f"Operatori distinti: {len(operators)}\n",
+        "Righe clienti malformate: 0\n",
+        f"Coinvolgimenti non validi: {len(diagnostics.invalid_involvement_rows)}\n",
+        f"Date non valide: {len(diagnostics.invalid_dates)}",
+        (f" ({', '.join(sorted(diagnostics.invalid_dates))})\n" if diagnostics.invalid_dates else "\n"),
+        f"XML non validi: {len(diagnostics.xml_errors)}\n", f"NoteId duplicati: {len(diagnostics.duplicate_note_ids)}\n",
+        "\nOrdine di esecuzione e statement:\n",
     ]
-    report.extend(f"- {name}: {count}\n" for name, count in counts.items())
-    (OUT_DIR / "import_report.txt").write_text("".join(report), encoding="utf-8")
+    report.extend(f"{index}. {name}: {counts[name]}\n" for index, name in enumerate(counts, 1))
+    if diagnostics.xml_errors:
+        report.append("\nErrori XML:\n" + "\n".join(diagnostics.xml_errors) + "\n")
+    (out_dir / "import_report.txt").write_text("".join(report), encoding="utf-8")
+    return counts
+
+
+def display_path(path: Path) -> str:
+    """Mostra i file del progetto con un percorso breve e comprensibile."""
+    if path == DEFAULT_CLIENTS_FILE or path == DEFAULT_NOTES_FILE:
+        return f"../txt data/{path.name}"
+    try:
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def require_input_files(paths: Iterable[Path]) -> None:
+    missing = [path for path in paths if not path.is_file()]
+    if not missing:
+        return
+    print("ERRORE: file di input non trovati:", file=sys.stderr)
+    for path in missing:
+        print(f"- {display_path(path)}", file=sys.stderr)
+    raise SystemExit(2)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--clients", type=Path, default=DEFAULT_CLIENTS_FILE)
+    parser.add_argument("--notes", type=Path, default=DEFAULT_NOTES_FILE)
+    parser.add_argument("--output", type=Path, default=ROOT / "import scripts")
+    args = parser.parse_args()
+    require_input_files((args.clients, args.notes))
+    try:
+        generate(args.clients, args.notes, args.output)
+    except ClientFormatError as error:
+        print_client_format_error(error)
+        raise SystemExit(2) from error
+
 
 if __name__ == "__main__":
     main()
