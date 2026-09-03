@@ -67,11 +67,23 @@ class Client:
 
 @dataclass
 class Diagnostics:
-    malformed_client_rows: list[int] = field(default_factory=list)
     invalid_dates: set[str] = field(default_factory=set)
     invalid_involvement_rows: list[int] = field(default_factory=list)
     xml_errors: list[str] = field(default_factory=list)
     duplicate_note_ids: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ClientRowIssue:
+    rownum: int
+    customer: str
+    field_count: int
+
+
+class ClientFormatError(ValueError):
+    def __init__(self, issues: list[ClientRowIssue]):
+        super().__init__(f"{len(issues)} righe clienti hanno un numero di campi errato")
+        self.issues = issues
 
 
 def clean(value: str | None) -> str | None:
@@ -128,6 +140,7 @@ def parse_involvement(value: str | None) -> int | None:
 
 def parse_clients(path: Path, diagnostics: Diagnostics) -> list[Client]:
     clients: list[Client] = []
+    issues: list[ClientRowIssue] = []
     for rownum, line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), 1):
         if not line.strip():
             continue
@@ -135,13 +148,35 @@ def parse_clients(path: Path, diagnostics: Diagnostics) -> list[Client]:
         # È ammesso un solo separatore finale; altri campi mancanti/eccedenti sono segnalati.
         logical_length = len(parts) - 1 if parts and parts[-1] == "" else len(parts)
         if logical_length != len(FIELDS):
-            diagnostics.malformed_client_rows.append(rownum)
+            customer = clean(parts[0]) if parts else None
+            issues.append(ClientRowIssue(rownum, customer or "<ragione sociale vuota>", logical_length))
+            continue
         parts = (parts + [""] * len(FIELDS))[:len(FIELDS)]
         raw = {name: clean(parts[index]) for index, name in enumerate(FIELDS)}
         if raw["coinvolgimento"] and parse_involvement(raw["coinvolgimento"]) is None:
             diagnostics.invalid_involvement_rows.append(rownum)
         clients.append(Client(rownum, raw))
+    if issues:
+        raise ClientFormatError(issues)
     return clients
+
+
+def print_client_format_error(error: ClientFormatError) -> None:
+    print("ERRORE: generazione interrotta; righe clienti con numero di campi errato:", file=sys.stderr)
+    for issue in error.issues:
+        difference = issue.field_count - len(FIELDS)
+        amount = abs(difference)
+        noun = "campo" if amount == 1 else "campi"
+        if difference > 0:
+            problem = f"{amount} {noun} extra"
+        else:
+            problem = f"{amount} {noun} {'mancante' if amount == 1 else 'mancanti'}"
+        print(
+            f"- riga {issue.rownum}: {issue.customer} "
+            f"(trovati {issue.field_count}, attesi {len(FIELDS)}: {problem})",
+            file=sys.stderr,
+        )
+    print("Controllare eventuali caratteri ';' presenti dentro i campi testuali.", file=sys.stderr)
 
 
 def parse_notes(path: Path, diagnostics: Diagnostics) -> dict[str, list[Call]]:
@@ -287,8 +322,7 @@ def generate(clients_file: Path, notes_file: Path, out_dir: Path) -> dict[str, i
         f"Clienti letti: {len(clients)}\n", f"Documenti XML letti: {len(notes)}\n",
         f"Documenti XML collegati: {len(linked_ids)}\n", f"Documenti XML non collegati: {len(set(notes) - linked_ids)}\n",
         f"Chiamate XML importate: {call_count}\n", f"Operatori distinti: {len(operators)}\n",
-        f"Righe clienti malformate: {len(diagnostics.malformed_client_rows)}",
-        (f" ({', '.join(map(str, diagnostics.malformed_client_rows[:20]))})\n" if diagnostics.malformed_client_rows else "\n"),
+        "Righe clienti malformate: 0\n",
         f"Coinvolgimenti non validi: {len(diagnostics.invalid_involvement_rows)}\n",
         f"Date non valide: {len(diagnostics.invalid_dates)}",
         (f" ({', '.join(sorted(diagnostics.invalid_dates))})\n" if diagnostics.invalid_dates else "\n"),
@@ -329,7 +363,11 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=ROOT / "import scripts")
     args = parser.parse_args()
     require_input_files((args.clients, args.notes))
-    generate(args.clients, args.notes, args.output)
+    try:
+        generate(args.clients, args.notes, args.output)
+    except ClientFormatError as error:
+        print_client_format_error(error)
+        raise SystemExit(2) from error
 
 
 if __name__ == "__main__":

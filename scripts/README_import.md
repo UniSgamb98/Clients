@@ -71,6 +71,23 @@ Il generatore:
 Il report segnala righe malformate, date e coinvolgimenti non validi, XML non
 leggibili, documenti non collegati e conteggi degli statement generati.
 
+### Controllo preventivo del tracciato clienti
+
+Prima di creare qualsiasi output, il generatore verifica che ogni riga non
+vuota di `clients.txt` contenga esattamente i 29 campi previsti. È ammesso il
+normale `;` finale dopo il ventinovesimo campo. Se trova campi extra o mancanti,
+non genera nessuno script ed elenca per ogni anomalia:
+
+- numero della riga;
+- ragione sociale del cliente;
+- quantità di campi trovati e attesi;
+- quantità di campi extra o mancanti.
+
+Questo permette di individuare, tra le altre cose, un `;` inserito per errore
+all'interno di un campo testuale. Se il controllo fallisce tramite
+`genera_import.bat`, la finestra rimane aperta con `Premere un tasto per
+continuare...`, così l'elenco può essere letto prima della chiusura.
+
 ## Esecuzione degli SQL su Derby
 
 Dopo aver generato gli SQL, su Windows si può avviare:

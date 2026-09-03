@@ -17,6 +17,33 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ImportGeneratorTest(unittest.TestCase):
+    def test_rejects_all_client_rows_with_extra_or_missing_fields_before_writing_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            valid = [""] * len(MODULE.FIELDS)
+            too_many = valid.copy()
+            too_many[0] = "Cliente; con separatore"
+            too_few = valid[:-1]
+            too_few[0] = "Cliente incompleto"
+            too_few[-1] = "telefono secondario"
+            source = root / "clients.txt"
+            source.write_text(";".join(too_many) + ";\n" + ";".join(too_few) + "\n", encoding="utf-8")
+            notes = root / "notes.txt"
+            notes.write_text("", encoding="utf-8")
+
+            with self.assertRaises(MODULE.ClientFormatError) as raised:
+                MODULE.generate(source, notes, root / "output")
+
+            self.assertEqual([(1, 30), (2, 28)], [(i.rownum, i.field_count) for i in raised.exception.issues])
+            error = io.StringIO()
+            with contextlib.redirect_stderr(error):
+                MODULE.print_client_format_error(raised.exception)
+            self.assertIn("riga 1: Cliente", error.getvalue())
+            self.assertIn("1 campo extra", error.getvalue())
+            self.assertIn("riga 2: Cliente incompleto", error.getvalue())
+            self.assertIn("1 campo mancante", error.getvalue())
+            self.assertFalse((root / "output").exists())
+
     def test_default_inputs_are_only_the_files_in_sibling_txt_data_directory(self):
         input_dir = (SCRIPT.parent / "../txt data").resolve()
         self.assertEqual(input_dir / "clients.txt", MODULE.DEFAULT_CLIENTS_FILE)
@@ -37,6 +64,7 @@ class ImportGeneratorTest(unittest.TestCase):
         self.assertIn("%SCRIPT_DIR%generate_import_sql.py", launcher)
         self.assertIn('py -3 "%GENERATOR%" %*', launcher)
         self.assertIn('python "%GENERATOR%" %*', launcher)
+        self.assertIn("pause", launcher)
 
     def test_derby_launcher_uses_foreign_key_safe_order(self):
         launcher = (SCRIPT.parent / "esegui_import_derby.bat").read_text(encoding="utf-8")

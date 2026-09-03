@@ -37,6 +37,8 @@ goto :done
 :done
 if not "%RESULT%"=="0" (
     echo ERRORE: generazione interrotta con codice %RESULT%.
+    echo.
+    pause
     exit /b %RESULT%
 )
 
