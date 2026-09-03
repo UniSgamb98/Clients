@@ -18,9 +18,11 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Iterable
 
-ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CLIENTS_FILE = ROOT / "scripts" / "clients.txt"
-DEFAULT_NOTES_FILE = ROOT / "scripts" / "tutte_le_note.txt"
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT = SCRIPT_DIR.parent
+DEFAULT_INPUT_DIR = (SCRIPT_DIR / "../txt data").resolve()
+DEFAULT_CLIENTS_FILE = DEFAULT_INPUT_DIR / "clients.txt"
+DEFAULT_NOTES_FILE = DEFAULT_INPUT_DIR / "tutte_le_note.txt"
 SPECIAL_NULLS = {"", "?", "??", "???", "BLANK", "NULL", "NULLO"}
 NS = uuid.UUID("8a05d4bc-97cc-4df0-bf06-000000000000")
 FIELDS = [
@@ -302,6 +304,8 @@ def generate(clients_file: Path, notes_file: Path, out_dir: Path) -> dict[str, i
 
 def display_path(path: Path) -> str:
     """Mostra i file del progetto con un percorso breve e comprensibile."""
+    if path == DEFAULT_CLIENTS_FILE or path == DEFAULT_NOTES_FILE:
+        return f"../txt data/{path.name}"
     try:
         return path.resolve().relative_to(ROOT.resolve()).as_posix()
     except ValueError:

@@ -1,14 +1,17 @@
 # Importazione del vecchio CRM
 
-Lo script `generate_import_sql.py` legge esclusivamente questi file predefiniti:
+Lo script `generate_import_sql.py`, che si trova nella cartella `scripts`, legge
+esclusivamente questi file predefiniti:
 
 ```text
-scripts/clients.txt
-scripts/tutte_le_note.txt
+../txt data/clients.txt
+../txt data/tutte_le_note.txt
 ```
 
-Non cerca file in `src/main/resources/importa`. Se uno o entrambi gli input non
-esistono, termina senza generare gli SQL ed elenca chiaramente i file mancanti.
+I percorsi sono relativi alla cartella `scripts`: nel progetto corrispondono a
+`txt data/clients.txt` e `txt data/tutte_le_note.txt`. Lo script non cerca file
+né in `scripts` né in `src/main/resources/importa`. Se uno o entrambi gli input
+non esistono, termina senza generare gli SQL ed elenca chiaramente i file mancanti.
 
 ```bash
 python3 scripts/generate_import_sql.py
@@ -28,6 +31,18 @@ Il BAT prova prima il launcher `py -3` e poi `python`; restituisce inoltre lo
 stesso codice di uscita del generatore. Deve rimanere nella stessa cartella di
 `generate_import_sql.py`, ma l'intera cartella del progetto può essere spostata
 liberamente.
+
+La struttura predefinita richiesta è quindi:
+
+```text
+Clients/
+├── scripts/
+│   ├── genera_import.bat
+│   └── generate_import_sql.py
+└── txt data/
+    ├── clients.txt
+    └── tutte_le_note.txt
+```
 
 Anche le opzioni del generatore possono essere passate dal BAT. Per usare input
 e output completamente esterni al progetto:
