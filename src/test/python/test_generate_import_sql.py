@@ -38,6 +38,21 @@ class ImportGeneratorTest(unittest.TestCase):
         self.assertIn('py -3 "%GENERATOR%" %*', launcher)
         self.assertIn('python "%GENERATOR%" %*', launcher)
 
+    def test_derby_launcher_uses_foreign_key_safe_order(self):
+        launcher = (SCRIPT.parent / "esegui_import_derby.bat").read_text(encoding="utf-8")
+        ordered_files = [
+            "import_operatori.sql", "import_clienti.sql", "import_contatti.sql",
+            "import_indirizzi.sql", "import_telefoni.sql", "import_email.sql",
+            "import_siti.sql", "import_note_interazioni.sql",
+        ]
+        run_section = launcher[launcher.index('> "%IJ_COMMANDS%"'):launcher.index("echo EXIT;")]
+        positions = [run_section.index(f"/{filename}") for filename in ordered_files]
+        self.assertEqual(sorted(positions), positions)
+        self.assertIn('set "SCRIPT_DIR=%~dp0"', launcher)
+        self.assertIn('set "IMPORT_DIR=%SCRIPT_DIR%..\\import scripts"', launcher)
+        self.assertIn('ij -p "%IJ_PROPERTIES%" "%IJ_COMMANDS%"', launcher)
+        self.assertIn('findstr /C:"ERROR "', launcher)
+
     def test_generates_linked_note_and_interaction_and_latest_interest(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

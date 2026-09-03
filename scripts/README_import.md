@@ -70,3 +70,43 @@ Il generatore:
 
 Il report segnala righe malformate, date e coinvolgimenti non validi, XML non
 leggibili, documenti non collegati e conteggi degli statement generati.
+
+## Esecuzione degli SQL su Derby
+
+Dopo aver generato gli SQL, su Windows si può avviare:
+
+```bat
+scripts\esegui_import_derby.bat
+```
+
+Il BAT si collega per impostazione predefinita a
+`jdbc:derby:I:\Clizr\Tommaso\Clients` con utente `APP`, password `pw`, e usa
+`C:\Apache\db-derby-10.17.1.0-bin\lib\derbyrun.jar`. Verifica prima la presenza
+di Java, Derby e di tutti gli SQL, quindi li esegue nel seguente ordine:
+
+1. `import_operatori.sql`
+2. `import_clienti.sql`
+3. `import_contatti.sql`
+4. `import_indirizzi.sql`
+5. `import_telefoni.sql`
+6. `import_email.sql`
+7. `import_siti.sql`
+8. `import_note_interazioni.sql`
+
+L'ordine garantisce che operatori e clienti esistano prima dei record che li
+referenziano. Il risultato completo di IJ viene scritto in
+`import scripts\import_execution.log`; anche quando IJ restituisce codice zero,
+il BAT controlla il log e segnala eventuali errori Derby.
+
+La configurazione può essere cambiata senza modificare il BAT:
+
+```bat
+set "DERBY_LIB=D:\ApacheDerby\lib"
+set "CLIENTS_DB_URL=jdbc:derby:D:\database\Clients"
+set "CLIENTS_DB_USER=APP"
+set "CLIENTS_DB_PASSWORD=pw"
+scripts\esegui_import_derby.bat
+```
+
+Gli script dei clienti non sono idempotenti: eseguire l'import completo una
+sola volta su un database con lo schema già creato e senza i clienti importati.
