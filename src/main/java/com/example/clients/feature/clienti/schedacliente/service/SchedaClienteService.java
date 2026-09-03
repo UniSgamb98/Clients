@@ -6,7 +6,6 @@ import com.example.clients.core.database.model.ContattoCliente;
 import com.example.clients.core.database.model.EmailCliente;
 import com.example.clients.core.database.model.IndirizzoCliente;
 import com.example.clients.core.database.model.Interazione;
-import com.example.clients.core.database.model.NotaCliente;
 import com.example.clients.core.database.model.SitoWebCliente;
 import com.example.clients.core.database.model.TelefonoCliente;
 import com.example.clients.core.database.query.ClienteProfileQuery;
@@ -215,7 +214,7 @@ public class SchedaClienteService {
         InteractionType type = record.type() == ClienteProfileQuery.TimelineType.CHIAMATA
                 ? InteractionType.CHIAMATA
                 : InteractionType.NOTA;
-        return new InteractionPreview(record.notaId(), record.interazioneId(), record.data(), type, record.prossimoContatto(), record.testo());
+        return new InteractionPreview(record.interazioneId(), record.data(), type, record.prossimoContatto(), record.testo());
     }
 
     private ClienteProfile emptyProfile() {
@@ -376,7 +375,6 @@ public class SchedaClienteService {
                 contactModels.contatti(),
                 combine(toTelefoni(draft.telefoni(), null), contactModels.telefoni()),
                 combine(toEmail(draft.email(), null), contactModels.email()),
-                toNoteUpdates(draft.interazioni(), now),
                 toInterazioneUpdates(draft.interazioni(), now)
         );
 
@@ -475,21 +473,6 @@ public class SchedaClienteService {
         return values;
     }
 
-    private List<NotaCliente> toNoteUpdates(List<InteractionEditInput> interactions, LocalDateTime now) {
-        return interactions.stream()
-                .filter(interaction -> interaction.notaId() != null)
-                .map(interaction -> new NotaCliente(
-                        interaction.notaId(),
-                        currentClienteId,
-                        currentOperatoreService.currentOperatoreId(),
-                        normalize(interaction.testo()),
-                        null,
-                        now
-                ))
-                .filter(nota -> !nota.testo().isBlank())
-                .toList();
-    }
-
     private List<Interazione> toInterazioneUpdates(List<InteractionEditInput> interactions, LocalDateTime now) {
         return interactions.stream()
                 .filter(interaction -> interaction.interazioneId() != null)
@@ -497,10 +480,12 @@ public class SchedaClienteService {
                         interaction.interazioneId(),
                         currentClienteId,
                         currentOperatoreService.currentOperatoreId(),
-                        interaction.notaId(),
+                        interaction.type().name(),
+                        null,
                         interaction.data(),
                         interaction.prossimoContatto(),
                         BigDecimal.ZERO,
+                        normalize(interaction.testo()),
                         null,
                         now
                 ))
@@ -518,15 +503,20 @@ public class SchedaClienteService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        NotaCliente nota = new NotaCliente(
+        Interazione interazione = new Interazione(
                 UUID.randomUUID(),
                 currentClienteId,
                 currentOperatoreService.currentOperatoreId(),
+                InteractionType.NOTA.name(),
+                null,
+                LocalDate.now(),
+                null,
+                BigDecimal.ZERO,
                 testo.trim(),
                 now,
                 null
         );
-        persistenceService.addNota(nota);
+        persistenceService.addInterazione(interazione);
         return loadProfile(currentClienteId);
     }
 
@@ -537,30 +527,20 @@ public class SchedaClienteService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        NotaCliente nota = null;
-        if (testo != null && !testo.isBlank()) {
-            nota = new NotaCliente(
-                    UUID.randomUUID(),
-                    currentClienteId,
-                    currentOperatoreService.currentOperatoreId(),
-                    testo.trim(),
-                    now,
-                    null
-            );
-        }
-
         Interazione interazione = new Interazione(
                 UUID.randomUUID(),
                 currentClienteId,
                 currentOperatoreService.currentOperatoreId(),
-                nota == null ? null : nota.id(),
+                InteractionType.CHIAMATA.name(),
+                null,
                 LocalDate.now(),
                 prossimoContatto,
                 BigDecimal.ZERO,
+                nullableClean(testo),
                 now,
                 null
         );
-        persistenceService.addChiamata(nota, interazione);
+        persistenceService.addInterazione(interazione);
         return loadProfile(currentClienteId);
     }
 
