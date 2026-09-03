@@ -32,6 +32,16 @@ IMPORT_DIR = DEFAULT_IMPORT_DIR if DEFAULT_IMPORT_DIR.is_dir() else LEGACY_IMPOR
 OUT_DIR = (SCRIPT_DIR / "../import scripts").resolve()
 CLIENTS_FILE = IMPORT_DIR / "clients.txt"
 NOTES_FILE = IMPORT_DIR / "tutte_le_note.txt"
+IMPORT_SCRIPT_NAMES = (
+    "import_operatori.sql",
+    "import_clienti.sql",
+    "import_contatti.sql",
+    "import_indirizzi.sql",
+    "import_telefoni.sql",
+    "import_email.sql",
+    "import_siti.sql",
+    "import_note_interazioni.sql",
+)
 
 SPECIAL_NULLS = {"", "?", "??", "???", "BLANK", "NULL", "NULLO"}
 NS = uuid.UUID("8a05d4bc-97cc-4df0-bf06-000000000000")
@@ -260,6 +270,7 @@ def main() -> None:
             op_expr = f"(SELECT ID FROM OPERATORI WHERE USERNAME = {sql(c.raw.get('operatore'))})" if c.raw.get("operatore") else "NULL"
             note_statements.append(f"INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, DATA_CONTATTO, PROSSIMO_CONTATTO) VALUES ('{iid}', '{c.id}', {op_expr}, {sql_date(c.raw.get('ultima_chiamata'))}, {sql_date(c.raw.get('prossima_chiamata'))});")
     counts["note_interazioni"] = write("import_note_interazioni.sql", note_statements)
+    write("import all.sql", (f"RUN '{name}';" for name in IMPORT_SCRIPT_NAMES))
 
     report = [
         "Import legacy CRM\n",

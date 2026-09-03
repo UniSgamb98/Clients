@@ -2,8 +2,8 @@ package com.example.clients.feature.clienti.schedacliente.controller;
 
 import com.example.clients.feature.clienti.navigator.ClientiNav;
 import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ClienteProfile;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ClienteProfile;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.TimelineFilter;
 import com.example.clients.feature.clienti.schedacliente.view.SchedaClienteView;
 
 import java.util.UUID;
@@ -39,6 +39,15 @@ public class SchedaClienteController {
         view.getEditProfileButton().setOnAction(event -> openProfileEditor());
         view.getCancelProfileEditButton().setOnAction(event -> runAndRender("Annullamento modifica non riuscito", service::cancelEdit));
         view.getSaveProfileEditButton().setOnAction(event -> runAndRender("Salvataggio scheda non riuscito", () -> service.saveEdit(view.collectEditDraft())));
+        view.getEditForniButton().setOnAction(event -> openForniEditor());
+        view.getCancelForniButton().setOnAction(event -> closeForniEditor());
+        view.getSaveForniButton().setOnAction(event -> saveForniEditor());
+        view.getEditFresatoriButton().setOnAction(event -> openFresatoriEditor());
+        view.getCancelFresatoriButton().setOnAction(event -> closeFresatoriEditor());
+        view.getSaveFresatoriButton().setOnAction(event -> saveFresatoriEditor());
+        view.getEditMaterialiButton().setOnAction(event -> openMaterialiEditor());
+        view.getCancelMaterialiButton().setOnAction(event -> closeMaterialiEditor());
+        view.getSaveMaterialiButton().setOnAction(event -> saveMaterialiEditor());
         view.getNewNoteButton().setOnAction(event -> openNoteEditor());
         view.getNewCallButton().setOnAction(event -> openCallEditor());
         view.getAllFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.ALL));
@@ -65,6 +74,98 @@ public class SchedaClienteController {
         view.setTipoClienteOptions(service.getTipiCliente());
         view.setStatoTrattativaOptions(service.getStatiTrattativa());
         view.renderEditableProfile(service.startEdit());
+        setResourceEditorsDisabled(true);
+    }
+
+    private void openForniEditor() {
+        try {
+            view.setForniCatalog(service.getForniCatalog());
+            view.renderStandaloneForniEditor(service.startForniEdit());
+            setResourceEditorsDisabled(true);
+        } catch (RuntimeException e) {
+            showError("Apertura modifica forni non riuscita", e);
+        }
+    }
+
+    private void closeForniEditor() {
+        try {
+            view.renderForni(service.cancelForniEdit());
+            setResourceEditorsDisabled(false);
+        } catch (RuntimeException e) {
+            showError("Annullamento modifica forni non riuscito", e);
+        }
+    }
+
+    private void saveForniEditor() {
+        try {
+            view.renderForni(service.saveForniEdit(view.collectForni()));
+            setResourceEditorsDisabled(false);
+        } catch (RuntimeException e) {
+            showError("Salvataggio forni non riuscito", e);
+        }
+    }
+
+    private void openFresatoriEditor() {
+        try {
+            view.setFresatoriCatalog(service.getFresatoriCatalog());
+            view.renderStandaloneFresatoriEditor(service.startFresatoriEdit());
+            setResourceEditorsDisabled(true);
+        } catch (RuntimeException e) {
+            showError("Apertura modifica fresatori non riuscita", e);
+        }
+    }
+
+    private void closeFresatoriEditor() {
+        try {
+            view.renderFresatori(service.cancelFresatoriEdit());
+            setResourceEditorsDisabled(false);
+        } catch (RuntimeException e) {
+            showError("Annullamento modifica fresatori non riuscito", e);
+        }
+    }
+
+    private void saveFresatoriEditor() {
+        try {
+            view.renderFresatori(service.saveFresatoriEdit(view.collectFresatori()));
+            setResourceEditorsDisabled(false);
+        } catch (RuntimeException e) {
+            showError("Salvataggio fresatori non riuscito", e);
+        }
+    }
+
+    private void openMaterialiEditor() {
+        try {
+            view.setMaterialiCatalog(service.getMaterialiCatalog());
+            view.renderStandaloneMaterialiEditor(service.startMaterialiEdit());
+            setResourceEditorsDisabled(true);
+        } catch (RuntimeException e) {
+            showError("Apertura modifica materiali non riuscita", e);
+        }
+    }
+
+    private void closeMaterialiEditor() {
+        try {
+            view.renderMateriali(service.cancelMaterialiEdit());
+            setResourceEditorsDisabled(false);
+        } catch (RuntimeException e) {
+            showError("Annullamento modifica materiali non riuscito", e);
+        }
+    }
+
+    private void saveMaterialiEditor() {
+        try {
+            view.renderMateriali(service.saveMaterialiEdit(view.collectMateriali()));
+            setResourceEditorsDisabled(false);
+        } catch (RuntimeException e) {
+            showError("Salvataggio materiali non riuscito", e);
+        }
+    }
+
+    private void setResourceEditorsDisabled(boolean disabled) {
+        view.getEditProfileButton().setDisable(disabled);
+        view.getEditForniButton().setDisable(disabled);
+        view.getEditFresatoriButton().setDisable(disabled);
+        view.getEditMaterialiButton().setDisable(disabled);
     }
 
     private void openNoteEditor() {
@@ -110,6 +211,7 @@ public class SchedaClienteController {
 
     private void render(ClienteProfile profile) {
         view.renderProfile(profile);
+        setResourceEditorsDisabled(false);
     }
 
     public SchedaClienteView getView() {

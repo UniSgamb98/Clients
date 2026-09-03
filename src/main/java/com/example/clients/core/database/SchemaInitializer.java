@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -45,6 +46,34 @@ public final class SchemaInitializer {
                     throw e;
                 }
             }
+        }
+        migrateFornoAnnoToClienteForni(connection);
+    }
+
+    private void migrateFornoAnnoToClienteForni(Connection connection) throws SQLException {
+        if (!hasColumn(connection, "FORNI", "ANNO")) {
+            return;
+        }
+
+        if (!hasColumn(connection, "CLIENTI_FORNI", "ANNO")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("ALTER TABLE CLIENTI_FORNI ADD COLUMN ANNO VARCHAR(20)");
+            }
+        }
+
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("""
+                    UPDATE CLIENTI_FORNI
+                    SET ANNO = (SELECT F.ANNO FROM FORNI F WHERE F.ID = CLIENTI_FORNI.FORNO_ID)
+                    WHERE ANNO IS NULL
+                    """);
+            statement.executeUpdate("ALTER TABLE FORNI DROP COLUMN ANNO");
+        }
+    }
+
+    private boolean hasColumn(Connection connection, String table, String column) throws SQLException {
+        try (ResultSet columns = connection.getMetaData().getColumns(null, null, table, column)) {
+            return columns.next();
         }
     }
 

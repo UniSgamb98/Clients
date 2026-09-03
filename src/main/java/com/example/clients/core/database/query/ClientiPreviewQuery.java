@@ -1,14 +1,15 @@
 package com.example.clients.core.database.query;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 public interface ClientiPreviewQuery {
-    ClientePreviewPage findPage(int page, int pageSize, String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa, String orderByColumn, boolean ascending);
+    ClientePreviewPage findPage(int offset, int pageSize, String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa, String orderByColumn, boolean ascending);
 
     record ClientePreviewPage(
             List<ClientePreviewRecord> records,
-            int page,
+            int offset,
             int pageSize,
             long totalRows
     ) {
@@ -22,9 +23,10 @@ public interface ClientiPreviewQuery {
             String ragioneSociale,
             String tipoCliente,
             String referente,
-            String telefono,
-            String email,
-            String statoTrattativa
+            String indirizzo,
+            String operatore,
+            String statoTrattativa,
+            LocalDate ultimoContatto
     ) {
     }
 }

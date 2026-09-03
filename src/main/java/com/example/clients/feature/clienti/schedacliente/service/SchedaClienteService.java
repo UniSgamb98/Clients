@@ -22,6 +22,28 @@ import com.example.clients.core.database.query.derby.DerbyStatoTrattativaQuery;
 import com.example.clients.core.database.query.derby.DerbyTipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
+import com.example.clients.feature.clienti.schedacliente.repository.ClienteRisorseRepository;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.AddressEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.AddressItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ClienteProfile;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ContactEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ContactItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.EditProfileDraft;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionPreview;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionType;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.TimelineFilter;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ValueEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ValueItem;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,13 +59,14 @@ public class SchedaClienteService {
     private final CurrentOperatoreService currentOperatoreService;
     private final TipoClienteQuery tipoClienteQuery;
     private final StatoTrattativaQuery statoTrattativaQuery;
+    private final ClienteRisorseService risorseService;
     private ClienteProfile currentProfile;
     private EditProfileDraft editingDraft;
     private UUID currentClienteId;
     private TimelineFilter currentFilter = TimelineFilter.ALL;
 
     public SchedaClienteService(Database database) {
-        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService(), new DerbyTipoClienteQuery(database), new DerbyStatoTrattativaQuery(database));
+        this(new DerbyClienteProfileQuery(database), new ClientePersistenceService(database), new CurrentOperatoreService(), new DerbyTipoClienteQuery(database), new DerbyStatoTrattativaQuery(database), database);
     }
 
     public SchedaClienteService(
@@ -70,11 +93,23 @@ public class SchedaClienteService {
             TipoClienteQuery tipoClienteQuery,
             StatoTrattativaQuery statoTrattativaQuery
     ) {
+        this(profileQuery, persistenceService, currentOperatoreService, tipoClienteQuery, statoTrattativaQuery, null);
+    }
+
+    private SchedaClienteService(
+            ClienteProfileQuery profileQuery,
+            ClientePersistenceService persistenceService,
+            CurrentOperatoreService currentOperatoreService,
+            TipoClienteQuery tipoClienteQuery,
+            StatoTrattativaQuery statoTrattativaQuery,
+            Database database
+    ) {
         this.profileQuery = profileQuery;
         this.persistenceService = persistenceService;
         this.currentOperatoreService = currentOperatoreService;
         this.tipoClienteQuery = tipoClienteQuery;
         this.statoTrattativaQuery = statoTrattativaQuery;
+        this.risorseService = new ClienteRisorseService(database == null ? null : new ClienteRisorseRepository(database));
     }
 
     public List<String> getTipiCliente() {
@@ -127,12 +162,27 @@ public class SchedaClienteService {
                 toValueItems(record.sitiWeb()),
                 toAddressItems(record.indirizzi()),
                 toContactItems(record.contatti()),
+                risorseService.findClienteForni(record.clienteId()),
+                risorseService.findClienteFresatori(record.clienteId()),
+                risorseService.findClienteMateriali(record.clienteId()),
                 record.timeline().stream()
                         .map(this::toInteractionPreview)
                         .toList()
         );
     }
 
+
+    public List<FornoCatalogItem> getForniCatalog() {
+        return risorseService.getForniCatalog();
+    }
+
+    public List<FresatoreCatalogItem> getFresatoriCatalog() {
+        return risorseService.getFresatoriCatalog();
+    }
+
+    public List<MaterialeCatalogItem> getMaterialiCatalog() {
+        return risorseService.getMaterialiCatalog();
+    }
 
     private List<ValueItem> toValueItems(List<ValueRecord> values) {
         return values.stream()
@@ -179,6 +229,9 @@ public class SchedaClienteService {
                 "",
                 null,
                 false,
+                List.of(),
+                List.of(),
+                List.of(),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -235,6 +288,57 @@ public class SchedaClienteService {
         currentFilter = TimelineFilter.ALL;
         editingDraft = EditProfileDraft.from(currentProfile);
         return editingDraft;
+    }
+
+    public List<FornoClienteEditInput> startForniEdit() {
+        ensureProfileLoaded();
+        return risorseService.startForniEdit(currentProfile);
+    }
+
+    public List<FornoClienteItem> cancelForniEdit() {
+        ensureProfileLoaded();
+        return risorseService.cancelForniEdit(currentProfile);
+    }
+
+    public List<FornoClienteItem> saveForniEdit(List<FornoClienteEditInput> forni) {
+        ensureProfileLoaded();
+        List<FornoClienteItem> savedForni = risorseService.saveForni(currentClienteId, forni);
+        currentProfile = currentProfile.withForni(savedForni);
+        return savedForni;
+    }
+
+    public List<FresatoreClienteEditInput> startFresatoriEdit() {
+        ensureProfileLoaded();
+        return risorseService.startFresatoriEdit(currentProfile);
+    }
+
+    public List<FresatoreClienteItem> cancelFresatoriEdit() {
+        ensureProfileLoaded();
+        return risorseService.cancelFresatoriEdit(currentProfile);
+    }
+
+    public List<FresatoreClienteItem> saveFresatoriEdit(List<FresatoreClienteEditInput> fresatori) {
+        ensureProfileLoaded();
+        List<FresatoreClienteItem> savedFresatori = risorseService.saveFresatori(currentClienteId, fresatori);
+        currentProfile = currentProfile.withFresatori(savedFresatori);
+        return savedFresatori;
+    }
+
+    public List<MaterialeClienteEditInput> startMaterialiEdit() {
+        ensureProfileLoaded();
+        return risorseService.startMaterialiEdit(currentProfile);
+    }
+
+    public List<MaterialeClienteItem> cancelMaterialiEdit() {
+        ensureProfileLoaded();
+        return risorseService.cancelMaterialiEdit(currentProfile);
+    }
+
+    public List<MaterialeClienteItem> saveMaterialiEdit(List<MaterialeClienteEditInput> materiali) {
+        ensureProfileLoaded();
+        List<MaterialeClienteItem> savedMateriali = risorseService.saveMateriali(currentClienteId, materiali);
+        currentProfile = currentProfile.withMateriali(savedMateriali);
+        return savedMateriali;
     }
 
     public ClienteProfile cancelEdit() {
@@ -506,203 +610,8 @@ public class SchedaClienteService {
         return cleanValue.isBlank() ? null : cleanValue;
     }
 
-    public enum TimelineFilter {
-        ALL,
-        NOTES,
-        CALLS;
-
-        private boolean matches(InteractionType type) {
-            return this == ALL
-                    || (this == NOTES && type == InteractionType.NOTA)
-                    || (this == CALLS && type == InteractionType.CHIAMATA);
-        }
-    }
-
-    public enum InteractionType {
-        NOTA("Nota"),
-        CHIAMATA("Chiamata");
-
-        private final String label;
-
-        InteractionType(String label) {
-            this.label = label;
-        }
-
-        public String label() {
-            return label;
-        }
-    }
-
-    public record ClienteProfile(
-            UUID clienteId,
-            String ragioneSociale,
-            String tipoCliente,
-            String statoTrattativa,
-            Integer coinvolgimento,
-            String partitaIva,
-            String codiceFiscale,
-            LocalDate acquisizione,
-            boolean favorite,
-            List<ValueItem> telefoni,
-            List<ValueItem> email,
-            List<ValueItem> sitiWeb,
-            List<AddressItem> indirizzi,
-            List<ContactItem> contatti,
-            List<InteractionPreview> interazioni
-    ) {
-        public ClienteProfile {
-            telefoni = List.copyOf(telefoni);
-            email = List.copyOf(email);
-            sitiWeb = List.copyOf(sitiWeb);
-            indirizzi = List.copyOf(indirizzi);
-            contatti = List.copyOf(contatti);
-            interazioni = List.copyOf(interazioni);
-        }
-
-        private ClienteProfile withCoinvolgimento(Integer coinvolgimento) {
-            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
-        }
-
-        private ClienteProfile withFavorite(boolean favorite) {
-            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
-        }
-
-        private ClienteProfile withInterazioni(List<InteractionPreview> interazioni) {
-            return new ClienteProfile(clienteId, ragioneSociale, tipoCliente, statoTrattativa, coinvolgimento, partitaIva, codiceFiscale, acquisizione,
-                    favorite, telefoni, email, sitiWeb, indirizzi, contatti, interazioni);
-        }
-    }
-
-    public record EditProfileDraft(
-            String ragioneSociale,
-            String tipoCliente,
-            String statoTrattativa,
-            Integer coinvolgimento,
-            String partitaIva,
-            String codiceFiscale,
-            LocalDate acquisizione,
-            List<ValueEditInput> telefoni,
-            List<ValueEditInput> email,
-            List<ValueEditInput> sitiWeb,
-            List<AddressEditInput> indirizzi,
-            List<ContactEditInput> contatti,
-            List<InteractionEditInput> interazioni
-    ) {
-        public EditProfileDraft {
-            telefoni = List.copyOf(telefoni);
-            email = List.copyOf(email);
-            sitiWeb = List.copyOf(sitiWeb);
-            indirizzi = List.copyOf(indirizzi);
-            contatti = List.copyOf(contatti);
-            interazioni = List.copyOf(interazioni);
-        }
-
-
-        private static List<ValueEditInput> toEditInputs(List<ValueItem> values) {
-            return values.stream()
-                    .map(value -> new ValueEditInput(value.id(), value.value()))
-                    .toList();
-        }
-
-        private static List<AddressEditInput> toAddressEditInputs(List<AddressItem> values) {
-            return values.stream()
-                    .map(value -> new AddressEditInput(
-                            value.id(),
-                            value.paese(),
-                            value.regione(),
-                            value.provincia(),
-                            value.citta(),
-                            value.indirizzo(),
-                            value.numeroCivico(),
-                            value.cap(),
-                            value.principale()))
-                    .toList();
-        }
-
-        private static List<ContactEditInput> toContactEditInputs(List<ContactItem> values) {
-            return values.stream()
-                    .map(value -> new ContactEditInput(value.id(), value.descrizione(), toEditInputs(value.telefoni()), toEditInputs(value.email())))
-                    .toList();
-        }
-
-        private static EditProfileDraft from(ClienteProfile profile) {
-            return new EditProfileDraft(
-                    profile.ragioneSociale(),
-                    profile.tipoCliente(),
-                    profile.statoTrattativa(),
-                    profile.coinvolgimento(),
-                    profile.partitaIva(),
-                    profile.codiceFiscale(),
-                    profile.acquisizione(),
-                    toEditInputs(profile.telefoni()),
-                    toEditInputs(profile.email()),
-                    toEditInputs(profile.sitiWeb()),
-                    toAddressEditInputs(profile.indirizzi()),
-                    toContactEditInputs(profile.contatti()),
-                    profile.interazioni().stream()
-                            .map(InteractionEditInput::from)
-                            .toList()
-            );
-        }
-    }
-
-    public record ValueItem(UUID id, String value) {
-    }
-
-    public record AddressItem(
-            UUID id,
-            String paese,
-            String regione,
-            String provincia,
-            String citta,
-            String indirizzo,
-            String numeroCivico,
-            String cap,
-            boolean principale
-    ) {
-    }
-
-    public record ContactItem(UUID id, String descrizione, List<ValueItem> telefoni, List<ValueItem> email) {
-        public ContactItem {
-            telefoni = List.copyOf(telefoni);
-            email = List.copyOf(email);
-        }
-    }
-
-    public record ValueEditInput(UUID id, String value) {
-    }
-
-    public record AddressEditInput(
-            UUID id,
-            String paese,
-            String regione,
-            String provincia,
-            String citta,
-            String indirizzo,
-            String numeroCivico,
-            String cap,
-            boolean principale
-    ) {
-    }
-
-    public record ContactEditInput(UUID id, String descrizione, List<ValueEditInput> telefoni, List<ValueEditInput> email) {
-        public ContactEditInput {
-            telefoni = List.copyOf(telefoni);
-            email = List.copyOf(email);
-        }
-    }
-
     private record ContactModels(List<ContattoCliente> contatti, List<TelefonoCliente> telefoni, List<EmailCliente> email) {
     }
 
-    public record InteractionEditInput(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
-        private static InteractionEditInput from(InteractionPreview interaction) {
-            return new InteractionEditInput(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), interaction.testo());
-        }
-    }
 
-    public record InteractionPreview(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
-    }
 }

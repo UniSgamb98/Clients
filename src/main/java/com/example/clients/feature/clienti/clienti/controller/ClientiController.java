@@ -6,10 +6,12 @@ import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
 import com.example.clients.feature.clienti.clienti.dto.ClientePreviewRow;
 import com.example.clients.feature.clienti.clienti.dto.ClientiPage;
 import com.example.clients.feature.clienti.clienti.dto.ClientiSearchRequest;
+import com.example.clients.feature.clienti.clienti.dto.ClientiSearchState;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.SortColumn;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
+import com.example.clients.feature.clienti.clienti.view.ClientiFeedback;
 import com.example.clients.feature.clienti.navigator.ClientiNav;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
@@ -18,51 +20,45 @@ import java.util.List;
 
 public class ClientiController {
 
-    private static final int PAGE_SIZE = 50;
+    private static final int INITIAL_LOAD_SIZE = 30;
+    private static final int LOAD_MORE_SIZE = 50;
     private static final Duration SEARCH_DEBOUNCE = Duration.millis(300);
 
     private final ClientiView view;
     private final ClientiNav clientiNav;
     private final ClientiService service;
+    private final ClientiFeedback feedback;
     private final PauseTransition searchDebounce = new PauseTransition(SEARCH_DEBOUNCE);
-    private SortColumn currentSortColumn = SortColumn.NAME;
-    private boolean ascending = true;
-    private String currentSearchText = "";
-    private OperatoreFilter currentOperatoreFilter = OperatoreFilter.empty();
-    private TextFilter currentTipoClienteFilter = TextFilter.empty("Tutti");
-    private TextFilter currentStatoTrattativaFilter = TextFilter.empty("Tutti");
-    private int currentPage;
+    private ClientiSearchState searchState = ClientiSearchState.initial(INITIAL_LOAD_SIZE);
     private long loadVersion;
+    private boolean clearingFilters;
+    private boolean loadingPage;
+    private boolean hasNextPage;
+    private int loadedRows;
 
     public ClientiController(ClientiView view, ClientiNav clientiNav, ClientiService service) {
         this.view = view;
         this.clientiNav = clientiNav;
         this.service = service;
+        this.feedback = new ClientiFeedback();
         configureActions();
     }
 
     private void configureActions() {
-        view.getNewClientButton().setOnAction(event -> clientiNav.showNuovoCliente());
-        view.getNameHeaderButton().setOnAction(event -> sortClienti(SortColumn.NAME));
-        view.getTypeHeaderButton().setOnAction(event -> sortClienti(SortColumn.TYPE));
-        view.getContactHeaderButton().setOnAction(event -> sortClienti(SortColumn.CONTACT));
-        view.getPhoneHeaderButton().setOnAction(event -> sortClienti(SortColumn.PHONE));
-        view.getEmailHeaderButton().setOnAction(event -> sortClienti(SortColumn.EMAIL));
-        view.getStatusHeaderButton().setOnAction(event -> sortClienti(SortColumn.STATUS));
-        view.getPreviousPageButton().setOnAction(event -> loadPage(currentPage - 1));
-        view.getNextPageButton().setOnAction(event -> loadPage(currentPage + 1));
-        view.getSearchField().textProperty().addListener((observable, oldValue, newValue) -> searchClienti(newValue));
-        view.getOperatorFilterChoiceBox().getSelectionModel().selectedItemProperty()
-                .addListener((observable, oldValue, newValue) -> filterByOperatore(newValue));
-        view.getTypeFilterChoiceBox().getSelectionModel().selectedItemProperty()
-                .addListener((observable, oldValue, newValue) -> filterByTipoCliente(newValue));
-        view.getStatusFilterChoiceBox().getSelectionModel().selectedItemProperty()
-                .addListener((observable, oldValue, newValue) -> filterByStatoTrattativa(newValue));
+        view.onNewClient(clientiNav::showNuovoCliente);
+        view.onSortRequested(this::sortClienti);
+        view.onSearchChanged(this::searchClienti);
+        view.onOperatoreFilterChanged(this::filterByOperatore);
+        view.onTipologiaFilterChanged(this::filterByTipoCliente);
+        view.onStatoFilterChanged(this::filterByStatoTrattativa);
+        view.onClearFilters(this::clearFilters);
+        view.onSaveSearch(this::showSaveSearchUnavailable);
+        view.onScrollNearBottom(this::loadNextPage);
     }
 
     public void loadPreviewClientsAsync() {
         loadFiltersAsync();
-        loadPage(0);
+        reloadClients();
     }
 
     private void loadFiltersAsync() {
@@ -84,95 +80,143 @@ public class ClientiController {
     }
 
     private void searchClienti(String searchText) {
-        currentSearchText = searchText == null ? "" : searchText.trim();
+        searchState = searchState.withSearchText(searchText);
+        if (clearingFilters) {
+            return;
+        }
         searchDebounce.stop();
-        searchDebounce.setOnFinished(event -> loadPage(0));
+        searchDebounce.setOnFinished(event -> reloadClients());
         searchDebounce.playFromStart();
     }
 
     private void filterByOperatore(OperatoreFilter operatoreFilter) {
-        currentOperatoreFilter = operatoreFilter == null ? OperatoreFilter.empty() : operatoreFilter;
-        loadPage(0);
+        searchState = searchState.withOperatore(operatoreFilter);
+        if (!clearingFilters) {
+            reloadClients();
+        }
     }
 
     private void filterByTipoCliente(TextFilter filter) {
-        currentTipoClienteFilter = filter == null ? TextFilter.empty("Tutti") : filter;
-        loadPage(0);
+        searchState = searchState.withTipologia(filter);
+        if (!clearingFilters) {
+            reloadClients();
+        }
     }
 
     private void filterByStatoTrattativa(TextFilter filter) {
-        currentStatoTrattativaFilter = filter == null ? TextFilter.empty("Tutti") : filter;
-        loadPage(0);
+        searchState = searchState.withStato(filter);
+        if (!clearingFilters) {
+            reloadClients();
+        }
+    }
+
+    private void clearFilters() {
+        clearingFilters = true;
+        searchDebounce.stop();
+        view.clearFilters();
+        searchState = ClientiSearchState.initial(INITIAL_LOAD_SIZE);
+        clearingFilters = false;
+        reloadClients();
+    }
+
+    private void showSaveSearchUnavailable() {
+        feedback.showFeatureInDevelopment("Salvataggio ricerca");
     }
 
     private void sortClienti(SortColumn sortColumn) {
-        if (sortColumn == currentSortColumn) {
-            ascending = !ascending;
-        } else {
-            currentSortColumn = sortColumn;
-            ascending = true;
-        }
-        loadPage(0);
+        searchState = searchState.togglingSort(sortColumn);
+        reloadClients();
     }
 
-    private void loadPage(int page) {
-        currentPage = Math.max(0, page);
-        ClientiSearchRequest request = new ClientiSearchRequest(
-                currentPage,
-                PAGE_SIZE,
-                currentSearchText,
-                currentOperatoreFilter.id(),
-                filterValue(currentTipoClienteFilter),
-                filterValue(currentStatoTrattativaFilter),
-                currentSortColumn,
-                ascending
-        );
+    private void reloadClients() {
+        hasNextPage = false;
+        loadedRows = 0;
+        searchState = searchState.withPageSize(INITIAL_LOAD_SIZE);
+        loadPage(0, INITIAL_LOAD_SIZE, false);
+    }
+
+    private void loadNextPage() {
+        if (hasNextPage && !loadingPage) {
+            loadPage(loadedRows, LOAD_MORE_SIZE, true);
+        }
+    }
+
+    private void loadPage(int offset, int pageSize, boolean append) {
+        if (append && (!hasNextPage || loadingPage)) {
+            return;
+        }
+        searchState = searchState.withPageSize(pageSize).withOffset(offset);
+        ClientiSearchRequest request = searchState.toRequest();
         long version = ++loadVersion;
-        view.showLoading();
-        view.setPaginationDisabled(true);
+        loadingPage = true;
+        if (append) {
+            view.showLoadingMore();
+        } else {
+            view.showLoading();
+        }
 
         AsyncLoader.run(
                 () -> service.getClientiPreview(request),
                 clientiPage -> {
                     if (version == loadVersion) {
-                        renderClienti(clientiPage);
+                        renderClienti(clientiPage, append);
+                        loadingPage = false;
                     }
                 },
                 error -> {
                     if (version == loadVersion) {
+                        loadingPage = false;
                         view.showError("Caricamento clienti non riuscito.");
-                        view.setPaginationDisabled(true);
                     }
                 }
         );
     }
 
-    private String filterValue(TextFilter filter) {
-        return filter == null || filter.isEmptyOption() ? "" : filter.value();
-    }
+    private void renderClienti(ClientiPage page, boolean append) {
+        searchState = searchState.withOffset(page.offset());
+        hasNextPage = page.hasNextPage();
+        view.setResultsCount(page.totalRows());
 
-    private void renderClienti(ClientiPage page) {
-        currentPage = page.page();
-        view.renderPagination(page.page(), page.totalPages(), page.hasPreviousPage(), page.hasNextPage());
-
-        if (page.rows().isEmpty()) {
+        if (page.rows().isEmpty() && !append) {
             view.showEmpty();
             return;
         }
 
-        view.clearClientRows();
+        if (!append) {
+            view.clearClientRows();
+            loadedRows = 0;
+        }
 
         for (ClientePreviewRow cliente : page.rows()) {
             ClientePreview preview = cliente.preview();
-            view.addClientRow(
+            var row = view.addClientRow(
                     preview.name(),
                     preview.type(),
                     preview.contact(),
-                    preview.phone(),
-                    preview.email(),
-                    preview.status()
-            ).setOnMouseClicked(event -> clientiNav.showSchedaCliente(cliente.clienteId()));
+                    preview.operator(),
+                    preview.status(),
+                    preview.lastContact(),
+                    this::showRowActionsUnavailable
+            );
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2) {
+                    clientiNav.showSchedaCliente(cliente.clienteId());
+                    return;
+                }
+                view.openClientDetails(preview, row, () -> clientiNav.showSchedaCliente(cliente.clienteId()));
+            });
         }
+        loadedRows += page.rows().size();
+
+        if (hasNextPage) {
+            view.showLoadMoreAvailable();
+        } else {
+            view.showAllResultsLoaded();
+        }
+    }
+
+    private void showRowActionsUnavailable() {
+        feedback.showFeatureInDevelopment("Azioni cliente");
     }
 
     public ClientiView getView() {

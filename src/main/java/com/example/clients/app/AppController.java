@@ -25,6 +25,9 @@ import com.example.clients.feature.dashboard.controller.DashboardController;
 import com.example.clients.feature.dashboard.navigator.DashboardNav;
 import com.example.clients.feature.dashboard.service.DashboardService;
 import com.example.clients.feature.dashboard.view.DashboardView;
+import com.example.clients.feature.impostazioni.controller.ImpostazioniController;
+import com.example.clients.feature.impostazioni.service.ImpostazioniService;
+import com.example.clients.feature.impostazioni.view.ImpostazioniView;
 
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -34,6 +37,9 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class AppController implements DashboardNav, ClientiNav, LoginNav {
+    private static final double INITIAL_SCENE_WIDTH = 1350;
+    private static final double INITIAL_SCENE_HEIGHT = 900;
+
     private final Stage stage;
     private Scene scene;
     private AppContainer app;
@@ -148,10 +154,22 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         stage.setTitle("Clients - Calendario");
     }
 
+    public void showImpostazioni() {
+        ImpostazioniView view = new ImpostazioniView();
+        configureSidebar(view.getSidebar());
+        new ImpostazioniController(view, new ImpostazioniService(app.database));
+
+        showView(
+                view,
+                "/css/features/impostazioni.css"
+        );
+        stage.setTitle("Clients - Impostazioni");
+    }
+
     // La Scene viene creata solo al primo caricamento: durante la navigazione cambia solo il root.
     private void showView(Parent root, String... extraCss) {
         if (scene == null) {
-            scene = new Scene(root, 900, 700);
+            scene = new Scene(root, INITIAL_SCENE_WIDTH, INITIAL_SCENE_HEIGHT);
             stage.setScene(scene);
         } else {
             scene.setRoot(root);
@@ -181,6 +199,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
         sidebar.getDashboardButton().setOnAction(e -> showDashboard());
         sidebar.getClientsButton().setOnAction(e -> showClienti());
         sidebar.getCalendarButton().setOnAction(e -> showCalendario());
+        sidebar.getSettingsButton().setOnAction(e -> showImpostazioni());
     }
 
     public void shutdown() {

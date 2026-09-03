@@ -1,12 +1,13 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionPreview;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionType;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.TimelineFilter;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -27,6 +28,7 @@ final class ClienteTimelineSection extends VBox {
     private static final double EDIT_INTERACTION_TEXT_AREA_MAX_WIDTH = 760;
     private static final double EDIT_INTERACTION_TEXT_AREA_MIN_HEIGHT = 160;
     private static final int EDIT_INTERACTION_TEXT_AREA_PREF_ROWS = 5;
+    private static final double TIMELINE_SCROLL_MAX_HEIGHT = 500;
 
     private final Button newNoteButton;
     private final Button newCallButton;
@@ -55,6 +57,7 @@ final class ClienteTimelineSection extends VBox {
         notesFilterButton = createTimelineFilterButton("Solo note");
         callsFilterButton = createTimelineFilterButton("Solo chiamate");
         timelineList = new VBox(10);
+        ScrollPane timelineScrollPane = createTimelineScrollPane();
         noteEditor = createNoteEditor();
         nextCallDatePicker = new DatePicker();
         nextCallDatePicker.setPromptText("Prossima chiamata");
@@ -70,7 +73,18 @@ final class ClienteTimelineSection extends VBox {
         setActiveTimelineFilter(TimelineFilter.ALL);
         hideNoteEditor();
 
-        getChildren().addAll(title, createActions(), createFilters(), noteEditor, timelineList);
+        getChildren().addAll(title, createActions(), createFilters(), noteEditor, timelineScrollPane);
+    }
+
+    private ScrollPane createTimelineScrollPane() {
+        ScrollPane scrollPane = new ScrollPane(timelineList);
+        scrollPane.getStyleClass().add("client-profile-timeline-scroll");
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setMaxHeight(TIMELINE_SCROLL_MAX_HEIGHT);
+        scrollPane.setPrefViewportHeight(TIMELINE_SCROLL_MAX_HEIGHT);
+        return scrollPane;
     }
 
     void render(List<InteractionPreview> interactions) {

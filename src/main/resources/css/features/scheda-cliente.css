@@ -32,6 +32,51 @@
     -fx-vgap: 12;
 }
 
+.client-profile-details-panel {
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+}
+
+.client-profile-resources-panel {
+    -fx-background-color: -app-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+}
+
+.client-profile-resources-title {
+    -fx-text-fill: -app-text;
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+}
+
+.client-profile-resources-flow {
+    -fx-pref-wrap-length: 900;
+}
+
+.client-profile-resource-card {
+    -fx-min-width: 150;
+    -fx-pref-width: 170;
+    -fx-min-height: 82;
+    -fx-background-color: -app-card-bg;
+    -fx-background-radius: 8;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-padding: 12;
+}
+
+.client-profile-resource-card-title {
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+}
+
 .client-profile-header-actions,
 .client-profile-summary-row {
     -fx-alignment: center-left;
@@ -65,6 +110,16 @@
 .client-profile-info-label {
     -fx-text-fill: -app-text-muted-2;
     -fx-font-size: 12px;
+}
+
+.client-profile-timeline-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 0;
+}
+
+.client-profile-timeline-scroll > .viewport {
+    -fx-background-color: transparent;
 }
 
 .client-profile-timeline-card,
@@ -283,4 +338,70 @@
 .client-profile-contact-value {
     -fx-text-fill: -app-text-muted-2;
     -fx-font-size: 12px;
+}
+
+.client-profile-resource-group {
+    -fx-background-color: -app-surface-alt;
+    -fx-background-radius: 10;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 14;
+    -fx-min-width: 360;
+    -fx-pref-width: 520;
+}
+
+.client-profile-resource-group-header,
+.client-profile-forno-row {
+    -fx-alignment: center-left;
+}
+
+.client-profile-forno-card {
+    -fx-background-color: -app-card-bg;
+    -fx-background-radius: 8;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+}
+
+.client-profile-resource-value,
+.client-profile-resource-note {
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 12px;
+}
+
+.client-profile-material-title {
+    -fx-text-fill: -app-text;
+    -fx-font-size: 15px;
+    -fx-font-weight: 800;
+}
+
+.client-profile-resource-field-label {
+    -fx-text-fill: -app-text-muted-2;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+}
+
+.client-profile-resource-combo {
+    -fx-background-color: -app-surface-alt;
+    -fx-control-inner-background: -app-surface-alt;
+    -fx-text-fill: -app-text;
+    -fx-prompt-text-fill: -app-text-placeholder-2;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-pref-width: 180;
+}
+
+.client-profile-resource-note-editor {
+    -fx-background-color: -app-surface-alt;
+    -fx-control-inner-background: -app-surface-alt;
+    -fx-text-fill: -app-text;
+    -fx-prompt-text-fill: -app-text-placeholder-2;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-pref-row-count: 2;
+    -fx-max-height: 72;
 }

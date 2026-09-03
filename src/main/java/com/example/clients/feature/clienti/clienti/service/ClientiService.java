@@ -13,9 +13,12 @@ import com.example.clients.feature.clienti.clienti.dto.ClientiSearchRequest;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class ClientiService {
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final ClientiPreviewQuery clientiPreviewQuery;
     private final ClientiFilterQuery clientiFilterQuery;
@@ -31,7 +34,7 @@ public class ClientiService {
 
     public ClientiPage getClientiPreview(ClientiSearchRequest request) {
         ClientiPreviewQuery.ClientePreviewPage page = clientiPreviewQuery.findPage(
-                request.page(),
+                request.offset(),
                 request.pageSize(),
                 request.searchText(),
                 request.operatoreId(),
@@ -44,7 +47,7 @@ public class ClientiService {
                 page.records().stream()
                         .map(this::toPreviewRow)
                         .toList(),
-                page.page(),
+                page.offset(),
                 page.pageSize(),
                 page.totalRows()
         );
@@ -95,9 +98,10 @@ public class ClientiService {
                         record.ragioneSociale(),
                         record.tipoCliente(),
                         record.referente(),
-                        record.telefono(),
-                        record.email(),
-                        record.statoTrattativa()
+                        record.indirizzo(),
+                        record.operatore(),
+                        record.statoTrattativa(),
+                        record.ultimoContatto() == null ? "—" : DATE_FORMATTER.format(record.ultimoContatto())
                 )
         );
     }

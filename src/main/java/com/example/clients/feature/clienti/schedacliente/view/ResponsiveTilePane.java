@@ -5,21 +5,19 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.TilePane;
 
 /**
- * TilePane that keeps a stable one/two column layout based on the available width.
+ * TilePane with a fixed two-column layout for the client profile.
  */
 class ResponsiveTilePane extends TilePane {
 
-    private final double gap;
-    private final double twoColumnBreakpoint;
+    private static final int FIXED_COLUMNS = 2;
+    private static final double FIXED_TILE_WIDTH = 260;
 
     ResponsiveTilePane(double gap, double twoColumnBreakpoint) {
         super(gap, gap);
-        this.gap = gap;
-        this.twoColumnBreakpoint = twoColumnBreakpoint;
         getStyleClass().add("client-profile-responsive-tile-pane");
         setMaxWidth(Double.MAX_VALUE);
-        setPrefColumns(1);
-        widthProperty().addListener((observable, oldWidth, newWidth) -> updateTileSizing(newWidth.doubleValue()));
+        setPrefColumns(FIXED_COLUMNS);
+        setPrefTileWidth(FIXED_TILE_WIDTH);
     }
 
     void addStretchingTile(Node node) {
@@ -28,15 +26,5 @@ class ResponsiveTilePane extends TilePane {
             region.setMaxWidth(Double.MAX_VALUE);
         }
         getChildren().add(node);
-        updateTileSizing(getWidth());
-    }
-
-    private void updateTileSizing(double width) {
-        if (width <= 0) {
-            return;
-        }
-        boolean twoColumns = width >= twoColumnBreakpoint;
-        setPrefColumns(twoColumns ? 2 : 1);
-        setPrefTileWidth(twoColumns ? (width - gap) / 2 : width);
     }
 }

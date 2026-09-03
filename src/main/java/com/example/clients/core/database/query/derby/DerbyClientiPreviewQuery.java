@@ -18,9 +18,9 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
             "C.RAGIONE_SOCIALE",
             "C.TIPO_CLIENTE",
             "REFERENTE",
-            "TELEFONO",
-            "EMAIL",
-            "C.STATO_TRATTATIVA"
+            "OPERATORE",
+            "C.STATO_TRATTATIVA",
+            "ULTIMO_CONTATTO"
     );
 
     private final Database database;
@@ -36,32 +36,21 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
     }
 
     @Override
-    public ClientePreviewPage findPage(int page, int pageSize, String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa, String orderByColumn, boolean ascending) {
+    public ClientePreviewPage findPage(int offset, int pageSize, String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa, String orderByColumn, boolean ascending) {
         schemaInitializer.initialize();
 
-        int safePage = Math.max(0, page);
+        int safeOffset = Math.max(0, offset);
         int safePageSize = Math.max(1, pageSize);
-        int offset = safePage * safePageSize;
         String cleanSearchText = cleanSearchText(searchText);
         boolean hasSearch = !cleanSearchText.isBlank();
         String cleanTipoCliente = cleanFilterText(tipoCliente);
         String cleanStatoTrattativa = cleanFilterText(statoTrattativa);
         long totalRows = countAll(cleanSearchText, operatoreId, cleanTipoCliente, cleanStatoTrattativa);
-        String sql = "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
-                + "COALESCE(R.REFERENTE, '') AS REFERENTE, "
-                + "COALESCE(T.TELEFONO, '') AS TELEFONO, "
-                + "COALESCE(E.EMAIL, '') AS EMAIL "
-                + "FROM CLIENTI C "
-                + previewAggregateJoin("CONTATTI_CLIENTE", "R", "REFERENTE")
-                + previewAggregateJoin("TELEFONI_CLIENTE", "T", "TELEFONO")
-                + previewAggregateJoin("EMAIL_CLIENTE", "E", "EMAIL")
-                + filterWhereClause(hasSearch, operatoreId != null, !cleanTipoCliente.isBlank(), !cleanStatoTrattativa.isBlank())
-                + "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", C.ID "
-                + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+        String sql = buildPreviewSql(hasSearch, operatoreId != null, !cleanTipoCliente.isBlank(), !cleanStatoTrattativa.isBlank(), orderByColumn, ascending);
 
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             int parameterIndex = bindFilterParameters(statement, cleanSearchText, hasSearch, operatoreId, cleanTipoCliente, cleanStatoTrattativa, 1);
-            statement.setInt(parameterIndex, offset);
+            statement.setInt(parameterIndex, safeOffset);
             statement.setInt(parameterIndex + 1, safePageSize);
             try (ResultSet resultSet = statement.executeQuery()) {
                 List<ClientePreviewRecord> previews = new ArrayList<>();
@@ -71,12 +60,13 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                             valueOrEmpty(resultSet.getString("RAGIONE_SOCIALE")),
                             valueOrEmpty(resultSet.getString("TIPO_CLIENTE")),
                             valueOrEmpty(resultSet.getString("REFERENTE")),
-                            valueOrEmpty(resultSet.getString("TELEFONO")),
-                            valueOrEmpty(resultSet.getString("EMAIL")),
-                            valueOrEmpty(resultSet.getString("STATO_TRATTATIVA"))
+                            valueOrEmpty(resultSet.getString("INDIRIZZO")),
+                            valueOrEmpty(resultSet.getString("OPERATORE")),
+                            valueOrEmpty(resultSet.getString("STATO_TRATTATIVA")),
+                            resultSet.getDate("ULTIMO_CONTATTO") == null ? null : resultSet.getDate("ULTIMO_CONTATTO").toLocalDate()
                     ));
                 }
-                return new ClientePreviewPage(previews, safePage, safePageSize, totalRows);
+                return new ClientePreviewPage(previews, safeOffset, safePageSize, totalRows);
             }
         } catch (SQLException e) {
             throw new RuntimeException("Errore caricamento anteprima clienti.", e);
@@ -89,6 +79,41 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
                 + "FROM " + tableName + " "
                 + "GROUP BY CLIENTE_ID"
                 + ") " + alias + " ON " + alias + ".CLIENTE_ID = C.ID ";
+    }
+
+    private String buildPreviewSql(boolean hasSearch, boolean hasOperatoreFilter, boolean hasTipoClienteFilter, boolean hasStatoFilter, String orderByColumn, boolean ascending) {
+        return previewSelectClause()
+                + previewJoins()
+                + filterWhereClause(hasSearch, hasOperatoreFilter, hasTipoClienteFilter, hasStatoFilter)
+                + orderByClause(orderByColumn, ascending)
+                + "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+    }
+
+    private String previewSelectClause() {
+        return "SELECT C.ID, C.RAGIONE_SOCIALE, C.TIPO_CLIENTE, C.STATO_TRATTATIVA, "
+                + "COALESCE(R.REFERENTE, '') AS REFERENTE, COALESCE(A.INDIRIZZO, '') AS INDIRIZZO, "
+                + "CASE WHEN TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) = '' "
+                + "THEN COALESCE(O.USERNAME, '') ELSE TRIM(COALESCE(O.NOME, '') || ' ' || COALESCE(O.COGNOME, '')) END AS OPERATORE, I.ULTIMO_CONTATTO "
+                + "FROM CLIENTI C ";
+    }
+
+    private String previewJoins() {
+        return previewAggregateJoin("CONTATTI_CLIENTE", "R", "REFERENTE")
+                + previewAddressJoin()
+                + "LEFT JOIN OPERATORI O ON O.ID = C.OPERATORE_ID "
+                + "LEFT JOIN (SELECT CLIENTE_ID, MAX(DATA_CONTATTO) AS ULTIMO_CONTATTO FROM INTERAZIONI GROUP BY CLIENTE_ID) I ON I.CLIENTE_ID = C.ID ";
+    }
+
+    private String orderByClause(String orderByColumn, boolean ascending) {
+        return "ORDER BY " + safeOrderColumn(orderByColumn) + (ascending ? " ASC" : " DESC") + ", C.ID ";
+    }
+
+    private String previewAddressJoin() {
+        return "LEFT JOIN ("
+                + "SELECT CLIENTE_ID, COALESCE(MIN(CASE WHEN PRINCIPALE = 1 THEN INDIRIZZO END), MIN(INDIRIZZO)) AS INDIRIZZO "
+                + "FROM INDIRIZZI_CLIENTE "
+                + "GROUP BY CLIENTE_ID"
+                + ") A ON A.CLIENTE_ID = C.ID ";
     }
 
     private long countAll(String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa) {

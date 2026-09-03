@@ -4,8 +4,9 @@ public record ClientePreview(
         String name,
         String type,
         String contact,
-        String phone,
-        String email,
-        String status
+        String address,
+        String operator,
+        String status,
+        String lastContact
 ) {
 }

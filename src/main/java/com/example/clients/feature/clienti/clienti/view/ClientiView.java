@@ -1,7 +1,9 @@
 package com.example.clients.feature.clienti.clienti.view;
 
 import com.example.clients.core.ui.AppSidebar;
+import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
+import com.example.clients.feature.clienti.clienti.dto.SortColumn;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
@@ -15,15 +17,17 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public class ClientiView extends BorderPane {
 
-    private static final double NAME_COLUMN_WIDTH = 115;
-    private static final double TYPE_COLUMN_WIDTH = 75;
-    private static final double CONTACT_COLUMN_WIDTH = 115;
-    private static final double PHONE_COLUMN_WIDTH = 90;
-    private static final double EMAIL_COLUMN_WIDTH = 175;
-    private static final double STATUS_COLUMN_WIDTH = 75;
+    private static final double NAME_COLUMN_WIDTH = 190;
+    private static final double TYPE_COLUMN_WIDTH = 105;
+    private static final double CONTACT_COLUMN_WIDTH = 120;
+    private static final double OPERATOR_COLUMN_WIDTH = 115;
+    private static final double STATUS_COLUMN_WIDTH = 105;
+    private static final double LAST_CONTACT_COLUMN_WIDTH = 95;
+    private static final double ACTIONS_COLUMN_WIDTH = 52;
 
     private final AppSidebar sidebar;
     private final TextField searchField;
@@ -31,19 +35,24 @@ public class ClientiView extends BorderPane {
     private final ChoiceBox<OperatoreFilter> operatorFilterChoiceBox;
     private final ChoiceBox<TextFilter> typeFilterChoiceBox;
     private final ChoiceBox<TextFilter> statusFilterChoiceBox;
+    private final Button otherFiltersButton;
+    private final Button clearFiltersButton;
+    private final Button saveSearchButton;
+    private final Label resultsCountLabel;
     private final Button nameHeaderButton;
     private final Button typeHeaderButton;
     private final Button contactHeaderButton;
-    private final Button phoneHeaderButton;
-    private final Button emailHeaderButton;
+    private final Button operatorHeaderButton;
     private final Button statusHeaderButton;
+    private final Button lastContactHeaderButton;
     private final VBox table;
+    private final HBox resultsArea;
     private final VBox tableRows;
     private final HBox emptyRow;
     private final ScrollPane tableScrollPane;
-    private final Button previousPageButton;
-    private final Button nextPageButton;
-    private final Label pageLabel;
+    private final ClientePreviewDetailPanel detailPanel;
+    private final ClientiResultsTable resultsTable;
+    private HBox selectedClientRow;
 
     public ClientiView() {
         sidebar = new AppSidebar();
@@ -61,13 +70,21 @@ public class ClientiView extends BorderPane {
         operatorFilterChoiceBox.getSelectionModel().selectFirst();
         typeFilterChoiceBox = createTextFilterChoiceBox("Tutti");
         statusFilterChoiceBox = createTextFilterChoiceBox("Tutti");
+        otherFiltersButton = new Button("Altri filtri");
+        otherFiltersButton.getStyleClass().add("clients-other-filters-button");
+        clearFiltersButton = new Button("Pulisci filtri");
+        clearFiltersButton.getStyleClass().add("clients-clear-filters-button");
+        saveSearchButton = new Button("Salva ricerca");
+        saveSearchButton.getStyleClass().add("clients-save-search-button");
+        resultsCountLabel = new Label("0 risultati trovati");
+        resultsCountLabel.getStyleClass().add("clients-results-count");
 
-        nameHeaderButton = createHeaderButton("Nome", NAME_COLUMN_WIDTH);
+        nameHeaderButton = createHeaderButton("Ragione sociale", NAME_COLUMN_WIDTH);
         typeHeaderButton = createHeaderButton("Tipo", TYPE_COLUMN_WIDTH);
         contactHeaderButton = createHeaderButton("Referente", CONTACT_COLUMN_WIDTH);
-        phoneHeaderButton = createHeaderButton("Telefono", PHONE_COLUMN_WIDTH);
-        emailHeaderButton = createHeaderButton("Email", EMAIL_COLUMN_WIDTH);
+        operatorHeaderButton = createHeaderButton("Operatore", OPERATOR_COLUMN_WIDTH);
         statusHeaderButton = createHeaderButton("Stato", STATUS_COLUMN_WIDTH);
+        lastContactHeaderButton = createHeaderButton("Ultimo contatto", LAST_CONTACT_COLUMN_WIDTH);
 
         table = new VBox();
         table.getStyleClass().add("clients-table");
@@ -76,12 +93,14 @@ public class ClientiView extends BorderPane {
         tableScrollPane = new ScrollPane(tableRows);
         tableScrollPane.setFitToWidth(true);
         tableScrollPane.getStyleClass().add("clients-table-scroll");
+        detailPanel = new ClientePreviewDetailPanel(this::closeClientDetails);
+        detailPanel.setManaged(false);
+        detailPanel.setVisible(false);
+        resultsArea = new HBox(16, table, detailPanel);
+        resultsArea.getStyleClass().add("clients-results-area");
+        HBox.setHgrow(table, javafx.scene.layout.Priority.ALWAYS);
 
-        previousPageButton = createFilterButton("‹ Indietro");
-        nextPageButton = createFilterButton("Avanti ›");
-        pageLabel = new Label("Pagina -");
-        pageLabel.getStyleClass().add("clients-pagination-label");
-        setPaginationDisabled(true);
+        resultsTable = new ClientiResultsTable();
 
         setLeft(sidebar);
         setCenter(createContent());
@@ -106,29 +125,43 @@ public class ClientiView extends BorderPane {
         HBox.setHgrow(titleSpacer, javafx.scene.layout.Priority.ALWAYS);
         titleBar.getChildren().addAll(titleBox, titleSpacer, newClientButton);
 
-        HBox toolbar = new HBox(10);
-        toolbar.getStyleClass().add("clients-toolbar");
-        searchField.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(searchField, javafx.scene.layout.Priority.ALWAYS);
-        toolbar.getChildren().add(searchField);
-
-        HBox filters = new HBox(8);
+        HBox filters = new HBox(12);
         filters.getStyleClass().add("clients-filter-bar");
-        Label operatorFilterLabel = createFilterLabel("Operatore");
-        Label typeFilterLabel = createFilterLabel("Tipo cliente");
-        Label statusFilterLabel = createFilterLabel("Stato trattativa");
+        VBox searchFilter = createFilterControl("Ricerca", searchField);
+        searchFilter.getStyleClass().add("clients-search-filter-control");
+        searchField.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(searchFilter, javafx.scene.layout.Priority.ALWAYS);
         filters.getChildren().addAll(
-                operatorFilterLabel, operatorFilterChoiceBox,
-                typeFilterLabel, typeFilterChoiceBox,
-                statusFilterLabel, statusFilterChoiceBox
+                searchFilter,
+                createFilterControl("Stato cliente", statusFilterChoiceBox),
+                createFilterControl("Operatore", operatorFilterChoiceBox),
+                createFilterControl("Tipologia", typeFilterChoiceBox),
+                otherFiltersButton
         );
 
         initializeTable();
-        VBox.setVgrow(table, javafx.scene.layout.Priority.ALWAYS);
+        VBox.setVgrow(resultsTable, javafx.scene.layout.Priority.ALWAYS);
+        VBox.setVgrow(resultsArea, javafx.scene.layout.Priority.ALWAYS);
         VBox.setVgrow(tableScrollPane, javafx.scene.layout.Priority.ALWAYS);
 
-        content.getChildren().addAll(titleBar, toolbar, filters, table, createPaginationBar());
+        content.getChildren().addAll(titleBar, filters, createFilterActionsBar(), resultsTable);
         return content;
+    }
+
+    private VBox createFilterControl(String labelText, Region control) {
+        VBox filterControl = new VBox(4);
+        filterControl.getStyleClass().add("clients-filter-control");
+        filterControl.getChildren().addAll(createFilterLabel(labelText), control);
+        return filterControl;
+    }
+
+    private HBox createFilterActionsBar() {
+        HBox actions = new HBox(12);
+        actions.getStyleClass().add("clients-filter-actions");
+        HBox spacer = new HBox();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        actions.getChildren().addAll(resultsCountLabel, spacer, clearFiltersButton, saveSearchButton);
+        return actions;
     }
 
     private void initializeTable() {
@@ -145,20 +178,19 @@ public class ClientiView extends BorderPane {
                 nameHeaderButton,
                 typeHeaderButton,
                 contactHeaderButton,
-                phoneHeaderButton,
-                emailHeaderButton,
-                statusHeaderButton
+                operatorHeaderButton,
+                statusHeaderButton,
+                lastContactHeaderButton,
+                createActionsHeader()
         );
         return row;
     }
 
-    private HBox createPaginationBar() {
-        HBox pagination = new HBox(10);
-        pagination.getStyleClass().add("clients-pagination-bar");
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
-        pagination.getChildren().addAll(spacer, previousPageButton, pageLabel, nextPageButton);
-        return pagination;
+    private Label createActionsHeader() {
+        Label header = new Label("Azioni");
+        header.getStyleClass().addAll("clients-table-cell", "clients-actions-header");
+        setColumnWidth(header, ACTIONS_COLUMN_WIDTH);
+        return header;
     }
 
     private Label createFilterLabel(String text) {
@@ -190,58 +222,74 @@ public class ClientiView extends BorderPane {
     }
 
     public void showLoading() {
-        showMessage("Caricamento clienti...");
+        resultsTable.showLoading();
     }
 
     public void showEmpty() {
-        showMessage("Nessun cliente trovato.");
+        resultsTable.showEmpty();
     }
 
     public void showError(String message) {
-        showMessage(message == null || message.isBlank() ? "Caricamento clienti non riuscito." : message);
+        resultsTable.showError(message);
+    }
+
+    public void showLoadingMore() {
+        resultsTable.showLoadingMore();
+    }
+
+    public void showLoadMoreAvailable() {
+        resultsTable.showLoadMoreAvailable();
+    }
+
+    public void showAllResultsLoaded() {
+        resultsTable.showAllResultsLoaded();
     }
 
     private void showMessage(String message) {
+        closeClientDetails();
         tableRows.getChildren().clear();
         tableRows.getChildren().add(createMessageRow(message));
         tableScrollPane.setVvalue(0);
     }
 
     public void clearClientRows() {
-        tableRows.getChildren().clear();
-        tableRows.getChildren().add(emptyRow);
-        tableScrollPane.setVvalue(0);
+        resultsTable.clearRows();
     }
 
-    public void renderPagination(int page, int totalPages, boolean hasPreviousPage, boolean hasNextPage) {
-        pageLabel.setText(totalPages == 0 ? "Nessuna pagina" : "Pagina " + (page + 1) + " di " + totalPages);
-        previousPageButton.setDisable(!hasPreviousPage);
-        nextPageButton.setDisable(!hasNextPage);
+    public void setResultsCount(long totalResults) {
+        resultsCountLabel.setText(totalResults + (totalResults == 1 ? " risultato trovato" : " risultati trovati"));
     }
 
-    public void setPaginationDisabled(boolean disabled) {
-        previousPageButton.setDisable(disabled);
-        nextPageButton.setDisable(disabled);
+    public void clearFilters() {
+        searchField.clear();
+        operatorFilterChoiceBox.getSelectionModel().selectFirst();
+        typeFilterChoiceBox.getSelectionModel().selectFirst();
+        statusFilterChoiceBox.getSelectionModel().selectFirst();
     }
 
-    public HBox addClientRow(String name, String type, String contact, String phone, String email, String status) {
-        tableRows.getChildren().remove(emptyRow);
-        HBox row = createTableRow(name, type, contact, phone, email, status);
-        row.getStyleClass().add("clients-data-row");
-        tableRows.getChildren().add(row);
-        return row;
+    public HBox addClientRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {
+        return resultsTable.addClientRow(name, type, contact, operator, status, lastContact, onActionsClick);
     }
 
-    private HBox createTableRow(String name, String type, String contact, String phone, String email, String status) {
+    public void openClientDetails(ClientePreview preview, HBox row, Runnable onOpenProfile) {
+        resultsTable.openClientDetails(preview, row, onOpenProfile);
+    }
+
+    public void closeClientDetails() {
+        resultsTable.closeClientDetails();
+    }
+
+    private HBox createTableRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {
         HBox row = new HBox();
         row.getStyleClass().add("clients-table-row");
         row.getChildren().addAll(
                 createCell(name, NAME_COLUMN_WIDTH),
                 createCell(type, TYPE_COLUMN_WIDTH),
                 createCell(contact, CONTACT_COLUMN_WIDTH),
-                createCell(phone, PHONE_COLUMN_WIDTH),
-                createCell(email, EMAIL_COLUMN_WIDTH),
-                createCell(status, STATUS_COLUMN_WIDTH)
+                createCell(operator, OPERATOR_COLUMN_WIDTH),
+                createCell(status, STATUS_COLUMN_WIDTH),
+                createCell(lastContact, LAST_CONTACT_COLUMN_WIDTH),
+                createActionsButton(onActionsClick)
         );
         return row;
     }
@@ -251,6 +299,17 @@ public class ClientiView extends BorderPane {
         label.getStyleClass().add("clients-table-cell");
         setColumnWidth(label, width);
         return label;
+    }
+
+    private Button createActionsButton(Runnable onActionsClick) {
+        Button button = new Button("...");
+        button.getStyleClass().add("clients-row-actions-button");
+        setColumnWidth(button, ACTIONS_COLUMN_WIDTH);
+        button.setOnAction(event -> {
+            event.consume();
+            onActionsClick.run();
+        });
+        return button;
     }
 
     private Button createFilterButton(String text) {
@@ -272,30 +331,6 @@ public class ClientiView extends BorderPane {
         region.setMaxWidth(width);
     }
 
-
-    public AppSidebar getSidebar() {
-        return sidebar;
-    }
-
-    public TextField getSearchField() {
-        return searchField;
-    }
-
-    public Button getNewClientButton() {
-        return newClientButton;
-    }
-
-    public ChoiceBox<OperatoreFilter> getOperatorFilterChoiceBox() {
-        return operatorFilterChoiceBox;
-    }
-
-    public ChoiceBox<TextFilter> getTypeFilterChoiceBox() {
-        return typeFilterChoiceBox;
-    }
-
-    public ChoiceBox<TextFilter> getStatusFilterChoiceBox() {
-        return statusFilterChoiceBox;
-    }
 
     public void setTypeFilters(List<TextFilter> types) {
         setTextFilters(typeFilterChoiceBox, TextFilter.empty("Tutti"), types);
@@ -333,35 +368,43 @@ public class ClientiView extends BorderPane {
         }
     }
 
-    public Button getNameHeaderButton() {
-        return nameHeaderButton;
+    public void onNewClient(Runnable action) {
+        newClientButton.setOnAction(event -> action.run());
     }
 
-    public Button getTypeHeaderButton() {
-        return typeHeaderButton;
+    public AppSidebar getSidebar() {
+        return sidebar;
     }
 
-    public Button getContactHeaderButton() {
-        return contactHeaderButton;
+    public void onSortRequested(Consumer<SortColumn> action) {
+        resultsTable.onSortRequested(action);
     }
 
-    public Button getPhoneHeaderButton() {
-        return phoneHeaderButton;
+    public void onSearchChanged(Consumer<String> action) {
+        searchField.textProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
     }
 
-    public Button getEmailHeaderButton() {
-        return emailHeaderButton;
+    public void onOperatoreFilterChanged(Consumer<OperatoreFilter> action) {
+        operatorFilterChoiceBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
     }
 
-    public Button getStatusHeaderButton() {
-        return statusHeaderButton;
+    public void onTipologiaFilterChanged(Consumer<TextFilter> action) {
+        typeFilterChoiceBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
     }
 
-    public Button getPreviousPageButton() {
-        return previousPageButton;
+    public void onStatoFilterChanged(Consumer<TextFilter> action) {
+        statusFilterChoiceBox.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> action.accept(newValue));
     }
 
-    public Button getNextPageButton() {
-        return nextPageButton;
+    public void onClearFilters(Runnable action) {
+        clearFiltersButton.setOnAction(event -> action.run());
+    }
+
+    public void onSaveSearch(Runnable action) {
+        saveSearchButton.setOnAction(event -> action.run());
+    }
+
+    public void onScrollNearBottom(Runnable action) {
+        resultsTable.onScrollNearBottom(action);
     }
 }

@@ -29,6 +29,13 @@
     -fx-font-size: 13px;
 }
 
+.clients-load-state {
+    -fx-text-fill: -app-text-placeholder;
+    -fx-font-size: 12px;
+    -fx-font-style: italic;
+    -fx-padding: 12;
+}
+
 .clients-data-row {
     -fx-border-color: -app-row-border;
     -fx-border-width: 1 0 0 0;
@@ -36,6 +43,12 @@
 
 .clients-data-row:hover {
     -fx-background-color: -app-row-hover;
+}
+
+.clients-data-row-selected {
+    -fx-background-color: derive(-app-primary-dark, -18%);
+    -fx-border-color: -app-primary;
+    -fx-border-width: 1 0 1 3;
 }
 
 .clients-table-scroll {
@@ -57,13 +70,79 @@
     -fx-text-fill: -app-text;
 }
 
-.clients-pagination-bar {
-    -fx-alignment: center-right;
-    -fx-padding: 0 2 0 2;
+.clients-row-actions-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text-muted;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-padding: 0;
+    -fx-cursor: hand;
 }
 
-.clients-pagination-label {
+.clients-row-actions-button:hover {
+    -fx-background-color: -app-control-alt-bg;
+}
+
+.clients-actions-header {
+    -fx-alignment: center;
+}
+
+/* ==== Pannello di anteprima cliente ==== */
+.clients-detail-panel {
+    -fx-background-color: -app-surface;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.clients-detail-header {
+    -fx-alignment: top-left;
+}
+
+.clients-detail-company-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -app-text;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-alignment: top-left;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.clients-detail-company-button:hover {
+    -fx-text-fill: -app-primary-hover;
+}
+
+.clients-detail-close-button {
+    -fx-background-color: transparent;
     -fx-text-fill: -app-text-muted;
-    -fx-font-size: 12px;
-    -fx-font-weight: 600;
+    -fx-font-size: 20px;
+    -fx-font-weight: 400;
+    -fx-padding: 0 5;
+    -fx-cursor: hand;
+    -fx-min-width: 30;
+    -fx-min-height: 30;
+    -fx-alignment: center;
+}
+
+.clients-detail-close-button:hover {
+    -fx-background-color: -app-control-alt-bg;
+    -fx-text-fill: -app-text;
+}
+
+.clients-detail-section {
+    -fx-padding: 12 0 0 0;
+    -fx-border-color: -app-row-border;
+    -fx-border-width: 1 0 0 0;
+}
+
+.clients-detail-section-title {
+    -fx-text-fill: -app-text-subtle;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.clients-detail-value {
+    -fx-text-fill: -app-text-soft;
+    -fx-font-size: 13px;
 }

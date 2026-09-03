@@ -1,12 +1,21 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
 import com.example.clients.core.ui.AppSidebar;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.ClienteProfile;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.EditProfileDraft;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionEditInput;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionPreview;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.InteractionType;
-import com.example.clients.feature.clienti.schedacliente.service.SchedaClienteService.TimelineFilter;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ClienteProfile;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.EditProfileDraft;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FresatoreClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeCatalogItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteEditInput;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.MaterialeClienteItem;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionPreview;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionType;
+import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.TimelineFilter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.DatePicker;
@@ -35,14 +44,18 @@ public class SchedaClienteView extends BorderPane {
     private final ClienteProfileHeader header;
     private final ClienteDataSection dataSection;
     private final ClienteRelatedSections relatedSections;
+    private final ClienteProfileDetailsPanel detailsPanel;
     private final ClienteTimelineSection timelineSection;
+    private final ClienteProfileResourcesPanel resourcesPanel;
 
     public SchedaClienteView() {
         sidebar = new AppSidebar();
         header = new ClienteProfileHeader();
         dataSection = new ClienteDataSection();
         relatedSections = new ClienteRelatedSections(RELATED_SECTIONS_GAP, RELATED_SECTIONS_TWO_COLUMN_BREAKPOINT);
+        detailsPanel = new ClienteProfileDetailsPanel(dataSection, relatedSections);
         timelineSection = new ClienteTimelineSection();
+        resourcesPanel = new ClienteProfileResourcesPanel();
         dataSection.setLinkedOptionsRefresh(relatedSections::refreshLinkedContactOptions);
         setEditMode(false);
 
@@ -56,7 +69,7 @@ public class SchedaClienteView extends BorderPane {
         content.getStyleClass().add("clients-content");
 
         VBox body = new VBox(18);
-        body.getChildren().addAll(header, createMainColumns());
+        body.getChildren().addAll(header, createMainColumns(), resourcesPanel);
 
         ScrollPane scrollPane = new ScrollPane(body);
         scrollPane.setFitToWidth(true);
@@ -77,7 +90,7 @@ public class SchedaClienteView extends BorderPane {
         leftColumn.setPrefWidth(SIDE_COLUMN_PREF_WIDTH);
         leftColumn.setMaxWidth(SIDE_COLUMN_MAX_WIDTH);
         rightColumn.setMaxWidth(Double.MAX_VALUE);
-        leftColumn.getChildren().addAll(dataSection, relatedSections);
+        leftColumn.getChildren().add(detailsPanel);
         rightColumn.getChildren().add(timelineSection);
         HBox.setHgrow(leftColumn, Priority.ALWAYS);
         HBox.setHgrow(rightColumn, Priority.ALWAYS);
@@ -98,6 +111,9 @@ public class SchedaClienteView extends BorderPane {
         relatedSections.renderContacts(profile.contatti());
         relatedSections.renderAddresses(profile.indirizzi());
         timelineSection.render(profile.interazioni());
+        resourcesPanel.renderForni(profile.forni());
+        resourcesPanel.renderFresatori(profile.fresatori());
+        resourcesPanel.renderMateriali(profile.materiali());
     }
 
     public void renderEditableProfile(EditProfileDraft draft) {
@@ -136,6 +152,90 @@ public class SchedaClienteView extends BorderPane {
     private void setEditMode(boolean editMode) {
         header.setEditMode(editMode);
         timelineSection.setEditMode(editMode);
+    }
+
+    public Button getEditForniButton() {
+        return resourcesPanel.editForniButton();
+    }
+
+    public Button getSaveForniButton() {
+        return resourcesPanel.saveForniButton();
+    }
+
+    public Button getCancelForniButton() {
+        return resourcesPanel.cancelForniButton();
+    }
+
+    public void renderStandaloneForniEditor(List<FornoClienteEditInput> forni) {
+        resourcesPanel.renderStandaloneForniEditor(forni);
+    }
+
+    public void renderForni(List<FornoClienteItem> forni) {
+        resourcesPanel.renderForni(forni);
+    }
+
+    public List<FornoClienteEditInput> collectForni() {
+        return resourcesPanel.collectForni();
+    }
+
+    public Button getEditFresatoriButton() {
+        return resourcesPanel.editFresatoriButton();
+    }
+
+    public Button getSaveFresatoriButton() {
+        return resourcesPanel.saveFresatoriButton();
+    }
+
+    public Button getCancelFresatoriButton() {
+        return resourcesPanel.cancelFresatoriButton();
+    }
+
+    public void renderStandaloneFresatoriEditor(List<FresatoreClienteEditInput> fresatori) {
+        resourcesPanel.renderStandaloneFresatoriEditor(fresatori);
+    }
+
+    public void renderFresatori(List<FresatoreClienteItem> fresatori) {
+        resourcesPanel.renderFresatori(fresatori);
+    }
+
+    public List<FresatoreClienteEditInput> collectFresatori() {
+        return resourcesPanel.collectFresatori();
+    }
+
+    public void setForniCatalog(List<FornoCatalogItem> forniCatalog) {
+        resourcesPanel.setForniCatalog(forniCatalog);
+    }
+
+    public Button getEditMaterialiButton() {
+        return resourcesPanel.editMaterialiButton();
+    }
+
+    public Button getSaveMaterialiButton() {
+        return resourcesPanel.saveMaterialiButton();
+    }
+
+    public Button getCancelMaterialiButton() {
+        return resourcesPanel.cancelMaterialiButton();
+    }
+
+    public void renderStandaloneMaterialiEditor(List<MaterialeClienteEditInput> materiali) {
+        resourcesPanel.renderStandaloneMaterialiEditor(materiali);
+    }
+
+    public void renderMateriali(List<MaterialeClienteItem> materiali) {
+        resourcesPanel.renderMateriali(materiali);
+    }
+
+    public List<MaterialeClienteEditInput> collectMateriali() {
+        return resourcesPanel.collectMateriali();
+    }
+
+    public void setFresatoriCatalog(List<FresatoreCatalogItem> fresatoriCatalog) {
+        resourcesPanel.setFresatoriCatalog(fresatoriCatalog);
+    }
+
+    public void setMaterialiCatalog(List<MaterialeCatalogItem> materialiCatalog) {
+        resourcesPanel.setMaterialiCatalog(materialiCatalog);
     }
 
     public void setFavorite(boolean favorite) {
