@@ -49,9 +49,9 @@ final class ClienteTimelineSection extends VBox {
         Label title = new Label("Interazioni");
         title.getStyleClass().add("new-client-section-title");
 
-        newNoteButton = new Button("+ Nuova nota");
+        newNoteButton = new Button("+ Nuova chiamata");
         newNoteButton.getStyleClass().add("clients-primary-button");
-        newCallButton = new Button("+ Nuova chiamata");
+        newCallButton = new Button("+ Nuova nota");
         newCallButton.getStyleClass().add("clients-filter-button");
         allFilterButton = createTimelineFilterButton("Tutti");
         notesFilterButton = createTimelineFilterButton("Solo note");
