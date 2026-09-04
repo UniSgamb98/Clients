@@ -48,8 +48,8 @@ public class SchedaClienteController {
         view.getEditMaterialiButton().setOnAction(event -> openMaterialiEditor());
         view.getCancelMaterialiButton().setOnAction(event -> closeMaterialiEditor());
         view.getSaveMaterialiButton().setOnAction(event -> saveMaterialiEditor());
-        view.getNewNoteButton().setOnAction(event -> openCallEditor());
-        view.getNewCallButton().setOnAction(event -> openNoteEditor());
+        view.getNewNoteButton().setOnAction(event -> openNoteEditor());
+        view.getNewCallButton().setOnAction(event -> openCallEditor());
         view.getAllFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.ALL));
         view.getNotesFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.NOTES));
         view.getCallsFilterButton().setOnAction(event -> applyTimelineFilter(TimelineFilter.CALLS));

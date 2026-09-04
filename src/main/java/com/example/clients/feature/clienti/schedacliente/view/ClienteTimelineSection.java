@@ -195,11 +195,11 @@ final class ClienteTimelineSection extends VBox {
     }
 
     Button getNewNoteButton() {
-        return newNoteButton;
+        return newCallButton;
     }
 
     Button getNewCallButton() {
-        return newCallButton;
+        return newNoteButton;
     }
 
     Button getAllFilterButton() {
