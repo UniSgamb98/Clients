@@ -176,6 +176,10 @@
     -fx-background-radius: 8;
 }
 
+.date-picker-popup > .month-year-pane .label {
+    -fx-text-fill: -app-text-dark;
+}
+
 .client-profile-edit-row {
     -fx-alignment: center-left;
 }
