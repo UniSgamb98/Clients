@@ -1,7 +1,6 @@
 package com.example.clients.feature.impostazioni.service;
 
 import com.example.clients.core.database.Database;
-import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.feature.impostazioni.dto.Forno;
 
 import java.sql.PreparedStatement;
@@ -14,15 +13,12 @@ import java.util.Set;
 public class ImpostazioniService {
     private static final Set<String> TABLES = Set.of("MATERIALI_DI_CONSUMO", "CANALI_DI_ACQUISTO", "FRESATORI", "FORNI");
     private final Database database;
-    private final SchemaInitializer schemaInitializer;
 
     public ImpostazioniService(Database database) {
         this.database = database;
-        this.schemaInitializer = new SchemaInitializer(database);
     }
 
     public List<Forno> getForni() {
-        schemaInitializer.initialize();
         try (PreparedStatement statement = database.getConnection().prepareStatement("SELECT ID, TECNOLOGIA, MARCA, MODELLO FROM FORNI ORDER BY TECNOLOGIA, MARCA, MODELLO");
              ResultSet resultSet = statement.executeQuery()) {
             List<Forno> forni = new ArrayList<>();
@@ -36,7 +32,6 @@ public class ImpostazioniService {
     }
 
     public void saveForni(List<Forno> forni) {
-        schemaInitializer.initialize();
         try (PreparedStatement delete = database.getConnection().prepareStatement("DELETE FROM FORNI");
              PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO FORNI (ID, TECNOLOGIA, MARCA, MODELLO) VALUES (?, ?, ?, ?)")) {
             delete.executeUpdate();
@@ -59,7 +54,7 @@ public class ImpostazioniService {
     }
 
     public List<com.example.clients.feature.impostazioni.dto.ImpostazioneVoce> getVoci(String table, List<String> columns) {
-        validate(table, columns); schemaInitializer.initialize();
+        validate(table, columns);
         try (PreparedStatement statement = database.getConnection().prepareStatement("SELECT ID, " + String.join(", ", columns) + " FROM " + table + " ORDER BY " + columns.get(0)); ResultSet rs = statement.executeQuery()) {
             List<com.example.clients.feature.impostazioni.dto.ImpostazioneVoce> result = new ArrayList<>();
             while (rs.next()) { List<String> values = new ArrayList<>(); for (String column : columns) values.add(rs.getString(column)); result.add(new com.example.clients.feature.impostazioni.dto.ImpostazioneVoce(UUID.fromString(rs.getString("ID")), values)); }
@@ -68,7 +63,7 @@ public class ImpostazioniService {
     }
 
     public void saveVoci(String table, List<String> columns, List<com.example.clients.feature.impostazioni.dto.ImpostazioneVoce> voci) {
-        validate(table, columns); schemaInitializer.initialize();
+        validate(table, columns);
         String placeholders = String.join(", ", java.util.Collections.nCopies(columns.size() + 1, "?"));
         try (PreparedStatement delete = database.getConnection().prepareStatement("DELETE FROM " + table); PreparedStatement insert = database.getConnection().prepareStatement("INSERT INTO " + table + " (ID, " + String.join(", ", columns) + ") VALUES (" + placeholders + ")")) {
             delete.executeUpdate();

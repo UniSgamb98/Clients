@@ -1,7 +1,6 @@
 package com.example.clients.feature.clienti.schedacliente.repository;
 
 import com.example.clients.core.database.Database;
-import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoCatalogItem;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteEditInput;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.FornoClienteItem;
@@ -26,15 +25,12 @@ import java.util.UUID;
 public final class ClienteRisorseRepository {
 
     private final Database database;
-    private final SchemaInitializer schemaInitializer;
 
     public ClienteRisorseRepository(Database database) {
         this.database = database;
-        this.schemaInitializer = new SchemaInitializer(database);
     }
 
     public List<FornoCatalogItem> findForniCatalog() {
-        initializeSchema();
         String sql = "SELECT ID, TECNOLOGIA, MARCA, MODELLO FROM FORNI ORDER BY MARCA, MODELLO, TECNOLOGIA";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
@@ -53,7 +49,6 @@ public final class ClienteRisorseRepository {
     }
 
     public List<FresatoreCatalogItem> findFresatoriCatalog() {
-        initializeSchema();
         String sql = "SELECT ID, MARCA, MODELLO FROM FRESATORI ORDER BY MARCA, MODELLO";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
@@ -71,7 +66,6 @@ public final class ClienteRisorseRepository {
     }
 
     public List<MaterialeCatalogItem> findMaterialiCatalog() {
-        initializeSchema();
         String sql = "SELECT ID, MATERIALE, MARCHIO, MODELLO FROM MATERIALI_DI_CONSUMO ORDER BY MATERIALE, MARCHIO, MODELLO";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
@@ -93,7 +87,6 @@ public final class ClienteRisorseRepository {
         if (clienteId == null) {
             return List.of();
         }
-        initializeSchema();
         String sql = """
                 SELECT CF.ID AS CLIENTE_FORNO_ID, F.ID AS FORNO_ID, F.TECNOLOGIA, CF.ANNO, F.MARCA, F.MODELLO, CF.NOTA
                 FROM CLIENTI_FORNI CF
@@ -126,7 +119,6 @@ public final class ClienteRisorseRepository {
         if (clienteId == null) {
             return;
         }
-        initializeSchema();
         Connection connection = database.getConnection();
         boolean originalAutoCommit;
         try {
@@ -176,7 +168,6 @@ public final class ClienteRisorseRepository {
         if (clienteId == null) {
             return List.of();
         }
-        initializeSchema();
         String sql = """
                 SELECT CF.ID AS CLIENTE_FRESATORE_ID, F.ID AS FRESATORE_ID, F.MARCA, F.MODELLO, CF.NOTA
                 FROM CLIENTI_FRESATORI CF
@@ -207,7 +198,6 @@ public final class ClienteRisorseRepository {
         if (clienteId == null) {
             return;
         }
-        initializeSchema();
         Connection connection = database.getConnection();
         boolean originalAutoCommit;
         try {
@@ -256,7 +246,6 @@ public final class ClienteRisorseRepository {
         if (clienteId == null) {
             return List.of();
         }
-        initializeSchema();
         String sql = """
                 SELECT CM.ID AS CLIENTE_MATERIALE_ID, M.ID AS MATERIALE_ID, M.MATERIALE, M.MARCHIO, M.MODELLO, CM.CONSUMO, CM.FREQUENZA_ACQUISTO, CM.NOTA
                 FROM CLIENTI_MATERIALI CM
@@ -290,7 +279,6 @@ public final class ClienteRisorseRepository {
         if (clienteId == null) {
             return;
         }
-        initializeSchema();
         Connection connection = database.getConnection();
         boolean originalAutoCommit;
         try {
@@ -483,10 +471,6 @@ public final class ClienteRisorseRepository {
 
     private String cleanResult(String value) {
         return value == null ? "" : value;
-    }
-
-    private void initializeSchema() {
-        schemaInitializer.initialize();
     }
 
     private UUID idOrNew(UUID id) {

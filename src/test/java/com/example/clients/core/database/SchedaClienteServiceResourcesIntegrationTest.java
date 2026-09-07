@@ -35,7 +35,7 @@ class SchedaClienteServiceResourcesIntegrationTest {
     @BeforeAll
     static void startDatabase() throws SQLException {
         database = new Database(DriverManager.getConnection("jdbc:derby:memory:forni-verification-" + UUID.randomUUID() + ";create=true"));
-        new SchemaInitializer(database).initialize();
+        TestSchemaLoader.load(database.getConnection());
         insertDefaultOperatore();
     }
 
