@@ -48,6 +48,15 @@ public final class SchemaInitializer {
             }
         }
         migrateFornoAnnoToClienteForni(connection);
+        addInteractionOutcomeColumn(connection);
+    }
+
+    private void addInteractionOutcomeColumn(Connection connection) throws SQLException {
+        if (!hasColumn(connection, "INTERAZIONI", "ESITO")) {
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("ALTER TABLE INTERAZIONI ADD COLUMN ESITO VARCHAR(40)");
+            }
+        }
     }
 
     private void migrateFornoAnnoToClienteForni(Connection connection) throws SQLException {

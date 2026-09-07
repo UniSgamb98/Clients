@@ -225,7 +225,7 @@ public class ClientePersistenceService {
         notaRepository.insert(nota);
     }
 
-    public void addChiamata(NotaCliente nota, Interazione interazione) {
+    public void addChiamata(NotaCliente nota, Interazione interazione, String nuovoStatoTrattativa) {
         schemaInitializer.initialize();
 
         Connection connection = database.getConnection();
@@ -238,6 +238,9 @@ public class ClientePersistenceService {
                 notaRepository.insert(nota);
             }
             interazioneRepository.insert(interazione);
+            if (nuovoStatoTrattativa != null) {
+                clienteRepository.updateStatoTrattativa(interazione.clienteId(), nuovoStatoTrattativa, interazione.createdAt());
+            }
 
             connection.commit();
         } catch (RuntimeException | SQLException e) {

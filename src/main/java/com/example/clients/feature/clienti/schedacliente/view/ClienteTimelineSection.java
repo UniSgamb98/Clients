@@ -1,10 +1,12 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
+import com.example.clients.core.database.model.CallOutcome;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionEditInput;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionPreview;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.InteractionType;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.TimelineFilter;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -38,6 +40,7 @@ final class ClienteTimelineSection extends VBox {
     private final VBox timelineList;
     private final VBox noteEditor;
     private final DatePicker nextCallDatePicker;
+    private final ChoiceBox<CallOutcome> callOutcomeChoiceBox;
     private final TextArea noteTextArea;
     private final Button saveNoteButton;
     private final Button cancelNoteButton;
@@ -62,6 +65,7 @@ final class ClienteTimelineSection extends VBox {
         nextCallDatePicker = new DatePicker();
         nextCallDatePicker.setPromptText("Prossima chiamata");
         nextCallDatePicker.getStyleClass().add("client-profile-call-date-picker");
+        callOutcomeChoiceBox = createCallOutcomeChoiceBox(null);
         noteTextArea = new TextArea();
         noteTextArea.setPromptText("Scrivi una nota sulla comunicazione con il cliente...");
         noteTextArea.getStyleClass().add("client-profile-note-area");
@@ -69,7 +73,9 @@ final class ClienteTimelineSection extends VBox {
         saveNoteButton.getStyleClass().add("clients-primary-button");
         cancelNoteButton = new Button("Annulla");
         cancelNoteButton.getStyleClass().add("clients-filter-button");
-        noteEditor.getChildren().addAll(nextCallDatePicker, noteTextArea, createNoteActions());
+        HBox callDetails = new HBox(10, callOutcomeChoiceBox, nextCallDatePicker);
+        callDetails.getStyleClass().add("client-profile-call-details");
+        noteEditor.getChildren().addAll(callDetails, noteTextArea, createNoteActions());
         setActiveTimelineFilter(TimelineFilter.ALL);
         hideNoteEditor();
 
@@ -96,7 +102,7 @@ final class ClienteTimelineSection extends VBox {
         for (InteractionPreview interaction : interactions) {
             VBox card = new VBox(4);
             card.getStyleClass().add("client-profile-timeline-card");
-            HBox header = createTimelineHeader(interaction.data(), interaction.type(), interaction.prossimoContatto() != null);
+            HBox header = createTimelineHeader(interaction.data(), interaction.type(), interaction.prossimoContatto() != null, interaction.esito());
             Label text = createInfoLabel(timelineText(interaction));
             card.getChildren().addAll(header, text);
             timelineList.getChildren().add(card);
@@ -114,22 +120,24 @@ final class ClienteTimelineSection extends VBox {
             VBox card = new VBox(8);
             card.setMaxWidth(Double.MAX_VALUE);
             card.getStyleClass().add("client-profile-timeline-card");
-            HBox header = createTimelineHeader(interaction.data(), interaction.type(), interaction.prossimoContatto() != null);
+            HBox header = createTimelineHeader(interaction.data(), interaction.type(), interaction.prossimoContatto() != null, interaction.esito());
             DatePicker nextCallPicker = null;
+            ChoiceBox<CallOutcome> outcomeChoiceBox = null;
             if (interaction.type() == InteractionType.CHIAMATA) {
                 nextCallPicker = new DatePicker(interaction.prossimoContatto());
                 nextCallPicker.setPromptText("Prossima chiamata");
                 nextCallPicker.getStyleClass().add("client-profile-call-date-picker");
+                outcomeChoiceBox = createCallOutcomeChoiceBox(interaction.esito());
             }
             TextArea textArea = new TextArea(interaction.testo());
             configureEditableInteractionTextArea(textArea);
-            TimelineEditField editField = new TimelineEditField(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), nextCallPicker, textArea);
+            TimelineEditField editField = new TimelineEditField(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), interaction.esito(), outcomeChoiceBox, nextCallPicker, textArea);
             Button deleteButton = createDeleteInteractionButton(() -> {
                 timelineEditFields.remove(editField);
                 timelineList.getChildren().remove(card);
             });
             if (interaction.type() == InteractionType.CHIAMATA) {
-                card.getChildren().addAll(header, createEditableInteractionActions(nextCallPicker, deleteButton));
+                card.getChildren().addAll(header, createEditableInteractionActions(outcomeChoiceBox, nextCallPicker, deleteButton));
             } else {
                 addDeleteActionToHeader(header, deleteButton);
                 card.getChildren().add(header);
@@ -148,6 +156,7 @@ final class ClienteTimelineSection extends VBox {
                         field.data(),
                         field.type(),
                         field.nextCallPicker() == null ? field.prossimoContatto() : field.nextCallPicker().getValue(),
+                        field.outcomeChoiceBox() == null ? field.esito() : field.outcomeChoiceBox().getValue(),
                         field.textArea().getText()))
                 .toList();
     }
@@ -164,6 +173,8 @@ final class ClienteTimelineSection extends VBox {
         saveNoteButton.setText("Salva nota");
         nextCallDatePicker.setVisible(false);
         nextCallDatePicker.setManaged(false);
+        callOutcomeChoiceBox.setVisible(false);
+        callOutcomeChoiceBox.setManaged(false);
         showEditor();
     }
 
@@ -171,6 +182,8 @@ final class ClienteTimelineSection extends VBox {
         saveNoteButton.setText("Salva chiamata");
         nextCallDatePicker.setVisible(true);
         nextCallDatePicker.setManaged(true);
+        callOutcomeChoiceBox.setVisible(true);
+        callOutcomeChoiceBox.setManaged(true);
         showEditor();
     }
 
@@ -179,6 +192,7 @@ final class ClienteTimelineSection extends VBox {
         noteEditor.setManaged(false);
         noteTextArea.clear();
         nextCallDatePicker.setValue(null);
+        callOutcomeChoiceBox.setValue(null);
     }
 
     void setActiveTimelineFilter(TimelineFilter filter) {
@@ -218,6 +232,10 @@ final class ClienteTimelineSection extends VBox {
         return nextCallDatePicker;
     }
 
+    ChoiceBox<CallOutcome> getCallOutcomeChoiceBox() {
+        return callOutcomeChoiceBox;
+    }
+
     TextArea getNoteTextArea() {
         return noteTextArea;
     }
@@ -230,7 +248,7 @@ final class ClienteTimelineSection extends VBox {
         return cancelNoteButton;
     }
 
-    private HBox createTimelineHeader(LocalDate date, InteractionType type, boolean hasNextContact) {
+    private HBox createTimelineHeader(LocalDate date, InteractionType type, boolean hasNextContact, CallOutcome outcome) {
         HBox header = new HBox(8);
         header.getStyleClass().add("client-profile-timeline-card-header");
         Label typeBadge = new Label(type.label());
@@ -238,6 +256,11 @@ final class ClienteTimelineSection extends VBox {
         Label title = createInfoLabel(DATE_FORMATTER.format(date));
         title.getStyleClass().add("client-profile-timeline-title");
         header.getChildren().addAll(typeBadge, title);
+        if (outcome != null) {
+            Label outcomeBadge = new Label(outcome.label());
+            outcomeBadge.getStyleClass().add("client-profile-timeline-outcome-badge");
+            header.getChildren().add(outcomeBadge);
+        }
         if (hasNextContact) {
             Label nextBadge = new Label("Follow-up");
             nextBadge.getStyleClass().add("client-profile-timeline-next-badge");
@@ -246,10 +269,13 @@ final class ClienteTimelineSection extends VBox {
         return header;
     }
 
-    private HBox createEditableInteractionActions(DatePicker nextCallPicker, Button deleteButton) {
+    private HBox createEditableInteractionActions(ChoiceBox<CallOutcome> outcomeChoiceBox, DatePicker nextCallPicker, Button deleteButton) {
         HBox actions = new HBox(8);
         actions.setMaxWidth(Double.MAX_VALUE);
         actions.getStyleClass().add("client-profile-edit-interaction-actions");
+        if (outcomeChoiceBox != null) {
+            actions.getChildren().add(outcomeChoiceBox);
+        }
         if (nextCallPicker != null) {
             nextCallPicker.setPrefWidth(EDIT_NEXT_CALL_PICKER_PREF_WIDTH);
             nextCallPicker.setMaxWidth(EDIT_NEXT_CALL_PICKER_MAX_WIDTH);
@@ -258,6 +284,16 @@ final class ClienteTimelineSection extends VBox {
         }
         actions.getChildren().add(deleteButton);
         return actions;
+    }
+
+    private ChoiceBox<CallOutcome> createCallOutcomeChoiceBox(CallOutcome selected) {
+        ChoiceBox<CallOutcome> choiceBox = new ChoiceBox<>();
+        choiceBox.getItems().setAll(CallOutcome.values());
+        choiceBox.setValue(selected);
+        choiceBox.setPrefWidth(170);
+        choiceBox.setMaxWidth(190);
+        choiceBox.getStyleClass().add("client-profile-call-outcome-choice");
+        return choiceBox;
     }
 
     private void addDeleteActionToHeader(HBox header, Button deleteButton) {
@@ -344,6 +380,8 @@ final class ClienteTimelineSection extends VBox {
             LocalDate data,
             InteractionType type,
             LocalDate prossimoContatto,
+            CallOutcome esito,
+            ChoiceBox<CallOutcome> outcomeChoiceBox,
             DatePicker nextCallPicker,
             TextArea textArea
     ) {

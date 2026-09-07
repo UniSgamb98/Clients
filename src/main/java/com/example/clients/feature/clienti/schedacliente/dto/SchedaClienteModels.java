@@ -1,5 +1,7 @@
 package com.example.clients.feature.clienti.schedacliente.dto;
 
+import com.example.clients.core.database.model.CallOutcome;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -254,12 +256,12 @@ public final class SchedaClienteModels {
         }
     }
 
-    public record InteractionEditInput(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
+    public record InteractionEditInput(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, CallOutcome esito, String testo) {
         public static InteractionEditInput from(InteractionPreview interaction) {
-            return new InteractionEditInput(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), interaction.testo());
+            return new InteractionEditInput(interaction.notaId(), interaction.interazioneId(), interaction.data(), interaction.type(), interaction.prossimoContatto(), interaction.esito(), interaction.testo());
         }
     }
 
-    public record InteractionPreview(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, String testo) {
+    public record InteractionPreview(UUID notaId, UUID interazioneId, LocalDate data, InteractionType type, LocalDate prossimoContatto, CallOutcome esito, String testo) {
     }
 }

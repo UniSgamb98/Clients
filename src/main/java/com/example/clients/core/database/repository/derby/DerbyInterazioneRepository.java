@@ -1,6 +1,7 @@
 package com.example.clients.core.database.repository.derby;
 
 import com.example.clients.core.database.Database;
+import com.example.clients.core.database.model.CallOutcome;
 import com.example.clients.core.database.model.Interazione;
 import com.example.clients.core.database.repository.InterazioneRepository;
 
@@ -21,8 +22,8 @@ public final class DerbyInterazioneRepository extends DerbyRepositorySupport imp
 
     @Override
     public void insert(Interazione interazione) {
-        String sql = "INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, NOTA_ID, DATA_CONTATTO, PROSSIMO_CONTATTO, COINVOLGIMENTO, CREATED_AT, UPDATED_AT) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO INTERAZIONI (ID, CLIENTE_ID, OPERATORE_ID, NOTA_ID, DATA_CONTATTO, PROSSIMO_CONTATTO, ESITO, COINVOLGIMENTO, CREATED_AT, UPDATED_AT) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             bindInterazione(statement, interazione);
             statement.executeUpdate();
@@ -33,15 +34,16 @@ public final class DerbyInterazioneRepository extends DerbyRepositorySupport imp
 
     @Override
     public void update(Interazione interazione) {
-        String sql = "UPDATE INTERAZIONI SET OPERATORE_ID = ?, NOTA_ID = ?, DATA_CONTATTO = ?, PROSSIMO_CONTATTO = ?, COINVOLGIMENTO = ?, UPDATED_AT = ? WHERE ID = ?";
+        String sql = "UPDATE INTERAZIONI SET OPERATORE_ID = ?, NOTA_ID = ?, DATA_CONTATTO = ?, PROSSIMO_CONTATTO = ?, ESITO = ?, COINVOLGIMENTO = ?, UPDATED_AT = ? WHERE ID = ?";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             setUuid(statement, 1, interazione.operatoreId());
             setUuid(statement, 2, interazione.notaId());
             setDate(statement, 3, interazione.dataContatto());
             setDate(statement, 4, interazione.prossimoContatto());
-            statement.setBigDecimal(5, interazione.coinvolgimento());
-            setTimestamp(statement, 6, interazione.updatedAt());
-            setUuid(statement, 7, interazione.id());
+            statement.setString(5, interazione.esito() == null ? null : interazione.esito().name());
+            statement.setBigDecimal(6, interazione.coinvolgimento());
+            setTimestamp(statement, 7, interazione.updatedAt());
+            setUuid(statement, 8, interazione.id());
             statement.executeUpdate();
         } catch (SQLException e) {
             throw repositoryException("Errore aggiornamento interazione cliente.", e);
@@ -99,9 +101,10 @@ public final class DerbyInterazioneRepository extends DerbyRepositorySupport imp
         setUuid(statement, 4, interazione.notaId());
         setDate(statement, 5, interazione.dataContatto());
         setDate(statement, 6, interazione.prossimoContatto());
-        statement.setBigDecimal(7, interazione.coinvolgimento());
-        setTimestamp(statement, 8, interazione.createdAt());
-        setTimestamp(statement, 9, interazione.updatedAt());
+        statement.setString(7, interazione.esito() == null ? null : interazione.esito().name());
+        statement.setBigDecimal(8, interazione.coinvolgimento());
+        setTimestamp(statement, 9, interazione.createdAt());
+        setTimestamp(statement, 10, interazione.updatedAt());
     }
 
     private Interazione mapInterazione(ResultSet resultSet) throws SQLException {
@@ -113,6 +116,7 @@ public final class DerbyInterazioneRepository extends DerbyRepositorySupport imp
                 getUuid(resultSet, "NOTA_ID"),
                 getDate(resultSet, "DATA_CONTATTO"),
                 getDate(resultSet, "PROSSIMO_CONTATTO"),
+                CallOutcome.fromCode(resultSet.getString("ESITO")),
                 coinvolgimento,
                 getTimestamp(resultSet, "CREATED_AT"),
                 getTimestamp(resultSet, "UPDATED_AT")

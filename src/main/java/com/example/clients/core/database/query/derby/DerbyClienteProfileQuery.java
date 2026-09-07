@@ -186,6 +186,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
                             getTimestampDate(resultSet, "CREATED_AT"),
                             TimelineType.NOTA,
                             null,
+                            null,
                             getClobText(resultSet, "TESTO")
                     ));
                 }
@@ -195,7 +196,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
     }
 
     private List<TimelineRecord> findInterazioni(UUID clienteId) throws SQLException {
-        String sql = "SELECT I.ID, I.NOTA_ID, I.DATA_CONTATTO, I.PROSSIMO_CONTATTO, I.CREATED_AT, N.TESTO "
+        String sql = "SELECT I.ID, I.NOTA_ID, I.DATA_CONTATTO, I.PROSSIMO_CONTATTO, I.ESITO, I.CREATED_AT, N.TESTO "
                 + "FROM INTERAZIONI I LEFT JOIN NOTE_CLIENTE N ON I.NOTA_ID = N.ID WHERE I.CLIENTE_ID = ?";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
@@ -210,6 +211,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
                             dataContatto == null ? createdAt : dataContatto,
                             TimelineType.CHIAMATA,
                             getDate(resultSet, "PROSSIMO_CONTATTO"),
+                            com.example.clients.core.database.model.CallOutcome.fromCode(resultSet.getString("ESITO")),
                             valueOrDefault(getClobText(resultSet, "TESTO"), "Chiamata registrata.")
                     ));
                 }

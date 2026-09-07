@@ -1,5 +1,6 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
+import com.example.clients.core.database.model.CallOutcome;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ClienteProfile;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.EditProfileDraft;
@@ -18,6 +19,7 @@ import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.TimelineFilter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
@@ -362,6 +364,10 @@ public class SchedaClienteView extends BorderPane {
 
     public DatePicker getNextCallDatePicker() {
         return timelineSection.getNextCallDatePicker();
+    }
+
+    public ChoiceBox<CallOutcome> getCallOutcomeChoiceBox() {
+        return timelineSection.getCallOutcomeChoiceBox();
     }
 
     public TextArea getNoteTextArea() {

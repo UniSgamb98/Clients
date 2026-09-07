@@ -1,6 +1,7 @@
 package com.example.clients.feature.clienti.schedacliente.service;
 
 import com.example.clients.core.database.Database;
+import com.example.clients.core.database.model.CallOutcome;
 import com.example.clients.core.database.model.Cliente;
 import com.example.clients.core.database.model.ContattoCliente;
 import com.example.clients.core.database.model.EmailCliente;
@@ -215,7 +216,7 @@ public class SchedaClienteService {
         InteractionType type = record.type() == ClienteProfileQuery.TimelineType.CHIAMATA
                 ? InteractionType.CHIAMATA
                 : InteractionType.NOTA;
-        return new InteractionPreview(record.notaId(), record.interazioneId(), record.data(), type, record.prossimoContatto(), record.testo());
+        return new InteractionPreview(record.notaId(), record.interazioneId(), record.data(), type, record.prossimoContatto(), record.esito(), record.testo());
     }
 
     private ClienteProfile emptyProfile() {
@@ -500,6 +501,7 @@ public class SchedaClienteService {
                         interaction.notaId(),
                         interaction.data(),
                         interaction.prossimoContatto(),
+                        interaction.esito(),
                         BigDecimal.ZERO,
                         null,
                         now
@@ -530,10 +532,13 @@ public class SchedaClienteService {
         return loadProfile(currentClienteId);
     }
 
-    public ClienteProfile addChiamata(String testo, LocalDate prossimoContatto) {
+    public ClienteProfile addChiamata(String testo, LocalDate prossimoContatto, CallOutcome esito) {
         ensureProfileLoaded();
         if (currentClienteId == null) {
             return filteredProfile();
+        }
+        if (esito == null) {
+            throw new IllegalArgumentException("Seleziona un esito per la chiamata.");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -556,11 +561,12 @@ public class SchedaClienteService {
                 nota == null ? null : nota.id(),
                 LocalDate.now(),
                 prossimoContatto,
+                esito,
                 BigDecimal.ZERO,
                 now,
                 null
         );
-        persistenceService.addChiamata(nota, interazione);
+        persistenceService.addChiamata(nota, interazione, esito.statoTrattativa().orElse(null));
         return loadProfile(currentClienteId);
     }
 

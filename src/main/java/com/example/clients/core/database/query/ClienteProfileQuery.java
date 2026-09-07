@@ -1,5 +1,7 @@
 package com.example.clients.core.database.query;
 
+import com.example.clients.core.database.model.CallOutcome;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -69,6 +71,7 @@ public interface ClienteProfileQuery {
             LocalDate data,
             TimelineType type,
             LocalDate prossimoContatto,
+            CallOutcome esito,
             String testo
     ) {
     }

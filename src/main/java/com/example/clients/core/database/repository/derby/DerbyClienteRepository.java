@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 public final class DerbyClienteRepository extends DerbyRepositorySupport implements ClienteRepository {
 
@@ -48,6 +49,19 @@ public final class DerbyClienteRepository extends DerbyRepositorySupport impleme
             statement.executeUpdate();
         } catch (SQLException e) {
             throw repositoryException("Errore aggiornamento cliente.", e);
+        }
+    }
+
+    @Override
+    public void updateStatoTrattativa(UUID clienteId, String statoTrattativa, LocalDateTime updatedAt) {
+        String sql = "UPDATE CLIENTI SET STATO_TRATTATIVA = ?, UPDATED_AT = ? WHERE ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, statoTrattativa);
+            setTimestamp(statement, 2, updatedAt);
+            setUuid(statement, 3, clienteId);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw repositoryException("Errore aggiornamento stato trattativa cliente.", e);
         }
     }
 

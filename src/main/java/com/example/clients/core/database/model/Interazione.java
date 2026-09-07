@@ -12,6 +12,7 @@ public record Interazione(
         UUID notaId,
         LocalDate dataContatto,
         LocalDate prossimoContatto,
+        CallOutcome esito,
         BigDecimal coinvolgimento,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

@@ -184,9 +184,13 @@ public class SchedaClienteController {
     }
 
     private void saveEditorContent() {
+        if (editorMode == EditorMode.CALL && view.getCallOutcomeChoiceBox().getValue() == null) {
+            showError("Esito chiamata mancante", new IllegalArgumentException("Seleziona un esito per la chiamata."));
+            return;
+        }
         runAndRender("Salvataggio interazione non riuscito", () -> {
             if (editorMode == EditorMode.CALL) {
-                return service.addChiamata(view.getNoteTextArea().getText(), view.getNextCallDatePicker().getValue());
+                return service.addChiamata(view.getNoteTextArea().getText(), view.getNextCallDatePicker().getValue(), view.getCallOutcomeChoiceBox().getValue());
             }
             return service.addNota(view.getNoteTextArea().getText());
         });
