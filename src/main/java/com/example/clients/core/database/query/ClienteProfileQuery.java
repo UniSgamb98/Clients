@@ -3,6 +3,7 @@ package com.example.clients.core.database.query;
 import com.example.clients.core.database.model.CallOutcome;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -69,6 +70,7 @@ public interface ClienteProfileQuery {
             UUID notaId,
             UUID interazioneId,
             LocalDate data,
+            LocalDateTime createdAt,
             TimelineType type,
             LocalDate prossimoContatto,
             CallOutcome esito,

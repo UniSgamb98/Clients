@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -159,8 +160,14 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
         timeline.addAll(findStandaloneNotes(clienteId));
         timeline.addAll(findInterazioni(clienteId));
         return timeline.stream()
-                .sorted(Comparator.comparing(TimelineRecord::data, Comparator.nullsLast(Comparator.reverseOrder())))
+                .sorted(Comparator.comparing(this::timelineOrder, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
+    }
+
+    private LocalDateTime timelineOrder(TimelineRecord record) {
+        return record.createdAt() != null
+                ? record.createdAt()
+                : record.data() == null ? null : record.data().atStartOfDay();
     }
 
     private List<TimelineRecord> findStandaloneNotes(UUID clienteId) throws SQLException {
@@ -175,6 +182,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
                             getUuid(resultSet, "ID"),
                             null,
                             getTimestampDate(resultSet, "CREATED_AT"),
+                            getTimestamp(resultSet, "CREATED_AT"),
                             TimelineType.NOTA,
                             null,
                             null,
@@ -200,6 +208,7 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
                             getUuid(resultSet, "NOTA_ID"),
                             getUuid(resultSet, "ID"),
                             dataContatto == null ? createdAt : dataContatto,
+                            getTimestamp(resultSet, "CREATED_AT"),
                             TimelineType.CHIAMATA,
                             getDate(resultSet, "PROSSIMO_CONTATTO"),
                             com.example.clients.core.database.model.CallOutcome.fromCode(resultSet.getString("ESITO")),
@@ -229,6 +238,11 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
     private LocalDate getTimestampDate(ResultSet resultSet, String column) throws SQLException {
         Timestamp value = resultSet.getTimestamp(column);
         return value == null ? null : value.toLocalDateTime().toLocalDate();
+    }
+
+    private LocalDateTime getTimestamp(ResultSet resultSet, String column) throws SQLException {
+        Timestamp value = resultSet.getTimestamp(column);
+        return value == null ? null : value.toLocalDateTime();
     }
 
     private String getClobText(ResultSet resultSet, String column) throws SQLException {

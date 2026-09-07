@@ -216,7 +216,7 @@ public class SchedaClienteService {
         InteractionType type = record.type() == ClienteProfileQuery.TimelineType.CHIAMATA
                 ? InteractionType.CHIAMATA
                 : InteractionType.NOTA;
-        return new InteractionPreview(record.notaId(), record.interazioneId(), record.data(), type, record.prossimoContatto(), record.esito(), record.testo());
+        return new InteractionPreview(record.notaId(), record.interazioneId(), record.data(), record.createdAt(), type, record.prossimoContatto(), record.esito(), record.testo());
     }
 
     private ClienteProfile emptyProfile() {
