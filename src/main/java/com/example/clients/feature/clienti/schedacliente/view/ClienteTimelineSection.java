@@ -257,7 +257,7 @@ final class ClienteTimelineSection extends VBox {
         Label typeBadge = new Label(type.label());
         typeBadge.getStyleClass().addAll("client-profile-timeline-type-badge", type == InteractionType.CHIAMATA ? "client-profile-timeline-call-badge" : "client-profile-timeline-note-badge");
         String dateAndTime = DATE_FORMATTER.format(date);
-        if (createdAt != null) {
+        if (createdAt != null && createdAt.toLocalDate().equals(date)) {
             dateAndTime += " " + TIME_FORMATTER.format(createdAt);
         }
         Label title = createInfoLabel(dateAndTime);

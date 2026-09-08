@@ -160,14 +160,10 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
         timeline.addAll(findStandaloneNotes(clienteId));
         timeline.addAll(findInterazioni(clienteId));
         return timeline.stream()
-                .sorted(Comparator.comparing(this::timelineOrder, Comparator.nullsLast(Comparator.reverseOrder())))
+                .sorted(Comparator
+                        .comparing(TimelineRecord::data, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(TimelineRecord::createdAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
-    }
-
-    private LocalDateTime timelineOrder(TimelineRecord record) {
-        return record.createdAt() != null
-                ? record.createdAt()
-                : record.data() == null ? null : record.data().atStartOfDay();
     }
 
     private List<TimelineRecord> findStandaloneNotes(UUID clienteId) throws SQLException {
