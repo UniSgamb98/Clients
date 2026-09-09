@@ -95,7 +95,13 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     public void showClienti() {
         ClientiView view = new ClientiView();
         configureSidebar(view.getSidebar());
-        ClientiController controller = new ClientiController(view, this, new ClientiService(app.database));
+        ClientiController controller = new ClientiController(
+                view,
+                this,
+                new ClientiService(app.database),
+                app.featureSessionStateStore,
+                new CurrentOperatoreService()
+        );
 
         showView(
                 view,

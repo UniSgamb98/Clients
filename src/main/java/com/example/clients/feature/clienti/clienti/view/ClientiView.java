@@ -2,6 +2,7 @@ package com.example.clients.feature.clienti.clienti.view;
 
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
+import com.example.clients.feature.clienti.clienti.dto.ClientiViewState;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.SortColumn;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
@@ -17,6 +18,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class ClientiView extends BorderPane {
@@ -265,6 +267,41 @@ public class ClientiView extends BorderPane {
         operatorFilterChoiceBox.getSelectionModel().selectFirst();
         typeFilterChoiceBox.getSelectionModel().selectFirst();
         statusFilterChoiceBox.getSelectionModel().selectFirst();
+    }
+
+    public ClientiViewState applySearchState(ClientiViewState state) {
+        searchField.setText(state.searchText());
+        selectOperator(state.operatore());
+        selectTextFilter(typeFilterChoiceBox, state.tipologia());
+        selectTextFilter(statusFilterChoiceBox, state.stato());
+        return new ClientiViewState(
+                searchField.getText(),
+                operatorFilterChoiceBox.getValue(),
+                typeFilterChoiceBox.getValue(),
+                statusFilterChoiceBox.getValue(),
+                state.sortColumn(),
+                state.ascending()
+        );
+    }
+
+    private void selectOperator(OperatoreFilter filter) {
+        operatorFilterChoiceBox.getItems().stream()
+                .filter(candidate -> Objects.equals(candidate.id(), filter.id()))
+                .findFirst()
+                .ifPresentOrElse(
+                        operatorFilterChoiceBox.getSelectionModel()::select,
+                        () -> operatorFilterChoiceBox.getSelectionModel().selectFirst()
+                );
+    }
+
+    private void selectTextFilter(ChoiceBox<TextFilter> choiceBox, TextFilter filter) {
+        choiceBox.getItems().stream()
+                .filter(candidate -> Objects.equals(candidate.value(), filter.value()))
+                .findFirst()
+                .ifPresentOrElse(
+                        choiceBox.getSelectionModel()::select,
+                        () -> choiceBox.getSelectionModel().selectFirst()
+                );
     }
 
     public HBox addClientRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {

@@ -7,12 +7,16 @@ import com.example.clients.feature.clienti.clienti.dto.ClientePreviewRow;
 import com.example.clients.feature.clienti.clienti.dto.ClientiPage;
 import com.example.clients.feature.clienti.clienti.dto.ClientiSearchRequest;
 import com.example.clients.feature.clienti.clienti.dto.ClientiSearchState;
+import com.example.clients.feature.clienti.clienti.dto.ClientiViewState;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.SortColumn;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.clienti.view.ClientiFeedback;
 import com.example.clients.feature.clienti.navigator.ClientiNav;
+import com.example.clients.core.database.service.CurrentOperatoreService;
+import com.example.clients.core.session.FeatureKey;
+import com.example.clients.core.session.FeatureSessionStateStore;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 
@@ -28,6 +32,8 @@ public class ClientiController {
     private final ClientiNav clientiNav;
     private final ClientiService service;
     private final ClientiFeedback feedback;
+    private final FeatureSessionStateStore sessionStateStore;
+    private final CurrentOperatoreService currentOperatoreService;
     private final PauseTransition searchDebounce = new PauseTransition(SEARCH_DEBOUNCE);
     private ClientiSearchState searchState = ClientiSearchState.initial(INITIAL_LOAD_SIZE);
     private long loadVersion;
@@ -35,11 +41,21 @@ public class ClientiController {
     private boolean loadingPage;
     private boolean hasNextPage;
     private int loadedRows;
+    private boolean restoringFilters;
+    private int pendingFilterLoads;
 
-    public ClientiController(ClientiView view, ClientiNav clientiNav, ClientiService service) {
+    public ClientiController(
+            ClientiView view,
+            ClientiNav clientiNav,
+            ClientiService service,
+            FeatureSessionStateStore sessionStateStore,
+            CurrentOperatoreService currentOperatoreService
+    ) {
         this.view = view;
         this.clientiNav = clientiNav;
         this.service = service;
+        this.sessionStateStore = sessionStateStore;
+        this.currentOperatoreService = currentOperatoreService;
         this.feedback = new ClientiFeedback();
         configureActions();
     }
@@ -57,31 +73,51 @@ public class ClientiController {
     }
 
     public void loadPreviewClientsAsync() {
+        ClientiViewState savedState = sessionStateStore.find(
+                currentOperatoreService.currentOperatoreId(),
+                FeatureKey.CLIENTI,
+                ClientiViewState.class
+        ).orElseGet(ClientiViewState::initial);
+        searchState = savedState.toSearchState(INITIAL_LOAD_SIZE);
+        restoringFilters = true;
+        pendingFilterLoads = 3;
         loadFiltersAsync();
-        reloadClients();
     }
 
     private void loadFiltersAsync() {
         AsyncLoader.run(
                 service::getOperatorFilters,
-                view::setOperatorFilters,
-                error -> view.setOperatorFilters(List.of())
+                operators -> completeFilterLoad(() -> view.setOperatorFilters(operators)),
+                error -> completeFilterLoad(() -> view.setOperatorFilters(List.of()))
         );
         AsyncLoader.run(
                 service::getTipoClienteFilters,
-                view::setTypeFilters,
-                error -> view.setTypeFilters(List.of())
+                types -> completeFilterLoad(() -> view.setTypeFilters(types)),
+                error -> completeFilterLoad(() -> view.setTypeFilters(List.of()))
         );
         AsyncLoader.run(
                 service::getStatoTrattativaFilters,
-                view::setStatusFilters,
-                error -> view.setStatusFilters(List.of())
+                statuses -> completeFilterLoad(() -> view.setStatusFilters(statuses)),
+                error -> completeFilterLoad(() -> view.setStatusFilters(List.of()))
         );
+    }
+
+    private void completeFilterLoad(Runnable updateFilterOptions) {
+        updateFilterOptions.run();
+        pendingFilterLoads--;
+        if (pendingFilterLoads == 0) {
+            ClientiViewState restoredState = view.applySearchState(ClientiViewState.from(searchState));
+            searchState = restoredState.toSearchState(INITIAL_LOAD_SIZE);
+            restoringFilters = false;
+            rememberSearchState();
+            reloadClients();
+        }
     }
 
     private void searchClienti(String searchText) {
         searchState = searchState.withSearchText(searchText);
-        if (clearingFilters) {
+        rememberSearchState();
+        if (clearingFilters || restoringFilters) {
             return;
         }
         searchDebounce.stop();
@@ -91,21 +127,24 @@ public class ClientiController {
 
     private void filterByOperatore(OperatoreFilter operatoreFilter) {
         searchState = searchState.withOperatore(operatoreFilter);
-        if (!clearingFilters) {
+        rememberSearchState();
+        if (!clearingFilters && !restoringFilters) {
             reloadClients();
         }
     }
 
     private void filterByTipoCliente(TextFilter filter) {
         searchState = searchState.withTipologia(filter);
-        if (!clearingFilters) {
+        rememberSearchState();
+        if (!clearingFilters && !restoringFilters) {
             reloadClients();
         }
     }
 
     private void filterByStatoTrattativa(TextFilter filter) {
         searchState = searchState.withStato(filter);
-        if (!clearingFilters) {
+        rememberSearchState();
+        if (!clearingFilters && !restoringFilters) {
             reloadClients();
         }
     }
@@ -116,6 +155,7 @@ public class ClientiController {
         view.clearFilters();
         searchState = ClientiSearchState.initial(INITIAL_LOAD_SIZE);
         clearingFilters = false;
+        rememberSearchState();
         reloadClients();
     }
 
@@ -125,7 +165,16 @@ public class ClientiController {
 
     private void sortClienti(SortColumn sortColumn) {
         searchState = searchState.togglingSort(sortColumn);
+        rememberSearchState();
         reloadClients();
+    }
+
+    private void rememberSearchState() {
+        sessionStateStore.save(
+                currentOperatoreService.currentOperatoreId(),
+                FeatureKey.CLIENTI,
+                ClientiViewState.from(searchState)
+        );
     }
 
     private void reloadClients() {
