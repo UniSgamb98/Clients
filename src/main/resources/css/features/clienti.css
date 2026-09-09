@@ -101,8 +101,11 @@
     -fx-alignment: center-left;
 }
 
-.clients-clear-filters-button {
+.clients-clear-filters-button,
+.clients-manage-search-button {
     -fx-border-color: transparent;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
 }
 
 .clients-save-search-button {
@@ -110,8 +113,24 @@
     -fx-border-color: transparent;
 }
 
-.clients-manage-search-button {
-    -fx-border-color: transparent;
+.clients-manage-search-button .context-menu {
+    -fx-background-color: -app-surface;
+    -fx-border-color: -app-border;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+.clients-manage-search-button .context-menu .menu-item .label {
+    -fx-text-fill: -app-text-soft;
+    -fx-font-size: 13px;
+}
+
+.clients-manage-search-button .context-menu .menu-item:focused {
+    -fx-background-color: -app-primary;
+}
+
+.clients-manage-search-button .context-menu .menu-item:focused .label {
+    -fx-text-fill: -app-text;
 }
 
 .clients-saved-searches-scroll {
