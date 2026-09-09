@@ -13,6 +13,7 @@ public record Interazione(
         UUID attivitaId,
         LocalDate dataContatto,
         LocalDate prossimoContatto,
+        CallOutcome esito,
         BigDecimal coinvolgimento,
         String testo,
         LocalDateTime createdAt,

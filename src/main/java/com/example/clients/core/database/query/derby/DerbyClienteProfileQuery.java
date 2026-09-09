@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -155,40 +156,64 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
     }
 
     private List<TimelineRecord> findTimeline(UUID clienteId) throws SQLException {
-        String sql = "SELECT ID, TIPO, DATA_CONTATTO, PROSSIMO_CONTATTO, CREATED_AT, TESTO "
-                + "FROM INTERAZIONI WHERE CLIENTE_ID = ?";
+        List<TimelineRecord> timeline = new ArrayList<>();
+        timeline.addAll(findStandaloneNotes(clienteId));
+        timeline.addAll(findInterazioni(clienteId));
+        return timeline.stream()
+                .sorted(Comparator
+                        .comparing(TimelineRecord::data, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(TimelineRecord::createdAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+    }
+
+    private List<TimelineRecord> findStandaloneNotes(UUID clienteId) throws SQLException {
+        String sql = "SELECT N.ID, N.TESTO, N.CREATED_AT FROM NOTE_CLIENTE N "
+                + "WHERE N.CLIENTE_ID = ? AND NOT EXISTS (SELECT 1 FROM INTERAZIONI I WHERE I.NOTA_ID = N.ID)";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, clienteId.toString());
             try (ResultSet resultSet = statement.executeQuery()) {
-                List<TimelineRecord> timeline = new ArrayList<>();
+                List<TimelineRecord> notes = new ArrayList<>();
                 while (resultSet.next()) {
-                    LocalDate dataContatto = getDate(resultSet, "DATA_CONTATTO");
-                    LocalDate createdAt = getTimestampDate(resultSet, "CREATED_AT");
-                    TimelineType type = timelineType(resultSet.getString("TIPO"));
-                    timeline.add(new TimelineRecord(
+                    notes.add(new TimelineRecord(
                             getUuid(resultSet, "ID"),
-                            dataContatto == null ? createdAt : dataContatto,
-                            type,
-                            getDate(resultSet, "PROSSIMO_CONTATTO"),
-                            valueOrDefault(getClobText(resultSet, "TESTO"), defaultTimelineText(type))
+                            null,
+                            getTimestampDate(resultSet, "CREATED_AT"),
+                            getTimestamp(resultSet, "CREATED_AT"),
+                            TimelineType.NOTA,
+                            null,
+                            null,
+                            getClobText(resultSet, "TESTO")
                     ));
                 }
-                return timeline.stream()
-                        .sorted(Comparator.comparing(TimelineRecord::data, Comparator.nullsLast(Comparator.reverseOrder())))
-                        .toList();
+                return notes;
             }
         }
     }
 
-    private TimelineType timelineType(String value) {
-        if ("NOTA".equalsIgnoreCase(value)) {
-            return TimelineType.NOTA;
+    private List<TimelineRecord> findInterazioni(UUID clienteId) throws SQLException {
+        String sql = "SELECT I.ID, I.NOTA_ID, I.DATA_CONTATTO, I.PROSSIMO_CONTATTO, I.ESITO, I.CREATED_AT, N.TESTO "
+                + "FROM INTERAZIONI I LEFT JOIN NOTE_CLIENTE N ON I.NOTA_ID = N.ID WHERE I.CLIENTE_ID = ?";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.setString(1, clienteId.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<TimelineRecord> interazioni = new ArrayList<>();
+                while (resultSet.next()) {
+                    LocalDate dataContatto = getDate(resultSet, "DATA_CONTATTO");
+                    LocalDate createdAt = getTimestampDate(resultSet, "CREATED_AT");
+                    interazioni.add(new TimelineRecord(
+                            getUuid(resultSet, "NOTA_ID"),
+                            getUuid(resultSet, "ID"),
+                            dataContatto == null ? createdAt : dataContatto,
+                            getTimestamp(resultSet, "CREATED_AT"),
+                            TimelineType.CHIAMATA,
+                            getDate(resultSet, "PROSSIMO_CONTATTO"),
+                            com.example.clients.core.database.model.CallOutcome.fromCode(resultSet.getString("ESITO")),
+                            valueOrDefault(getClobText(resultSet, "TESTO"), "Chiamata registrata.")
+                    ));
+                }
+                return interazioni;
+            }
         }
-        return TimelineType.CHIAMATA;
-    }
-
-    private String defaultTimelineText(TimelineType type) {
-        return type == TimelineType.NOTA ? "Nota registrata." : "Chiamata registrata.";
     }
 
     private UUID getUuid(ResultSet resultSet, String column) throws SQLException {
@@ -209,6 +234,11 @@ public final class DerbyClienteProfileQuery implements ClienteProfileQuery {
     private LocalDate getTimestampDate(ResultSet resultSet, String column) throws SQLException {
         Timestamp value = resultSet.getTimestamp(column);
         return value == null ? null : value.toLocalDateTime().toLocalDate();
+    }
+
+    private LocalDateTime getTimestamp(ResultSet resultSet, String column) throws SQLException {
+        Timestamp value = resultSet.getTimestamp(column);
+        return value == null ? null : value.toLocalDateTime();
     }
 
     private String getClobText(ResultSet resultSet, String column) throws SQLException {

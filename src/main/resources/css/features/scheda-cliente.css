@@ -176,6 +176,27 @@
     -fx-background-radius: 8;
 }
 
+.client-profile-call-details {
+    -fx-alignment: center-left;
+}
+
+.client-profile-call-outcome-choice {
+    -fx-pref-width: 170px;
+}
+
+.client-profile-timeline-outcome-badge {
+    -fx-background-color: #eef2ff;
+    -fx-background-radius: 999px;
+    -fx-padding: 3px 8px;
+    -fx-text-fill: #4338ca;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.date-picker-popup > .month-year-pane .label {
+    -fx-text-fill: -app-text-dark;
+}
+
 .client-profile-edit-row {
     -fx-alignment: center-left;
 }

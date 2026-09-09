@@ -1,5 +1,6 @@
 package com.example.clients.feature.clienti.schedacliente.view;
 
+import com.example.clients.core.database.model.CallOutcome;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.ClienteProfile;
 import com.example.clients.feature.clienti.schedacliente.dto.SchedaClienteModels.EditProfileDraft;
@@ -365,12 +366,8 @@ public class SchedaClienteView extends BorderPane {
         return timelineSection.getNextCallDatePicker();
     }
 
-    public ChoiceBox<String> getCallOutcomeChoiceBox() {
+    public ChoiceBox<CallOutcome> getCallOutcomeChoiceBox() {
         return timelineSection.getCallOutcomeChoiceBox();
-    }
-
-    public ChoiceBox<String> getCallPriorityChoiceBox() {
-        return timelineSection.getCallPriorityChoiceBox();
     }
 
     public TextArea getNoteTextArea() {

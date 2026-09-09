@@ -37,3 +37,7 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Legacy import output ###
+/import scripts/
+/import_legacy_data.log

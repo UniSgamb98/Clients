@@ -1,7 +1,6 @@
 package com.example.clients.core.database.query.derby;
 
 import com.example.clients.core.database.Database;
-import com.example.clients.core.database.SchemaInitializer;
 import com.example.clients.core.database.query.ClientiPreviewQuery;
 
 import java.sql.PreparedStatement;
@@ -24,21 +23,13 @@ public final class DerbyClientiPreviewQuery implements ClientiPreviewQuery {
     );
 
     private final Database database;
-    private final SchemaInitializer schemaInitializer;
 
     public DerbyClientiPreviewQuery(Database database) {
-        this(database, new SchemaInitializer(database));
-    }
-
-    public DerbyClientiPreviewQuery(Database database, SchemaInitializer schemaInitializer) {
         this.database = database;
-        this.schemaInitializer = schemaInitializer;
     }
 
     @Override
     public ClientePreviewPage findPage(int offset, int pageSize, String searchText, UUID operatoreId, String tipoCliente, String statoTrattativa, String orderByColumn, boolean ascending) {
-        schemaInitializer.initialize();
-
         int safeOffset = Math.max(0, offset);
         int safePageSize = Math.max(1, pageSize);
         String cleanSearchText = cleanSearchText(searchText);
