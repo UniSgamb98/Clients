@@ -73,7 +73,6 @@
 .clients-other-filters-button,
 .clients-clear-filters-button,
 .clients-save-search-button,
-.clients-apply-search-button,
 .clients-manage-search-button {
     -fx-background-color: transparent;
     -fx-text-fill: -app-text-muted;
@@ -87,7 +86,6 @@
 .clients-other-filters-button:hover,
 .clients-clear-filters-button:hover,
 .clients-save-search-button:hover,
-.clients-apply-search-button:hover,
 .clients-manage-search-button:hover {
     -fx-background-color: -app-control-alt-bg;
     -fx-text-fill: -app-text;
@@ -107,8 +105,41 @@
     -fx-border-color: transparent;
 }
 
-.clients-saved-searches {
-    -fx-pref-width: 190;
+.clients-manage-search-button {
+    -fx-border-color: transparent;
+}
+
+.clients-saved-searches-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.clients-saved-searches-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.clients-saved-search-buttons {
+    -fx-alignment: center-left;
+}
+
+.clients-saved-search-button {
+    -fx-background-color: -app-control-bg;
+    -fx-text-fill: -app-text-muted;
+    -fx-background-radius: 16;
+    -fx-padding: 7 12;
+    -fx-cursor: hand;
+}
+
+.clients-saved-search-button:hover {
+    -fx-background-color: -app-control-alt-bg;
+    -fx-text-fill: -app-text;
+}
+
+.clients-saved-search-button:selected {
+    -fx-background-color: -app-primary;
+    -fx-text-fill: -app-text;
 }
 
 .clients-unsaved-search-label {
