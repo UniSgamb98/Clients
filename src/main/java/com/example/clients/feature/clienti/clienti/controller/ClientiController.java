@@ -115,38 +115,41 @@ public class ClientiController {
     }
 
     private void searchClienti(String searchText) {
-        searchState = searchState.withSearchText(searchText);
-        rememberSearchState();
         if (clearingFilters || restoringFilters) {
             return;
         }
+        searchState = searchState.withSearchText(searchText);
+        rememberSearchState();
         searchDebounce.stop();
         searchDebounce.setOnFinished(event -> reloadClients());
         searchDebounce.playFromStart();
     }
 
     private void filterByOperatore(OperatoreFilter operatoreFilter) {
+        if (clearingFilters || restoringFilters) {
+            return;
+        }
         searchState = searchState.withOperatore(operatoreFilter);
         rememberSearchState();
-        if (!clearingFilters && !restoringFilters) {
-            reloadClients();
-        }
+        reloadClients();
     }
 
     private void filterByTipoCliente(TextFilter filter) {
+        if (clearingFilters || restoringFilters) {
+            return;
+        }
         searchState = searchState.withTipologia(filter);
         rememberSearchState();
-        if (!clearingFilters && !restoringFilters) {
-            reloadClients();
-        }
+        reloadClients();
     }
 
     private void filterByStatoTrattativa(TextFilter filter) {
+        if (clearingFilters || restoringFilters) {
+            return;
+        }
         searchState = searchState.withStato(filter);
         rememberSearchState();
-        if (!clearingFilters && !restoringFilters) {
-            reloadClients();
-        }
+        reloadClients();
     }
 
     private void clearFilters() {
