@@ -1,7 +1,13 @@
 package com.example.clients.feature.clienti.clienti.controller;
 
 import com.example.clients.core.async.AsyncLoader;
+import com.example.clients.core.database.model.VistaSalvata;
+import com.example.clients.core.database.service.CurrentOperatoreService;
+import com.example.clients.core.database.service.VistaSalvataService;
+import com.example.clients.core.session.FeatureKey;
+import com.example.clients.core.session.FeatureSessionStateStore;
 import com.example.clients.feature.clienti.clienti.service.ClientiService;
+import com.example.clients.feature.clienti.clienti.service.ClientiViewStateCodec;
 import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
 import com.example.clients.feature.clienti.clienti.dto.ClientePreviewRow;
 import com.example.clients.feature.clienti.clienti.dto.ClientiPage;
@@ -14,13 +20,11 @@ import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.clienti.view.ClientiFeedback;
 import com.example.clients.feature.clienti.navigator.ClientiNav;
-import com.example.clients.core.database.service.CurrentOperatoreService;
-import com.example.clients.core.session.FeatureKey;
-import com.example.clients.core.session.FeatureSessionStateStore;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 
 import java.util.List;
+import java.util.Optional;
 
 public class ClientiController {
 
@@ -34,6 +38,8 @@ public class ClientiController {
     private final ClientiFeedback feedback;
     private final FeatureSessionStateStore sessionStateStore;
     private final CurrentOperatoreService currentOperatoreService;
+    private final VistaSalvataService vistaSalvataService;
+    private final ClientiViewStateCodec viewStateCodec;
     private final PauseTransition searchDebounce = new PauseTransition(SEARCH_DEBOUNCE);
     private ClientiSearchState searchState = ClientiSearchState.initial(INITIAL_LOAD_SIZE);
     private long loadVersion;
@@ -43,19 +49,27 @@ public class ClientiController {
     private int loadedRows;
     private boolean restoringFilters;
     private int pendingFilterLoads;
+    private boolean sessionStateAvailable;
+    private boolean savedSearchesLoaded;
+    private boolean initialRestoreCompleted;
+    private ClientiViewState defaultSavedState;
 
     public ClientiController(
             ClientiView view,
             ClientiNav clientiNav,
             ClientiService service,
             FeatureSessionStateStore sessionStateStore,
-            CurrentOperatoreService currentOperatoreService
+            CurrentOperatoreService currentOperatoreService,
+            VistaSalvataService vistaSalvataService,
+            ClientiViewStateCodec viewStateCodec
     ) {
         this.view = view;
         this.clientiNav = clientiNav;
         this.service = service;
         this.sessionStateStore = sessionStateStore;
         this.currentOperatoreService = currentOperatoreService;
+        this.vistaSalvataService = vistaSalvataService;
+        this.viewStateCodec = viewStateCodec;
         this.feedback = new ClientiFeedback();
         configureActions();
     }
@@ -68,20 +82,23 @@ public class ClientiController {
         view.onTipologiaFilterChanged(this::filterByTipoCliente);
         view.onStatoFilterChanged(this::filterByStatoTrattativa);
         view.onClearFilters(this::clearFilters);
-        view.onSaveSearch(this::showSaveSearchUnavailable);
+        view.onSaveSearch(this::saveCurrentSearch);
+        view.onApplySavedSearch(this::applySavedSearch);
         view.onScrollNearBottom(this::loadNextPage);
     }
 
     public void loadPreviewClientsAsync() {
-        ClientiViewState savedState = sessionStateStore.find(
+        Optional<ClientiViewState> savedState = sessionStateStore.find(
                 currentOperatoreService.currentOperatoreId(),
                 FeatureKey.CLIENTI,
                 ClientiViewState.class
-        ).orElseGet(ClientiViewState::initial);
-        searchState = savedState.toSearchState(INITIAL_LOAD_SIZE);
+        );
+        sessionStateAvailable = savedState.isPresent();
+        searchState = savedState.orElseGet(ClientiViewState::initial).toSearchState(INITIAL_LOAD_SIZE);
         restoringFilters = true;
         pendingFilterLoads = 3;
         loadFiltersAsync();
+        loadSavedSearchesAsync();
     }
 
     private void loadFiltersAsync() {
@@ -105,13 +122,7 @@ public class ClientiController {
     private void completeFilterLoad(Runnable updateFilterOptions) {
         updateFilterOptions.run();
         pendingFilterLoads--;
-        if (pendingFilterLoads == 0) {
-            ClientiViewState restoredState = view.applySearchState(ClientiViewState.from(searchState));
-            searchState = restoredState.toSearchState(INITIAL_LOAD_SIZE);
-            restoringFilters = false;
-            rememberSearchState();
-            reloadClients();
-        }
+        completeInitialRestoreWhenReady();
     }
 
     private void searchClienti(String searchText) {
@@ -162,8 +173,95 @@ public class ClientiController {
         reloadClients();
     }
 
-    private void showSaveSearchUnavailable() {
-        feedback.showFeatureInDevelopment("Salvataggio ricerca");
+    private void loadSavedSearchesAsync() {
+        AsyncLoader.run(
+                () -> vistaSalvataService.findAll(FeatureKey.CLIENTI),
+                this::handleSavedSearchesLoaded,
+                error -> handleSavedSearchesLoaded(List.of())
+        );
+    }
+
+    private void handleSavedSearchesLoaded(List<VistaSalvata> savedSearches) {
+        view.setSavedSearches(savedSearches);
+        if (!initialRestoreCompleted && !sessionStateAvailable) {
+            savedSearches.stream()
+                    .filter(VistaSalvata::predefinita)
+                    .findFirst()
+                    .ifPresent(savedView -> defaultSavedState = decodeOrDefault(savedView));
+        }
+        savedSearchesLoaded = true;
+        completeInitialRestoreWhenReady();
+    }
+
+    private ClientiViewState decodeOrDefault(VistaSalvata savedView) {
+        try {
+            return viewStateCodec.decode(savedView.payload());
+        } catch (RuntimeException e) {
+            return ClientiViewState.initial();
+        }
+    }
+
+    private void completeInitialRestoreWhenReady() {
+        if (initialRestoreCompleted || pendingFilterLoads != 0 || (!sessionStateAvailable && !savedSearchesLoaded)) {
+            return;
+        }
+        ClientiViewState stateToRestore = defaultSavedState == null
+                ? ClientiViewState.from(searchState)
+                : defaultSavedState;
+        ClientiViewState restoredState = view.applySearchState(stateToRestore);
+        searchState = restoredState.toSearchState(INITIAL_LOAD_SIZE);
+        restoringFilters = false;
+        initialRestoreCompleted = true;
+        rememberSearchState();
+        reloadClients();
+    }
+
+    private void saveCurrentSearch() {
+        feedback.requestSaveSearch().ifPresent(request -> {
+            ClientiViewState stateToSave = ClientiViewState.from(searchState);
+            view.setSaveSearchDisabled(true);
+            AsyncLoader.run(
+                    () -> vistaSalvataService.create(
+                            FeatureKey.CLIENTI,
+                            request.name(),
+                            viewStateCodec.encode(stateToSave),
+                            request.predefinita()
+                    ),
+                    savedView -> {
+                        view.setSaveSearchDisabled(false);
+                        loadSavedSearchesAsync();
+                        feedback.showSearchSaved(savedView.nome());
+                    },
+                    error -> {
+                        view.setSaveSearchDisabled(false);
+                        feedback.showError(safeMessage(error));
+                    }
+            );
+        });
+    }
+
+    private void applySavedSearch(VistaSalvata savedView) {
+        if (savedView == null || restoringFilters) {
+            return;
+        }
+        try {
+            ClientiViewState decodedState = viewStateCodec.decode(savedView.payload());
+            restoringFilters = true;
+            ClientiViewState appliedState = view.applySearchState(decodedState);
+            searchState = appliedState.toSearchState(INITIAL_LOAD_SIZE);
+            restoringFilters = false;
+            rememberSearchState();
+            reloadClients();
+        } catch (RuntimeException e) {
+            restoringFilters = false;
+            feedback.showError(safeMessage(e));
+        }
+    }
+
+    private String safeMessage(Throwable error) {
+        return error.getMessage() == null || error.getMessage().isBlank()
+                ? "Operazione non riuscita."
+                : error.getMessage();
     }
 
     private void sortClienti(SortColumn sortColumn) {

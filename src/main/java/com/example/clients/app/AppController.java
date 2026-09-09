@@ -5,6 +5,7 @@ import com.example.clients.core.database.query.derby.DerbyStatoTrattativaQuery;
 import com.example.clients.core.database.query.derby.DerbyTipoClienteQuery;
 import com.example.clients.core.database.service.ClientePersistenceService;
 import com.example.clients.core.database.service.CurrentOperatoreService;
+import com.example.clients.core.database.service.VistaSalvataService;
 import com.example.clients.feature.auth.login.controller.LoginController;
 import com.example.clients.feature.auth.login.navigator.LoginNav;
 import com.example.clients.feature.auth.login.service.LoginService;
@@ -13,6 +14,7 @@ import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.calendario.view.CalendarioView;
 import com.example.clients.feature.clienti.clienti.controller.ClientiController;
 import com.example.clients.feature.clienti.clienti.service.ClientiService;
+import com.example.clients.feature.clienti.clienti.service.ClientiViewStateCodec;
 import com.example.clients.feature.clienti.clienti.view.ClientiView;
 import com.example.clients.feature.clienti.nuovocliente.controller.NuovoClienteController;
 import com.example.clients.feature.clienti.nuovocliente.service.NuovoClienteService;
@@ -95,12 +97,15 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     public void showClienti() {
         ClientiView view = new ClientiView();
         configureSidebar(view.getSidebar());
+        CurrentOperatoreService currentOperatoreService = new CurrentOperatoreService();
         ClientiController controller = new ClientiController(
                 view,
                 this,
                 new ClientiService(app.database),
                 app.featureSessionStateStore,
-                new CurrentOperatoreService()
+                currentOperatoreService,
+                new VistaSalvataService(app.database, currentOperatoreService),
+                new ClientiViewStateCodec()
         );
 
         showView(

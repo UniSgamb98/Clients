@@ -1,5 +1,6 @@
 package com.example.clients.feature.clienti.clienti.view;
 
+import com.example.clients.core.database.model.VistaSalvata;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
 import com.example.clients.feature.clienti.clienti.dto.ClientiViewState;
@@ -9,6 +10,7 @@ import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
@@ -16,6 +18,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.util.StringConverter;
 
 import java.util.List;
 import java.util.Objects;
@@ -40,6 +43,8 @@ public class ClientiView extends BorderPane {
     private final Button otherFiltersButton;
     private final Button clearFiltersButton;
     private final Button saveSearchButton;
+    private final ComboBox<VistaSalvata> savedSearchesComboBox;
+    private final Button applySavedSearchButton;
     private final Label resultsCountLabel;
     private final Button nameHeaderButton;
     private final Button typeHeaderButton;
@@ -78,6 +83,28 @@ public class ClientiView extends BorderPane {
         clearFiltersButton.getStyleClass().add("clients-clear-filters-button");
         saveSearchButton = new Button("Salva ricerca");
         saveSearchButton.getStyleClass().add("clients-save-search-button");
+        savedSearchesComboBox = new ComboBox<>();
+        savedSearchesComboBox.setPromptText("Ricerche salvate");
+        savedSearchesComboBox.getStyleClass().add("clients-saved-searches");
+        savedSearchesComboBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(VistaSalvata vista) {
+                if (vista == null) {
+                    return "";
+                }
+                return vista.nome() + (vista.predefinita() ? " ★" : "");
+            }
+
+            @Override
+            public VistaSalvata fromString(String value) {
+                return null;
+            }
+        });
+        applySavedSearchButton = new Button("Applica");
+        applySavedSearchButton.getStyleClass().add("clients-apply-search-button");
+        applySavedSearchButton.setDisable(true);
+        savedSearchesComboBox.valueProperty().addListener((observable, oldValue, newValue) ->
+                applySavedSearchButton.setDisable(newValue == null));
         resultsCountLabel = new Label("0 risultati trovati");
         resultsCountLabel.getStyleClass().add("clients-results-count");
 
@@ -162,7 +189,14 @@ public class ClientiView extends BorderPane {
         actions.getStyleClass().add("clients-filter-actions");
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
-        actions.getChildren().addAll(resultsCountLabel, spacer, clearFiltersButton, saveSearchButton);
+        actions.getChildren().addAll(
+                resultsCountLabel,
+                spacer,
+                savedSearchesComboBox,
+                applySavedSearchButton,
+                clearFiltersButton,
+                saveSearchButton
+        );
         return actions;
     }
 
@@ -439,6 +473,25 @@ public class ClientiView extends BorderPane {
 
     public void onSaveSearch(Runnable action) {
         saveSearchButton.setOnAction(event -> action.run());
+    }
+
+    public void setSavedSearches(List<VistaSalvata> savedSearches) {
+        VistaSalvata selected = savedSearchesComboBox.getValue();
+        savedSearchesComboBox.getItems().setAll(savedSearches == null ? List.of() : savedSearches);
+        if (selected != null) {
+            savedSearchesComboBox.getItems().stream()
+                    .filter(vista -> vista.id().equals(selected.id()))
+                    .findFirst()
+                    .ifPresent(savedSearchesComboBox::setValue);
+        }
+    }
+
+    public void onApplySavedSearch(Consumer<VistaSalvata> action) {
+        applySavedSearchButton.setOnAction(event -> action.accept(savedSearchesComboBox.getValue()));
+    }
+
+    public void setSaveSearchDisabled(boolean disabled) {
+        saveSearchButton.setDisable(disabled);
     }
 
     public void onScrollNearBottom(Runnable action) {
