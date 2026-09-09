@@ -1,22 +1,30 @@
 package com.example.clients.feature.clienti.clienti.view;
 
+import com.example.clients.core.database.model.VistaSalvata;
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.clienti.clienti.dto.ClientePreview;
+import com.example.clients.feature.clienti.clienti.dto.ClientiViewState;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.SortColumn;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import javafx.geometry.Insets;
+import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class ClientiView extends BorderPane {
@@ -28,6 +36,7 @@ public class ClientiView extends BorderPane {
     private static final double STATUS_COLUMN_WIDTH = 105;
     private static final double LAST_CONTACT_COLUMN_WIDTH = 95;
     private static final double ACTIONS_COLUMN_WIDTH = 52;
+    private static final double MIN_SAVED_SEARCHES_WIDTH = 250;
 
     private final AppSidebar sidebar;
     private final TextField searchField;
@@ -38,6 +47,15 @@ public class ClientiView extends BorderPane {
     private final Button otherFiltersButton;
     private final Button clearFiltersButton;
     private final Button saveSearchButton;
+    private final HBox savedSearchButtons;
+    private final ScrollPane savedSearchesScrollPane;
+    private final ToggleGroup savedSearchToggleGroup;
+    private final MenuButton manageSavedSearchButton;
+    private final MenuItem updateSavedSearchItem;
+    private final MenuItem renameSavedSearchItem;
+    private final MenuItem setDefaultSavedSearchItem;
+    private final MenuItem deleteSavedSearchItem;
+    private final Label unsavedChangesLabel;
     private final Label resultsCountLabel;
     private final Button nameHeaderButton;
     private final Button typeHeaderButton;
@@ -52,7 +70,12 @@ public class ClientiView extends BorderPane {
     private final ScrollPane tableScrollPane;
     private final ClientePreviewDetailPanel detailPanel;
     private final ClientiResultsTable resultsTable;
+    private HBox filterActionsBar;
+    private HBox filterInfo;
+    private HBox filterCommands;
     private HBox selectedClientRow;
+    private VistaSalvata selectedSavedView;
+    private Consumer<VistaSalvata> applySavedSearchHandler = savedView -> { };
 
     public ClientiView() {
         sidebar = new AppSidebar();
@@ -74,8 +97,37 @@ public class ClientiView extends BorderPane {
         otherFiltersButton.getStyleClass().add("clients-other-filters-button");
         clearFiltersButton = new Button("Pulisci filtri");
         clearFiltersButton.getStyleClass().add("clients-clear-filters-button");
-        saveSearchButton = new Button("Salva ricerca");
+        saveSearchButton = new Button("Salva nuova ricerca");
         saveSearchButton.getStyleClass().add("clients-save-search-button");
+        savedSearchButtons = new HBox(8);
+        savedSearchButtons.getStyleClass().add("clients-saved-search-buttons");
+        savedSearchToggleGroup = new ToggleGroup();
+        savedSearchesScrollPane = new ScrollPane(savedSearchButtons);
+        savedSearchesScrollPane.getStyleClass().add("clients-saved-searches-scroll");
+        savedSearchesScrollPane.setFitToHeight(true);
+        savedSearchesScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        savedSearchesScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        savedSearchesScrollPane.setMinWidth(MIN_SAVED_SEARCHES_WIDTH);
+        savedSearchesScrollPane.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(savedSearchesScrollPane, javafx.scene.layout.Priority.ALWAYS);
+        updateSavedSearchItem = new MenuItem("Aggiorna con i filtri correnti");
+        renameSavedSearchItem = new MenuItem("Rinomina");
+        setDefaultSavedSearchItem = new MenuItem("Imposta come predefinita");
+        deleteSavedSearchItem = new MenuItem("Elimina");
+        manageSavedSearchButton = new MenuButton(
+                "Gestisci",
+                null,
+                updateSavedSearchItem,
+                renameSavedSearchItem,
+                setDefaultSavedSearchItem,
+                deleteSavedSearchItem
+        );
+        manageSavedSearchButton.getStyleClass().add("clients-manage-search-button");
+        manageSavedSearchButton.setDisable(true);
+        unsavedChangesLabel = new Label("Modifiche non salvate");
+        unsavedChangesLabel.getStyleClass().add("clients-unsaved-search-label");
+        unsavedChangesLabel.setManaged(false);
+        unsavedChangesLabel.setVisible(false);
         resultsCountLabel = new Label("0 risultati trovati");
         resultsCountLabel.getStyleClass().add("clients-results-count");
 
@@ -156,12 +208,37 @@ public class ClientiView extends BorderPane {
     }
 
     private HBox createFilterActionsBar() {
-        HBox actions = new HBox(12);
-        actions.getStyleClass().add("clients-filter-actions");
-        HBox spacer = new HBox();
-        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
-        actions.getChildren().addAll(resultsCountLabel, spacer, clearFiltersButton, saveSearchButton);
-        return actions;
+        filterInfo = new HBox(12, resultsCountLabel, unsavedChangesLabel);
+        filterInfo.getStyleClass().add("clients-filter-info");
+        filterInfo.setMinWidth(Region.USE_PREF_SIZE);
+
+        filterCommands = new HBox(12,
+                manageSavedSearchButton,
+                clearFiltersButton,
+                saveSearchButton
+        );
+        filterCommands.getStyleClass().add("clients-filter-commands");
+        filterCommands.setMinWidth(Region.USE_PREF_SIZE);
+
+        filterActionsBar = new HBox(12, filterInfo, savedSearchesScrollPane, filterCommands);
+        filterActionsBar.getStyleClass().add("clients-filter-actions");
+        filterActionsBar.widthProperty().addListener((observable, oldValue, newValue) -> updateFilterActionsSizing());
+        return filterActionsBar;
+    }
+
+    private void updateFilterActionsSizing() {
+        if (filterActionsBar == null || filterActionsBar.getWidth() <= 0) {
+            return;
+        }
+        double requiredWidth = filterInfo.prefWidth(-1)
+                + MIN_SAVED_SEARCHES_WIDTH
+                + filterCommands.prefWidth(-1)
+                + filterActionsBar.getSpacing() * 2;
+        boolean compactInfo = filterActionsBar.getWidth() < requiredWidth;
+        double informationMinWidth = compactInfo ? 0 : Region.USE_PREF_SIZE;
+        filterInfo.setMinWidth(informationMinWidth);
+        resultsCountLabel.setMinWidth(informationMinWidth);
+        unsavedChangesLabel.setMinWidth(informationMinWidth);
     }
 
     private void initializeTable() {
@@ -258,6 +335,7 @@ public class ClientiView extends BorderPane {
 
     public void setResultsCount(long totalResults) {
         resultsCountLabel.setText(totalResults + (totalResults == 1 ? " risultato trovato" : " risultati trovati"));
+        Platform.runLater(this::updateFilterActionsSizing);
     }
 
     public void clearFilters() {
@@ -265,6 +343,41 @@ public class ClientiView extends BorderPane {
         operatorFilterChoiceBox.getSelectionModel().selectFirst();
         typeFilterChoiceBox.getSelectionModel().selectFirst();
         statusFilterChoiceBox.getSelectionModel().selectFirst();
+    }
+
+    public ClientiViewState applySearchState(ClientiViewState state) {
+        searchField.setText(state.searchText());
+        selectOperator(state.operatore());
+        selectTextFilter(typeFilterChoiceBox, state.tipologia());
+        selectTextFilter(statusFilterChoiceBox, state.stato());
+        return new ClientiViewState(
+                searchField.getText(),
+                operatorFilterChoiceBox.getValue(),
+                typeFilterChoiceBox.getValue(),
+                statusFilterChoiceBox.getValue(),
+                state.sortColumn(),
+                state.ascending()
+        );
+    }
+
+    private void selectOperator(OperatoreFilter filter) {
+        operatorFilterChoiceBox.getItems().stream()
+                .filter(candidate -> Objects.equals(candidate.id(), filter.id()))
+                .findFirst()
+                .ifPresentOrElse(
+                        operatorFilterChoiceBox.getSelectionModel()::select,
+                        () -> operatorFilterChoiceBox.getSelectionModel().selectFirst()
+                );
+    }
+
+    private void selectTextFilter(ChoiceBox<TextFilter> choiceBox, TextFilter filter) {
+        choiceBox.getItems().stream()
+                .filter(candidate -> Objects.equals(candidate.value(), filter.value()))
+                .findFirst()
+                .ifPresentOrElse(
+                        choiceBox.getSelectionModel()::select,
+                        () -> choiceBox.getSelectionModel().selectFirst()
+                );
     }
 
     public HBox addClientRow(String name, String type, String contact, String operator, String status, String lastContact, Runnable onActionsClick) {
@@ -402,6 +515,92 @@ public class ClientiView extends BorderPane {
 
     public void onSaveSearch(Runnable action) {
         saveSearchButton.setOnAction(event -> action.run());
+    }
+
+    public void setSavedSearches(List<VistaSalvata> savedSearches) {
+        java.util.UUID selectedId = selectedSavedView == null ? null : selectedSavedView.id();
+        savedSearchButtons.getChildren().clear();
+        savedSearchToggleGroup.getToggles().clear();
+        selectedSavedView = null;
+        for (VistaSalvata savedView : savedSearches == null ? List.<VistaSalvata>of() : savedSearches) {
+            ToggleButton button = createSavedSearchButton(savedView);
+            savedSearchButtons.getChildren().add(button);
+            if (savedView.id().equals(selectedId)) {
+                selectSavedSearchButton(button, savedView, false);
+            }
+        }
+        manageSavedSearchButton.setDisable(selectedSavedView == null);
+    }
+
+    public void onApplySavedSearch(Consumer<VistaSalvata> action) {
+        applySavedSearchHandler = action == null ? savedView -> { } : action;
+    }
+
+    public void onUpdateSavedSearch(Consumer<VistaSalvata> action) {
+        updateSavedSearchItem.setOnAction(event -> action.accept(selectedSavedView));
+    }
+
+    public void onRenameSavedSearch(Consumer<VistaSalvata> action) {
+        renameSavedSearchItem.setOnAction(event -> action.accept(selectedSavedView));
+    }
+
+    public void onSetDefaultSavedSearch(Consumer<VistaSalvata> action) {
+        setDefaultSavedSearchItem.setOnAction(event -> action.accept(selectedSavedView));
+    }
+
+    public void onDeleteSavedSearch(Consumer<VistaSalvata> action) {
+        deleteSavedSearchItem.setOnAction(event -> action.accept(selectedSavedView));
+    }
+
+    public void selectSavedSearch(VistaSalvata savedView) {
+        if (savedView == null) {
+            savedSearchToggleGroup.selectToggle(null);
+            selectedSavedView = null;
+            manageSavedSearchButton.setDisable(true);
+            return;
+        }
+        savedSearchButtons.getChildren().stream()
+                .filter(ToggleButton.class::isInstance)
+                .map(ToggleButton.class::cast)
+                .filter(button -> savedView.id().equals(((VistaSalvata) button.getUserData()).id()))
+                .findFirst()
+                .ifPresentOrElse(
+                        button -> selectSavedSearchButton(button, savedView, false),
+                        () -> {
+                            ToggleButton button = createSavedSearchButton(savedView);
+                            savedSearchButtons.getChildren().add(button);
+                            selectSavedSearchButton(button, savedView, false);
+                        }
+                );
+    }
+
+    public void setUnsavedChangesVisible(boolean visible) {
+        unsavedChangesLabel.setManaged(visible);
+        unsavedChangesLabel.setVisible(visible);
+        Platform.runLater(this::updateFilterActionsSizing);
+    }
+
+    private ToggleButton createSavedSearchButton(VistaSalvata savedView) {
+        String label = savedView.nome() + (savedView.predefinita() ? " ★" : "");
+        ToggleButton button = new ToggleButton(label);
+        button.setUserData(savedView);
+        button.setToggleGroup(savedSearchToggleGroup);
+        button.getStyleClass().add("clients-saved-search-button");
+        button.setOnAction(event -> selectSavedSearchButton(button, savedView, true));
+        return button;
+    }
+
+    private void selectSavedSearchButton(ToggleButton button, VistaSalvata savedView, boolean apply) {
+        savedSearchToggleGroup.selectToggle(button);
+        selectedSavedView = savedView;
+        manageSavedSearchButton.setDisable(false);
+        if (apply) {
+            applySavedSearchHandler.accept(savedView);
+        }
+    }
+
+    public void setSaveSearchDisabled(boolean disabled) {
+        saveSearchButton.setDisable(disabled);
     }
 
     public void onScrollNearBottom(Runnable action) {

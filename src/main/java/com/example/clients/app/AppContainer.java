@@ -1,6 +1,7 @@
 package com.example.clients.app;
 
 import com.example.clients.core.database.Database;
+import com.example.clients.core.session.FeatureSessionStateStore;
 //import com.example.clients.core.database.implementation.*;
 //import com.example.clients.core.database.repository.*;
 
@@ -15,6 +16,7 @@ public class AppContainer {
 
     // --- Database ---
     protected final Database database;
+    protected final FeatureSessionStateStore featureSessionStateStore;
     private final Connection sharedConnection;
 
     protected AppContainer() {
@@ -23,6 +25,7 @@ public class AppContainer {
         this.database = new Database();
         database.start();
         this.sharedConnection = database.getConnection();
+        this.featureSessionStateStore = new FeatureSessionStateStore();
 
         // REPOSITORIES
       //  this.itemRepo = new ItemRepositoryImpl(sharedConnection);
@@ -35,6 +38,7 @@ public class AppContainer {
 
 
     public void shutdown() {
+        featureSessionStateStore.clear();
         try {
             if (!sharedConnection.isClosed()) {
                 sharedConnection.close();
