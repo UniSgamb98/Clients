@@ -96,6 +96,11 @@
     -fx-padding: 0 2;
 }
 
+.clients-filter-info,
+.clients-filter-commands {
+    -fx-alignment: center-left;
+}
+
 .clients-clear-filters-button {
     -fx-border-color: transparent;
 }

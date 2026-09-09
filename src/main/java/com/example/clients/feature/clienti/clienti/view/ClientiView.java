@@ -8,6 +8,7 @@ import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.SortColumn;
 import com.example.clients.feature.clienti.clienti.dto.TextFilter;
 import javafx.geometry.Insets;
+import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
@@ -35,6 +36,7 @@ public class ClientiView extends BorderPane {
     private static final double STATUS_COLUMN_WIDTH = 105;
     private static final double LAST_CONTACT_COLUMN_WIDTH = 95;
     private static final double ACTIONS_COLUMN_WIDTH = 52;
+    private static final double MIN_SAVED_SEARCHES_WIDTH = 250;
 
     private final AppSidebar sidebar;
     private final TextField searchField;
@@ -68,6 +70,9 @@ public class ClientiView extends BorderPane {
     private final ScrollPane tableScrollPane;
     private final ClientePreviewDetailPanel detailPanel;
     private final ClientiResultsTable resultsTable;
+    private HBox filterActionsBar;
+    private HBox filterInfo;
+    private HBox filterCommands;
     private HBox selectedClientRow;
     private VistaSalvata selectedSavedView;
     private Consumer<VistaSalvata> applySavedSearchHandler = savedView -> { };
@@ -102,7 +107,8 @@ public class ClientiView extends BorderPane {
         savedSearchesScrollPane.setFitToHeight(true);
         savedSearchesScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         savedSearchesScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        savedSearchesScrollPane.setMinWidth(0);
+        savedSearchesScrollPane.setMinWidth(MIN_SAVED_SEARCHES_WIDTH);
+        savedSearchesScrollPane.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(savedSearchesScrollPane, javafx.scene.layout.Priority.ALWAYS);
         updateSavedSearchItem = new MenuItem("Aggiorna con i filtri correnti");
         renameSavedSearchItem = new MenuItem("Rinomina");
@@ -202,17 +208,37 @@ public class ClientiView extends BorderPane {
     }
 
     private HBox createFilterActionsBar() {
-        HBox actions = new HBox(12);
-        actions.getStyleClass().add("clients-filter-actions");
-        actions.getChildren().addAll(
-                resultsCountLabel,
-                unsavedChangesLabel,
-                savedSearchesScrollPane,
+        filterInfo = new HBox(12, resultsCountLabel, unsavedChangesLabel);
+        filterInfo.getStyleClass().add("clients-filter-info");
+        filterInfo.setMinWidth(Region.USE_PREF_SIZE);
+
+        filterCommands = new HBox(12,
                 manageSavedSearchButton,
                 clearFiltersButton,
                 saveSearchButton
         );
-        return actions;
+        filterCommands.getStyleClass().add("clients-filter-commands");
+        filterCommands.setMinWidth(Region.USE_PREF_SIZE);
+
+        filterActionsBar = new HBox(12, filterInfo, savedSearchesScrollPane, filterCommands);
+        filterActionsBar.getStyleClass().add("clients-filter-actions");
+        filterActionsBar.widthProperty().addListener((observable, oldValue, newValue) -> updateFilterActionsSizing());
+        return filterActionsBar;
+    }
+
+    private void updateFilterActionsSizing() {
+        if (filterActionsBar == null || filterActionsBar.getWidth() <= 0) {
+            return;
+        }
+        double requiredWidth = filterInfo.prefWidth(-1)
+                + MIN_SAVED_SEARCHES_WIDTH
+                + filterCommands.prefWidth(-1)
+                + filterActionsBar.getSpacing() * 2;
+        boolean compactInfo = filterActionsBar.getWidth() < requiredWidth;
+        double informationMinWidth = compactInfo ? 0 : Region.USE_PREF_SIZE;
+        filterInfo.setMinWidth(informationMinWidth);
+        resultsCountLabel.setMinWidth(informationMinWidth);
+        unsavedChangesLabel.setMinWidth(informationMinWidth);
     }
 
     private void initializeTable() {
@@ -309,6 +335,7 @@ public class ClientiView extends BorderPane {
 
     public void setResultsCount(long totalResults) {
         resultsCountLabel.setText(totalResults + (totalResults == 1 ? " risultato trovato" : " risultati trovati"));
+        Platform.runLater(this::updateFilterActionsSizing);
     }
 
     public void clearFilters() {
@@ -550,6 +577,7 @@ public class ClientiView extends BorderPane {
     public void setUnsavedChangesVisible(boolean visible) {
         unsavedChangesLabel.setManaged(visible);
         unsavedChangesLabel.setVisible(visible);
+        Platform.runLater(this::updateFilterActionsSizing);
     }
 
     private ToggleButton createSavedSearchButton(VistaSalvata savedView) {
