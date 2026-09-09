@@ -12,6 +12,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
@@ -45,6 +47,12 @@ public class ClientiView extends BorderPane {
     private final Button saveSearchButton;
     private final ComboBox<VistaSalvata> savedSearchesComboBox;
     private final Button applySavedSearchButton;
+    private final MenuButton manageSavedSearchButton;
+    private final MenuItem updateSavedSearchItem;
+    private final MenuItem renameSavedSearchItem;
+    private final MenuItem setDefaultSavedSearchItem;
+    private final MenuItem deleteSavedSearchItem;
+    private final Label unsavedChangesLabel;
     private final Label resultsCountLabel;
     private final Button nameHeaderButton;
     private final Button typeHeaderButton;
@@ -81,7 +89,7 @@ public class ClientiView extends BorderPane {
         otherFiltersButton.getStyleClass().add("clients-other-filters-button");
         clearFiltersButton = new Button("Pulisci filtri");
         clearFiltersButton.getStyleClass().add("clients-clear-filters-button");
-        saveSearchButton = new Button("Salva ricerca");
+        saveSearchButton = new Button("Salva come nuova");
         saveSearchButton.getStyleClass().add("clients-save-search-button");
         savedSearchesComboBox = new ComboBox<>();
         savedSearchesComboBox.setPromptText("Ricerche salvate");
@@ -104,7 +112,25 @@ public class ClientiView extends BorderPane {
         applySavedSearchButton.getStyleClass().add("clients-apply-search-button");
         applySavedSearchButton.setDisable(true);
         savedSearchesComboBox.valueProperty().addListener((observable, oldValue, newValue) ->
-                applySavedSearchButton.setDisable(newValue == null));
+                setSavedSearchActionsDisabled(newValue == null));
+        updateSavedSearchItem = new MenuItem("Aggiorna con i filtri correnti");
+        renameSavedSearchItem = new MenuItem("Rinomina");
+        setDefaultSavedSearchItem = new MenuItem("Imposta come predefinita");
+        deleteSavedSearchItem = new MenuItem("Elimina");
+        manageSavedSearchButton = new MenuButton(
+                "Gestisci",
+                null,
+                updateSavedSearchItem,
+                renameSavedSearchItem,
+                setDefaultSavedSearchItem,
+                deleteSavedSearchItem
+        );
+        manageSavedSearchButton.getStyleClass().add("clients-manage-search-button");
+        manageSavedSearchButton.setDisable(true);
+        unsavedChangesLabel = new Label("Modifiche non salvate");
+        unsavedChangesLabel.getStyleClass().add("clients-unsaved-search-label");
+        unsavedChangesLabel.setManaged(false);
+        unsavedChangesLabel.setVisible(false);
         resultsCountLabel = new Label("0 risultati trovati");
         resultsCountLabel.getStyleClass().add("clients-results-count");
 
@@ -191,9 +217,11 @@ public class ClientiView extends BorderPane {
         HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
         actions.getChildren().addAll(
                 resultsCountLabel,
+                unsavedChangesLabel,
                 spacer,
                 savedSearchesComboBox,
                 applySavedSearchButton,
+                manageSavedSearchButton,
                 clearFiltersButton,
                 saveSearchButton
         );
@@ -488,6 +516,39 @@ public class ClientiView extends BorderPane {
 
     public void onApplySavedSearch(Consumer<VistaSalvata> action) {
         applySavedSearchButton.setOnAction(event -> action.accept(savedSearchesComboBox.getValue()));
+    }
+
+    public void onUpdateSavedSearch(Consumer<VistaSalvata> action) {
+        updateSavedSearchItem.setOnAction(event -> action.accept(savedSearchesComboBox.getValue()));
+    }
+
+    public void onRenameSavedSearch(Consumer<VistaSalvata> action) {
+        renameSavedSearchItem.setOnAction(event -> action.accept(savedSearchesComboBox.getValue()));
+    }
+
+    public void onSetDefaultSavedSearch(Consumer<VistaSalvata> action) {
+        setDefaultSavedSearchItem.setOnAction(event -> action.accept(savedSearchesComboBox.getValue()));
+    }
+
+    public void onDeleteSavedSearch(Consumer<VistaSalvata> action) {
+        deleteSavedSearchItem.setOnAction(event -> action.accept(savedSearchesComboBox.getValue()));
+    }
+
+    public void selectSavedSearch(VistaSalvata savedView) {
+        if (savedView != null && savedSearchesComboBox.getItems().stream().noneMatch(view -> view.id().equals(savedView.id()))) {
+            savedSearchesComboBox.getItems().add(savedView);
+        }
+        savedSearchesComboBox.setValue(savedView);
+    }
+
+    public void setUnsavedChangesVisible(boolean visible) {
+        unsavedChangesLabel.setManaged(visible);
+        unsavedChangesLabel.setVisible(visible);
+    }
+
+    private void setSavedSearchActionsDisabled(boolean disabled) {
+        applySavedSearchButton.setDisable(disabled);
+        manageSavedSearchButton.setDisable(disabled);
     }
 
     public void setSaveSearchDisabled(boolean disabled) {

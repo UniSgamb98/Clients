@@ -13,6 +13,7 @@ import com.example.clients.feature.clienti.clienti.dto.ClientePreviewRow;
 import com.example.clients.feature.clienti.clienti.dto.ClientiPage;
 import com.example.clients.feature.clienti.clienti.dto.ClientiSearchRequest;
 import com.example.clients.feature.clienti.clienti.dto.ClientiSearchState;
+import com.example.clients.feature.clienti.clienti.dto.ClientiSessionState;
 import com.example.clients.feature.clienti.clienti.dto.ClientiViewState;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import com.example.clients.feature.clienti.clienti.dto.SortColumn;
@@ -25,6 +26,7 @@ import javafx.util.Duration;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class ClientiController {
 
@@ -53,6 +55,8 @@ public class ClientiController {
     private boolean savedSearchesLoaded;
     private boolean initialRestoreCompleted;
     private ClientiViewState defaultSavedState;
+    private VistaSalvata activeSavedView;
+    private ClientiViewState savedBaseline;
 
     public ClientiController(
             ClientiView view,
@@ -84,17 +88,24 @@ public class ClientiController {
         view.onClearFilters(this::clearFilters);
         view.onSaveSearch(this::saveCurrentSearch);
         view.onApplySavedSearch(this::applySavedSearch);
+        view.onUpdateSavedSearch(this::updateSavedSearch);
+        view.onRenameSavedSearch(this::renameSavedSearch);
+        view.onSetDefaultSavedSearch(this::setDefaultSavedSearch);
+        view.onDeleteSavedSearch(this::deleteSavedSearch);
         view.onScrollNearBottom(this::loadNextPage);
     }
 
     public void loadPreviewClientsAsync() {
-        Optional<ClientiViewState> savedState = sessionStateStore.find(
+        Optional<ClientiSessionState> sessionState = sessionStateStore.find(
                 currentOperatoreService.currentOperatoreId(),
                 FeatureKey.CLIENTI,
-                ClientiViewState.class
+                ClientiSessionState.class
         );
-        sessionStateAvailable = savedState.isPresent();
-        searchState = savedState.orElseGet(ClientiViewState::initial).toSearchState(INITIAL_LOAD_SIZE);
+        sessionStateAvailable = sessionState.isPresent();
+        ClientiViewState savedState = sessionState.map(ClientiSessionState::viewState)
+                .orElseGet(ClientiViewState::initial);
+        searchState = savedState.toSearchState(INITIAL_LOAD_SIZE);
+        savedBaseline = sessionState.map(ClientiSessionState::savedBaseline).orElse(null);
         restoringFilters = true;
         pendingFilterLoads = 3;
         loadFiltersAsync();
@@ -131,6 +142,7 @@ public class ClientiController {
         }
         searchState = searchState.withSearchText(searchText);
         rememberSearchState();
+        updateUnsavedChangesIndicator();
         searchDebounce.stop();
         searchDebounce.setOnFinished(event -> reloadClients());
         searchDebounce.playFromStart();
@@ -142,6 +154,7 @@ public class ClientiController {
         }
         searchState = searchState.withOperatore(operatoreFilter);
         rememberSearchState();
+        updateUnsavedChangesIndicator();
         reloadClients();
     }
 
@@ -151,6 +164,7 @@ public class ClientiController {
         }
         searchState = searchState.withTipologia(filter);
         rememberSearchState();
+        updateUnsavedChangesIndicator();
         reloadClients();
     }
 
@@ -160,6 +174,7 @@ public class ClientiController {
         }
         searchState = searchState.withStato(filter);
         rememberSearchState();
+        updateUnsavedChangesIndicator();
         reloadClients();
     }
 
@@ -170,6 +185,7 @@ public class ClientiController {
         searchState = ClientiSearchState.initial(INITIAL_LOAD_SIZE);
         clearingFilters = false;
         rememberSearchState();
+        updateUnsavedChangesIndicator();
         reloadClients();
     }
 
@@ -183,11 +199,16 @@ public class ClientiController {
 
     private void handleSavedSearchesLoaded(List<VistaSalvata> savedSearches) {
         view.setSavedSearches(savedSearches);
+        restoreActiveSavedView(savedSearches);
         if (!initialRestoreCompleted && !sessionStateAvailable) {
             savedSearches.stream()
                     .filter(VistaSalvata::predefinita)
                     .findFirst()
-                    .ifPresent(savedView -> defaultSavedState = decodeOrDefault(savedView));
+                    .ifPresent(savedView -> {
+                        activeSavedView = savedView;
+                        defaultSavedState = decodeOrDefault(savedView);
+                        savedBaseline = defaultSavedState;
+                    });
         }
         savedSearchesLoaded = true;
         completeInitialRestoreWhenReady();
@@ -212,6 +233,8 @@ public class ClientiController {
         searchState = restoredState.toSearchState(INITIAL_LOAD_SIZE);
         restoringFilters = false;
         initialRestoreCompleted = true;
+        view.selectSavedSearch(activeSavedView);
+        updateUnsavedChangesIndicator();
         rememberSearchState();
         reloadClients();
     }
@@ -229,6 +252,11 @@ public class ClientiController {
                     ),
                     savedView -> {
                         view.setSaveSearchDisabled(false);
+                        activeSavedView = savedView;
+                        savedBaseline = stateToSave;
+                        view.selectSavedSearch(savedView);
+                        updateUnsavedChangesIndicator();
+                        rememberSearchState();
                         loadSavedSearchesAsync();
                         feedback.showSearchSaved(savedView.nome());
                     },
@@ -250,6 +278,10 @@ public class ClientiController {
             ClientiViewState appliedState = view.applySearchState(decodedState);
             searchState = appliedState.toSearchState(INITIAL_LOAD_SIZE);
             restoringFilters = false;
+            activeSavedView = savedView;
+            savedBaseline = appliedState;
+            view.selectSavedSearch(savedView);
+            updateUnsavedChangesIndicator();
             rememberSearchState();
             reloadClients();
         } catch (RuntimeException e) {
@@ -264,9 +296,136 @@ public class ClientiController {
                 : error.getMessage();
     }
 
+    private void updateSavedSearch(VistaSalvata savedView) {
+        if (savedView == null) {
+            return;
+        }
+        ClientiViewState currentState = ClientiViewState.from(searchState);
+        AsyncLoader.run(
+                () -> vistaSalvataService.update(
+                        savedView.id(),
+                        savedView.nome(),
+                        viewStateCodec.encode(currentState),
+                        savedView.predefinita()
+                ),
+                updatedView -> {
+                    activeSavedView = updatedView;
+                    savedBaseline = currentState;
+                    view.selectSavedSearch(updatedView);
+                    updateUnsavedChangesIndicator();
+                    rememberSearchState();
+                    loadSavedSearchesAsync();
+                    feedback.showOperationCompleted("La ricerca è stata aggiornata.");
+                },
+                error -> feedback.showError(safeMessage(error))
+        );
+    }
+
+    private void renameSavedSearch(VistaSalvata savedView) {
+        if (savedView == null) {
+            return;
+        }
+        feedback.requestRename(savedView).ifPresent(newName -> AsyncLoader.run(
+                () -> vistaSalvataService.update(
+                        savedView.id(),
+                        newName,
+                        savedView.payload(),
+                        savedView.predefinita()
+                ),
+                renamedView -> {
+                    if (isActive(renamedView.id())) {
+                        activeSavedView = renamedView;
+                    }
+                    view.selectSavedSearch(renamedView);
+                    rememberSearchState();
+                    loadSavedSearchesAsync();
+                    feedback.showOperationCompleted("La ricerca è stata rinominata.");
+                },
+                error -> feedback.showError(safeMessage(error))
+        ));
+    }
+
+    private void setDefaultSavedSearch(VistaSalvata savedView) {
+        if (savedView == null) {
+            return;
+        }
+        AsyncLoader.run(
+                () -> {
+                    vistaSalvataService.setPredefinita(savedView.id());
+                    return savedView.id();
+                },
+                savedViewId -> {
+                    loadSavedSearchesAsync();
+                    feedback.showOperationCompleted("La ricerca è ora quella predefinita.");
+                },
+                error -> feedback.showError(safeMessage(error))
+        );
+    }
+
+    private void deleteSavedSearch(VistaSalvata savedView) {
+        if (savedView == null || !feedback.confirmDelete(savedView)) {
+            return;
+        }
+        AsyncLoader.run(
+                () -> {
+                    vistaSalvataService.delete(savedView.id());
+                    return savedView.id();
+                },
+                deletedId -> {
+                    if (isActive(deletedId)) {
+                        activeSavedView = null;
+                        savedBaseline = null;
+                        updateUnsavedChangesIndicator();
+                        rememberSearchState();
+                    }
+                    view.selectSavedSearch(null);
+                    loadSavedSearchesAsync();
+                    feedback.showOperationCompleted("La ricerca è stata eliminata.");
+                },
+                error -> feedback.showError(safeMessage(error))
+        );
+    }
+
+    private void restoreActiveSavedView(List<VistaSalvata> savedSearches) {
+        UUID activeId = activeSavedView == null ? sessionActiveSavedViewId() : activeSavedView.id();
+        if (activeId == null) {
+            return;
+        }
+        activeSavedView = savedSearches.stream()
+                .filter(savedView -> savedView.id().equals(activeId))
+                .findFirst()
+                .orElse(null);
+        if (activeSavedView == null) {
+            savedBaseline = null;
+        } else if (!initialRestoreCompleted) {
+            view.selectSavedSearch(activeSavedView);
+        }
+        updateUnsavedChangesIndicator();
+    }
+
+    private UUID sessionActiveSavedViewId() {
+        return sessionStateStore.find(
+                currentOperatoreService.currentOperatoreId(),
+                FeatureKey.CLIENTI,
+                ClientiSessionState.class
+        ).map(ClientiSessionState::activeSavedViewId).orElse(null);
+    }
+
+    private boolean isActive(UUID savedViewId) {
+        return activeSavedView != null && activeSavedView.id().equals(savedViewId);
+    }
+
+    private void updateUnsavedChangesIndicator() {
+        boolean unsavedChanges = activeSavedView != null
+                && savedBaseline != null
+                && !savedBaseline.equals(ClientiViewState.from(searchState));
+        view.setUnsavedChangesVisible(unsavedChanges);
+    }
+
     private void sortClienti(SortColumn sortColumn) {
         searchState = searchState.togglingSort(sortColumn);
         rememberSearchState();
+        updateUnsavedChangesIndicator();
         reloadClients();
     }
 
@@ -274,7 +433,11 @@ public class ClientiController {
         sessionStateStore.save(
                 currentOperatoreService.currentOperatoreId(),
                 FeatureKey.CLIENTI,
-                ClientiViewState.from(searchState)
+                new ClientiSessionState(
+                        ClientiViewState.from(searchState),
+                        activeSavedView == null ? null : activeSavedView.id(),
+                        savedBaseline
+                )
         );
     }
 

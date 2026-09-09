@@ -73,7 +73,8 @@
 .clients-other-filters-button,
 .clients-clear-filters-button,
 .clients-save-search-button,
-.clients-apply-search-button {
+.clients-apply-search-button,
+.clients-manage-search-button {
     -fx-background-color: transparent;
     -fx-text-fill: -app-text-muted;
     -fx-border-color: -app-border-soft;
@@ -86,7 +87,8 @@
 .clients-other-filters-button:hover,
 .clients-clear-filters-button:hover,
 .clients-save-search-button:hover,
-.clients-apply-search-button:hover {
+.clients-apply-search-button:hover,
+.clients-manage-search-button:hover {
     -fx-background-color: -app-control-alt-bg;
     -fx-text-fill: -app-text;
 }
@@ -107,6 +109,12 @@
 
 .clients-saved-searches {
     -fx-pref-width: 190;
+}
+
+.clients-unsaved-search-label {
+    -fx-text-fill: -app-warning;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
 }
 
 .clients-results-count {
