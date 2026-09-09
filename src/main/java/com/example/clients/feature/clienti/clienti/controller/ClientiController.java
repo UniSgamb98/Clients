@@ -183,6 +183,9 @@ public class ClientiController {
         searchDebounce.stop();
         view.clearFilters();
         searchState = ClientiSearchState.initial(INITIAL_LOAD_SIZE);
+        activeSavedView = null;
+        savedBaseline = null;
+        view.selectSavedSearch(null);
         clearingFilters = false;
         rememberSearchState();
         updateUnsavedChangesIndicator();

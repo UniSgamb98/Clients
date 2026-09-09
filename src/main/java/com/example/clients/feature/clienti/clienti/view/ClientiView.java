@@ -97,7 +97,7 @@ public class ClientiView extends BorderPane {
         otherFiltersButton.getStyleClass().add("clients-other-filters-button");
         clearFiltersButton = new Button("Pulisci filtri");
         clearFiltersButton.getStyleClass().add("clients-clear-filters-button");
-        saveSearchButton = new Button("Salva come nuova");
+        saveSearchButton = new Button("Salva nuova ricerca");
         saveSearchButton.getStyleClass().add("clients-save-search-button");
         savedSearchButtons = new HBox(8);
         savedSearchButtons.getStyleClass().add("clients-saved-search-buttons");
