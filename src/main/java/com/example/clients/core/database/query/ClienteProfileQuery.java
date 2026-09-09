@@ -67,6 +67,7 @@ public interface ClienteProfileQuery {
     }
 
     record TimelineRecord(
+            UUID notaId,
             UUID interazioneId,
             LocalDate data,
             LocalDateTime createdAt,

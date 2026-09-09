@@ -9,13 +9,11 @@ public record Interazione(
         UUID id,
         UUID clienteId,
         UUID operatoreId,
-        String tipo,
-        UUID attivitaId,
+        UUID notaId,
         LocalDate dataContatto,
         LocalDate prossimoContatto,
         CallOutcome esito,
         BigDecimal coinvolgimento,
-        String testo,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
