@@ -32,7 +32,6 @@ public class CalendarioController {
         view.getPreviousMonthButton().setOnAction(event -> showMonth(displayedMonth.minusMonths(1)));
         view.getNextMonthButton().setOnAction(event -> showMonth(displayedMonth.plusMonths(1)));
         view.getNextYearButton().setOnAction(event -> showMonth(displayedMonth.plusYears(1)));
-        view.getTodayButton().setOnAction(event -> showMonth(service.currentMonth()));
         refreshMonth();
     }
 

@@ -30,7 +30,6 @@ public class CalendarioView extends BorderPane {
     private static final DateTimeFormatter AGENDA_DATE_FORMATTER = DateTimeFormatter.ofPattern("EEEE d MMMM", java.util.Locale.ITALIAN);
 
     private final AppSidebar sidebar;
-    private final Button todayButton;
     private final Button previousYearButton;
     private final Button previousMonthButton;
     private final Button nextMonthButton;
@@ -50,7 +49,6 @@ public class CalendarioView extends BorderPane {
 
     public CalendarioView() {
         sidebar = new AppSidebar();
-        todayButton = createSecondaryButton("Oggi");
         previousYearButton = createNavigationButton("/\\", "Anno precedente");
         previousMonthButton = createSecondaryButton("<");
         nextMonthButton = createSecondaryButton(">");
@@ -119,7 +117,6 @@ public class CalendarioView extends BorderPane {
 
         monthViewButton.getStyleClass().add("calendar-toggle-selected");
         toolbar.getChildren().addAll(
-                todayButton,
                 previousYearButton,
                 previousMonthButton,
                 currentPeriodLabel,
@@ -283,10 +280,6 @@ public class CalendarioView extends BorderPane {
 
     public ChoiceBox<OperatoreFilter> getOperatorFilterChoiceBox() {
         return operatorFilterChoiceBox;
-    }
-
-    public Button getTodayButton() {
-        return todayButton;
     }
 
     public Button getPreviousMonthButton() {
