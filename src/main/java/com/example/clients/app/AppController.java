@@ -11,6 +11,8 @@ import com.example.clients.feature.auth.login.navigator.LoginNav;
 import com.example.clients.feature.auth.login.service.LoginService;
 import com.example.clients.feature.auth.login.view.LoginView;
 import com.example.clients.core.ui.AppSidebar;
+import com.example.clients.feature.calendario.controller.CalendarioController;
+import com.example.clients.feature.calendario.service.CalendarioService;
 import com.example.clients.feature.calendario.view.CalendarioView;
 import com.example.clients.feature.clienti.clienti.controller.ClientiController;
 import com.example.clients.feature.clienti.clienti.service.ClientiService;
@@ -157,6 +159,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     public void showCalendario() {
         CalendarioView view = new CalendarioView();
         configureSidebar(view.getSidebar());
+        new CalendarioController(view, new CalendarioService());
 
         showView(
                 view,

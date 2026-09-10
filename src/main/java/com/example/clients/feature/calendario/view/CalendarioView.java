@@ -1,6 +1,7 @@
 package com.example.clients.feature.calendario.view;
 
 import com.example.clients.core.ui.AppSidebar;
+import com.example.clients.feature.calendario.dto.CalendarioMonth;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -12,14 +13,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
-import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.format.TextStyle;
-import java.util.Locale;
-
 public class CalendarioView extends BorderPane {
 
-    private static final Locale ITALIAN = Locale.ITALIAN;
     private static final String[] WEEK_DAYS = {"Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"};
 
     private final AppSidebar sidebar;
@@ -35,7 +30,6 @@ public class CalendarioView extends BorderPane {
     private final VBox activityList;
     private final Label currentPeriodLabel;
     private final GridPane monthGrid;
-    private YearMonth displayedMonth;
 
     public CalendarioView() {
         sidebar = new AppSidebar();
@@ -50,20 +44,12 @@ public class CalendarioView extends BorderPane {
         newActivityButton = createPrimaryButton("+ Nuova attività");
         activityList = new VBox(10);
         activityList.getStyleClass().add("calendar-activity-list");
-        displayedMonth = YearMonth.now();
         currentPeriodLabel = new Label();
         currentPeriodLabel.getStyleClass().add("calendar-period-label");
         monthGrid = new GridPane();
         monthGrid.getStyleClass().add("calendar-month-grid");
         monthGrid.setHgap(8);
         monthGrid.setVgap(8);
-
-        previousYearButton.setOnAction(event -> showMonth(displayedMonth.minusYears(1)));
-        previousMonthButton.setOnAction(event -> showMonth(displayedMonth.minusMonths(1)));
-        nextMonthButton.setOnAction(event -> showMonth(displayedMonth.plusMonths(1)));
-        nextYearButton.setOnAction(event -> showMonth(displayedMonth.plusYears(1)));
-        todayButton.setOnAction(event -> showMonth(YearMonth.now()));
-        refreshMonth();
 
         setLeft(sidebar);
         setCenter(createContent());
@@ -140,8 +126,8 @@ public class CalendarioView extends BorderPane {
         return panel;
     }
 
-    private void refreshMonth() {
-        currentPeriodLabel.setText(formatMonth(displayedMonth));
+    public void showMonth(CalendarioMonth month) {
+        currentPeriodLabel.setText(month.periodLabel());
         monthGrid.getChildren().clear();
         for (int column = 0; column < WEEK_DAYS.length; column++) {
             Label dayHeader = new Label(WEEK_DAYS[column]);
@@ -149,14 +135,10 @@ public class CalendarioView extends BorderPane {
             monthGrid.add(dayHeader, column, 0);
         }
 
-        LocalDate firstDay = displayedMonth.atDay(1);
-        int firstColumn = firstDay.getDayOfWeek().getValue() - 1;
         int row = 1;
-        int column = firstColumn;
-        LocalDate today = LocalDate.now();
-        boolean currentMonth = displayedMonth.equals(YearMonth.from(today));
-        for (int day = 1; day <= displayedMonth.lengthOfMonth(); day++) {
-            VBox cell = createDayCell(day, currentMonth && day == today.getDayOfMonth());
+        int column = month.firstColumn();
+        for (int day = 1; day <= month.dayCount(); day++) {
+            VBox cell = createDayCell(day, month.todayDay() != null && day == month.todayDay());
             monthGrid.add(cell, column, row);
             column++;
             if (column == WEEK_DAYS.length) {
@@ -164,11 +146,6 @@ public class CalendarioView extends BorderPane {
                 row++;
             }
         }
-    }
-
-    private void showMonth(YearMonth month) {
-        displayedMonth = month;
-        refreshMonth();
     }
 
     private VBox createDayCell(int day, boolean today) {
@@ -252,11 +229,6 @@ public class CalendarioView extends BorderPane {
         Button button = new Button(text);
         button.getStyleClass().add("calendar-toggle-button");
         return button;
-    }
-
-    private String formatMonth(YearMonth month) {
-        String monthName = month.getMonth().getDisplayName(TextStyle.FULL, ITALIAN);
-        return monthName.substring(0, 1).toUpperCase(ITALIAN) + monthName.substring(1) + " " + month.getYear();
     }
 
     public AppSidebar getSidebar() {
