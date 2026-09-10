@@ -23,21 +23,40 @@ public class CalendarioView extends BorderPane {
 
     private final AppSidebar sidebar;
     private final Button todayButton;
+    private final Button previousMonthButton;
+    private final Button nextMonthButton;
     private final Button dayViewButton;
     private final Button weekViewButton;
     private final Button monthViewButton;
     private final Button newActivityButton;
     private final VBox activityList;
+    private final Label currentPeriodLabel;
+    private final GridPane monthGrid;
+    private YearMonth displayedMonth;
 
     public CalendarioView() {
         sidebar = new AppSidebar();
         todayButton = createSecondaryButton("Oggi");
+        previousMonthButton = createSecondaryButton("<");
+        nextMonthButton = createSecondaryButton(">");
         dayViewButton = createToggleButton("Giorno");
         weekViewButton = createToggleButton("Settimana");
         monthViewButton = createToggleButton("Mese");
         newActivityButton = createPrimaryButton("+ Nuova attività");
         activityList = new VBox(10);
         activityList.getStyleClass().add("calendar-activity-list");
+        displayedMonth = YearMonth.now();
+        currentPeriodLabel = new Label();
+        currentPeriodLabel.getStyleClass().add("calendar-period-label");
+        monthGrid = new GridPane();
+        monthGrid.getStyleClass().add("calendar-month-grid");
+        monthGrid.setHgap(8);
+        monthGrid.setVgap(8);
+
+        previousMonthButton.setOnAction(event -> showMonth(displayedMonth.minusMonths(1)));
+        nextMonthButton.setOnAction(event -> showMonth(displayedMonth.plusMonths(1)));
+        todayButton.setOnAction(event -> showMonth(YearMonth.now()));
+        refreshMonth();
 
         setLeft(sidebar);
         setCenter(createContent());
@@ -79,15 +98,15 @@ public class CalendarioView extends BorderPane {
         toolbar.setAlignment(Pos.CENTER_LEFT);
         toolbar.getStyleClass().add("calendar-toolbar");
 
-        Label currentPeriod = new Label(formatCurrentMonth());
-        currentPeriod.getStyleClass().add("calendar-period-label");
         HBox spacer = new HBox();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         monthViewButton.getStyleClass().add("calendar-toggle-selected");
         toolbar.getChildren().addAll(
                 todayButton,
-                currentPeriod,
+                previousMonthButton,
+                currentPeriodLabel,
+                nextMonthButton,
                 spacer,
                 dayViewButton,
                 weekViewButton,
@@ -107,38 +126,40 @@ public class CalendarioView extends BorderPane {
     private VBox createMonthPanel() {
         VBox panel = new VBox(10);
         panel.getStyleClass().add("calendar-panel");
-        panel.getChildren().add(createMonthGrid());
+        panel.getChildren().add(monthGrid);
         HBox.setHgrow(panel, Priority.ALWAYS);
         return panel;
     }
 
-    private GridPane createMonthGrid() {
-        GridPane grid = new GridPane();
-        grid.getStyleClass().add("calendar-month-grid");
-        grid.setHgap(8);
-        grid.setVgap(8);
-
+    private void refreshMonth() {
+        currentPeriodLabel.setText(formatMonth(displayedMonth));
+        monthGrid.getChildren().clear();
         for (int column = 0; column < WEEK_DAYS.length; column++) {
             Label dayHeader = new Label(WEEK_DAYS[column]);
             dayHeader.getStyleClass().add("calendar-day-header");
-            grid.add(dayHeader, column, 0);
+            monthGrid.add(dayHeader, column, 0);
         }
 
-        YearMonth currentMonth = YearMonth.now();
-        LocalDate firstDay = currentMonth.atDay(1);
+        LocalDate firstDay = displayedMonth.atDay(1);
         int firstColumn = firstDay.getDayOfWeek().getValue() - 1;
         int row = 1;
         int column = firstColumn;
-        for (int day = 1; day <= currentMonth.lengthOfMonth(); day++) {
-            VBox cell = createDayCell(day, day == LocalDate.now().getDayOfMonth());
-            grid.add(cell, column, row);
+        LocalDate today = LocalDate.now();
+        boolean currentMonth = displayedMonth.equals(YearMonth.from(today));
+        for (int day = 1; day <= displayedMonth.lengthOfMonth(); day++) {
+            VBox cell = createDayCell(day, currentMonth && day == today.getDayOfMonth());
+            monthGrid.add(cell, column, row);
             column++;
             if (column == WEEK_DAYS.length) {
                 column = 0;
                 row++;
             }
         }
-        return grid;
+    }
+
+    private void showMonth(YearMonth month) {
+        displayedMonth = month;
+        refreshMonth();
     }
 
     private VBox createDayCell(int day, boolean today) {
@@ -217,8 +238,7 @@ public class CalendarioView extends BorderPane {
         return button;
     }
 
-    private String formatCurrentMonth() {
-        YearMonth month = YearMonth.now();
+    private String formatMonth(YearMonth month) {
         String monthName = month.getMonth().getDisplayName(TextStyle.FULL, ITALIAN);
         return monthName.substring(0, 1).toUpperCase(ITALIAN) + monthName.substring(1) + " " + month.getYear();
     }
@@ -229,6 +249,14 @@ public class CalendarioView extends BorderPane {
 
     public Button getTodayButton() {
         return todayButton;
+    }
+
+    public Button getPreviousMonthButton() {
+        return previousMonthButton;
+    }
+
+    public Button getNextMonthButton() {
+        return nextMonthButton;
     }
 
     public Button getDayViewButton() {
