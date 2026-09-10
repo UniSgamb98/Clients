@@ -5,6 +5,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -23,8 +24,10 @@ public class CalendarioView extends BorderPane {
 
     private final AppSidebar sidebar;
     private final Button todayButton;
+    private final Button previousYearButton;
     private final Button previousMonthButton;
     private final Button nextMonthButton;
+    private final Button nextYearButton;
     private final Button dayViewButton;
     private final Button weekViewButton;
     private final Button monthViewButton;
@@ -37,8 +40,10 @@ public class CalendarioView extends BorderPane {
     public CalendarioView() {
         sidebar = new AppSidebar();
         todayButton = createSecondaryButton("Oggi");
+        previousYearButton = createNavigationButton("/\\", "Anno precedente");
         previousMonthButton = createSecondaryButton("<");
         nextMonthButton = createSecondaryButton(">");
+        nextYearButton = createNavigationButton("\\/", "Anno successivo");
         dayViewButton = createToggleButton("Giorno");
         weekViewButton = createToggleButton("Settimana");
         monthViewButton = createToggleButton("Mese");
@@ -53,8 +58,10 @@ public class CalendarioView extends BorderPane {
         monthGrid.setHgap(8);
         monthGrid.setVgap(8);
 
+        previousYearButton.setOnAction(event -> showMonth(displayedMonth.minusYears(1)));
         previousMonthButton.setOnAction(event -> showMonth(displayedMonth.minusMonths(1)));
         nextMonthButton.setOnAction(event -> showMonth(displayedMonth.plusMonths(1)));
+        nextYearButton.setOnAction(event -> showMonth(displayedMonth.plusYears(1)));
         todayButton.setOnAction(event -> showMonth(YearMonth.now()));
         refreshMonth();
 
@@ -104,9 +111,11 @@ public class CalendarioView extends BorderPane {
         monthViewButton.getStyleClass().add("calendar-toggle-selected");
         toolbar.getChildren().addAll(
                 todayButton,
+                previousYearButton,
                 previousMonthButton,
                 currentPeriodLabel,
                 nextMonthButton,
+                nextYearButton,
                 spacer,
                 dayViewButton,
                 weekViewButton,
@@ -232,6 +241,13 @@ public class CalendarioView extends BorderPane {
         return button;
     }
 
+    private Button createNavigationButton(String text, String description) {
+        Button button = createSecondaryButton(text);
+        button.setAccessibleText(description);
+        button.setTooltip(new Tooltip(description));
+        return button;
+    }
+
     private Button createToggleButton(String text) {
         Button button = new Button(text);
         button.getStyleClass().add("calendar-toggle-button");
@@ -255,8 +271,16 @@ public class CalendarioView extends BorderPane {
         return previousMonthButton;
     }
 
+    public Button getPreviousYearButton() {
+        return previousYearButton;
+    }
+
     public Button getNextMonthButton() {
         return nextMonthButton;
+    }
+
+    public Button getNextYearButton() {
+        return nextYearButton;
     }
 
     public Button getDayViewButton() {

@@ -26,6 +26,9 @@
 }
 
 .calendar-period-label {
+    -fx-min-width: 150;
+    -fx-pref-width: 150;
+    -fx-alignment: center;
     -fx-font-size: 16px;
     -fx-font-weight: 700;
     -fx-text-fill: -app-text;
