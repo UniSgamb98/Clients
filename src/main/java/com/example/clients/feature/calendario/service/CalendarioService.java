@@ -8,14 +8,17 @@ import com.example.clients.core.database.query.derby.DerbyClientiFilterQuery;
 import com.example.clients.core.database.query.result.OperatoreClienteFilterResult;
 import com.example.clients.feature.calendario.dto.CalendarioCall;
 import com.example.clients.feature.calendario.dto.CalendarioMonth;
+import com.example.clients.feature.calendario.dto.CalendarioWeek;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 
 import java.time.Clock;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
-import java.util.Locale;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -50,6 +53,10 @@ public class CalendarioService {
         return YearMonth.now(clock);
     }
 
+    public LocalDate currentDate() {
+        return LocalDate.now(clock);
+    }
+
     public CalendarioMonth getMonth(YearMonth month, UUID operatoreId) {
         LocalDate today = LocalDate.now(clock);
         Integer todayDay = month.equals(YearMonth.from(today)) ? today.getDayOfMonth() : null;
@@ -59,13 +66,8 @@ public class CalendarioService {
                 + " "
                 + month.getYear();
 
-        Map<LocalDate, List<CalendarioCall>> callsByDate = calendarioQuery
-                .findProssimeChiamate(month.atDay(1), month.atEndOfMonth(), operatoreId)
-                .stream()
-                .map(call -> new CalendarioCall(
-                        call.interazioneId(), call.clienteId(), call.ragioneSociale(),
-                        call.operatoreId(), call.operatore(), call.prossimoContatto()))
-                .collect(Collectors.groupingBy(CalendarioCall::data));
+        Map<LocalDate, List<CalendarioCall>> callsByDate = getCallsByDate(
+                month.atDay(1), month.atEndOfMonth(), operatoreId);
 
         return new CalendarioMonth(
                 periodLabel,
@@ -80,6 +82,19 @@ public class CalendarioService {
         return getMonth(month, null);
     }
 
+    public CalendarioWeek getWeek(LocalDate referenceDate, UUID operatoreId) {
+        LocalDate startDate = referenceDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate endDate = startDate.plusDays(6);
+        LocalDate today = LocalDate.now(clock);
+        return new CalendarioWeek(
+                weekPeriodLabel(startDate, endDate),
+                startDate,
+                endDate,
+                today.isBefore(startDate) || today.isAfter(endDate) ? null : today,
+                getCallsByDate(startDate, endDate, operatoreId)
+        );
+    }
+
     public List<OperatoreFilter> getOperatorFilters() {
         return clientiFilterQuery.findOperatoriConClienti().stream()
                 .map(operator -> new OperatoreFilter(operator.id(), operatorLabel(
@@ -90,6 +105,29 @@ public class CalendarioService {
     private String operatorLabel(String nome, String cognome, String username) {
         String fullName = ((nome == null ? "" : nome.trim()) + " " + (cognome == null ? "" : cognome.trim())).trim();
         return fullName.isBlank() ? username : fullName;
+    }
+
+    private Map<LocalDate, List<CalendarioCall>> getCallsByDate(LocalDate from, LocalDate to, UUID operatoreId) {
+        return calendarioQuery.findProssimeChiamate(from, to, operatoreId).stream()
+                .map(call -> new CalendarioCall(
+                        call.interazioneId(), call.clienteId(), call.ragioneSociale(),
+                        call.operatoreId(), call.operatore(), call.prossimoContatto()))
+                .collect(Collectors.groupingBy(CalendarioCall::data));
+    }
+
+    private String weekPeriodLabel(LocalDate startDate, LocalDate endDate) {
+        String startMonth = startDate.getMonth().getDisplayName(TextStyle.FULL, ITALIAN);
+        String endMonth = endDate.getMonth().getDisplayName(TextStyle.FULL, ITALIAN);
+        if (startDate.getYear() != endDate.getYear()) {
+            return startDate.getDayOfMonth() + " " + startMonth + " " + startDate.getYear()
+                    + " - " + endDate.getDayOfMonth() + " " + endMonth + " " + endDate.getYear();
+        }
+        if (startDate.getMonth() != endDate.getMonth()) {
+            return startDate.getDayOfMonth() + " " + startMonth
+                    + " - " + endDate.getDayOfMonth() + " " + endMonth + " " + endDate.getYear();
+        }
+        return startDate.getDayOfMonth() + " - " + endDate.getDayOfMonth()
+                + " " + endMonth + " " + endDate.getYear();
     }
 
     private static final class EmptyClientiFilterQuery implements ClientiFilterQuery {

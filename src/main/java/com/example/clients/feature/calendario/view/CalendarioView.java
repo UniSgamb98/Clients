@@ -2,7 +2,9 @@ package com.example.clients.feature.calendario.view;
 
 import com.example.clients.core.ui.AppSidebar;
 import com.example.clients.feature.calendario.dto.CalendarioCall;
+import com.example.clients.feature.calendario.dto.CalendarioDisplayMode;
 import com.example.clients.feature.calendario.dto.CalendarioMonth;
+import com.example.clients.feature.calendario.dto.CalendarioWeek;
 import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -11,9 +13,9 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
@@ -25,8 +27,6 @@ import java.util.function.Consumer;
 
 public class CalendarioView extends BorderPane {
 
-    private static final String[] WEEK_DAYS = {"Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"};
-    private static final int MAX_VISIBLE_CALLS = 2;
     private static final DateTimeFormatter AGENDA_DATE_FORMATTER = DateTimeFormatter.ofPattern("EEEE d MMMM", java.util.Locale.ITALIAN);
 
     private final AppSidebar sidebar;
@@ -34,7 +34,6 @@ public class CalendarioView extends BorderPane {
     private final Button previousMonthButton;
     private final Button nextMonthButton;
     private final Button nextYearButton;
-    private final Button dayViewButton;
     private final Button weekViewButton;
     private final Button monthViewButton;
     private final Button newActivityButton;
@@ -43,8 +42,11 @@ public class CalendarioView extends BorderPane {
     private final Label agendaTitle;
     private final Label agendaSubtitle;
     private final Label currentPeriodLabel;
-    private final GridPane monthGrid;
+    private final StackPane calendarDisplay;
+    private final CalendarioMonthView monthView;
+    private final CalendarioWeekView weekView;
     private Map<LocalDate, List<CalendarioCall>> callsByDate = Map.of();
+    private Consumer<LocalDate> selectDateHandler = date -> { };
     private Consumer<CalendarioCall> openCallHandler = call -> { };
 
     public CalendarioView() {
@@ -53,7 +55,6 @@ public class CalendarioView extends BorderPane {
         previousMonthButton = createSecondaryButton("<");
         nextMonthButton = createSecondaryButton(">");
         nextYearButton = createNavigationButton("\\/", "Anno successivo");
-        dayViewButton = createToggleButton("Giorno");
         weekViewButton = createToggleButton("Settimana");
         monthViewButton = createToggleButton("Mese");
         newActivityButton = createPrimaryButton("+ Nuova attività");
@@ -67,10 +68,13 @@ public class CalendarioView extends BorderPane {
         agendaSubtitle.getStyleClass().add("calendar-agenda-subtitle");
         currentPeriodLabel = new Label();
         currentPeriodLabel.getStyleClass().add("calendar-period-label");
-        monthGrid = new GridPane();
-        monthGrid.getStyleClass().add("calendar-month-grid");
-        monthGrid.setHgap(8);
-        monthGrid.setVgap(8);
+        calendarDisplay = new StackPane();
+        monthView = new CalendarioMonthView();
+        weekView = new CalendarioWeekView();
+        monthView.setSelectDateHandler(this::selectDate);
+        weekView.setSelectDateHandler(this::selectDate);
+        monthView.setOpenCallHandler(this::openCall);
+        weekView.setOpenCallHandler(this::openCall);
 
         setLeft(sidebar);
         setCenter(createContent());
@@ -125,7 +129,6 @@ public class CalendarioView extends BorderPane {
                 spacer,
                 new Label("Operatore"),
                 operatorFilterChoiceBox,
-                dayViewButton,
                 weekViewButton,
                 monthViewButton
         );
@@ -135,67 +138,41 @@ public class CalendarioView extends BorderPane {
     private HBox createCalendarBody() {
         HBox body = new HBox(16);
         body.getStyleClass().add("calendar-body");
-        body.getChildren().addAll(createMonthPanel(), createAgendaPanel());
+        body.getChildren().addAll(createCalendarPanel(), createAgendaPanel());
         HBox.setHgrow(body.getChildren().get(0), Priority.ALWAYS);
         return body;
     }
 
-    private VBox createMonthPanel() {
+    private VBox createCalendarPanel() {
         VBox panel = new VBox(10);
-        panel.getStyleClass().add("calendar-panel");
-        panel.getChildren().add(monthGrid);
+        panel.getChildren().add(calendarDisplay);
+        VBox.setVgrow(calendarDisplay, Priority.ALWAYS);
         HBox.setHgrow(panel, Priority.ALWAYS);
         return panel;
     }
 
-    public void showMonth(YearMonth displayedMonth, CalendarioMonth month) {
+    public void showMonth(YearMonth displayedMonth, CalendarioMonth month, LocalDate selectedDate) {
         currentPeriodLabel.setText(month.periodLabel());
         callsByDate = month.callsByDate();
-        monthGrid.getChildren().clear();
-        for (int column = 0; column < WEEK_DAYS.length; column++) {
-            Label dayHeader = new Label(WEEK_DAYS[column]);
-            dayHeader.getStyleClass().add("calendar-day-header");
-            monthGrid.add(dayHeader, column, 0);
-        }
-
-        int row = 1;
-        int column = month.firstColumn();
-        for (int day = 1; day <= month.dayCount(); day++) {
-            LocalDate date = displayedMonth.atDay(day);
-            VBox cell = createDayCell(date, month.todayDay() != null && day == month.todayDay());
-            monthGrid.add(cell, column, row);
-            column++;
-            if (column == WEEK_DAYS.length) {
-                column = 0;
-                row++;
-            }
-        }
-        LocalDate initialDate = month.todayDay() == null
-                ? displayedMonth.atDay(1)
-                : displayedMonth.atDay(month.todayDay());
+        monthView.showMonth(displayedMonth, month);
+        calendarDisplay.getChildren().setAll(monthView);
+        setDisplayMode(CalendarioDisplayMode.MONTH);
+        LocalDate initialDate = YearMonth.from(selectedDate).equals(displayedMonth)
+                ? selectedDate
+                : displayedMonth.atDay(1);
         showAgenda(initialDate);
     }
 
-    private VBox createDayCell(LocalDate date, boolean today) {
-        VBox cell = new VBox(6);
-        cell.getStyleClass().add("calendar-day-cell");
-        if (today) {
-            cell.getStyleClass().add("calendar-day-today");
-        }
-
-        Label dayNumber = new Label(String.valueOf(date.getDayOfMonth()));
-        dayNumber.getStyleClass().add("calendar-day-number");
-        cell.getChildren().add(dayNumber);
-
-        List<CalendarioCall> calls = callsByDate.getOrDefault(date, List.of());
-        calls.stream().limit(MAX_VISIBLE_CALLS).map(this::createActivityChip).forEach(cell.getChildren()::add);
-        if (calls.size() > MAX_VISIBLE_CALLS) {
-            Label remaining = new Label("+" + (calls.size() - MAX_VISIBLE_CALLS) + " altre");
-            remaining.getStyleClass().add("calendar-more-calls");
-            cell.getChildren().add(remaining);
-        }
-        cell.setOnMouseClicked(event -> showAgenda(date));
-        return cell;
+    public void showWeek(CalendarioWeek week, LocalDate selectedDate) {
+        currentPeriodLabel.setText(week.periodLabel());
+        callsByDate = week.callsByDate();
+        weekView.showWeek(week);
+        calendarDisplay.getChildren().setAll(weekView);
+        setDisplayMode(CalendarioDisplayMode.WEEK);
+        LocalDate agendaDate = selectedDate.isBefore(week.startDate()) || selectedDate.isAfter(week.endDate())
+                ? week.startDate()
+                : selectedDate;
+        showAgenda(agendaDate);
     }
 
     private VBox createAgendaPanel() {
@@ -205,14 +182,6 @@ public class CalendarioView extends BorderPane {
 
         panel.getChildren().addAll(agendaTitle, agendaSubtitle, activityList);
         return panel;
-    }
-
-    private Button createActivityChip(CalendarioCall call) {
-        Button chip = new Button(call.cliente());
-        chip.getStyleClass().add("calendar-activity-chip");
-        chip.setMaxWidth(Double.MAX_VALUE);
-        chip.setOnAction(event -> openCallHandler.accept(call));
-        return chip;
     }
 
     private HBox createAgendaItem(CalendarioCall call) {
@@ -239,6 +208,24 @@ public class CalendarioView extends BorderPane {
         activityList.getChildren().setAll(calls.stream().map(this::createAgendaItem).toList());
     }
 
+    private void selectDate(LocalDate date) {
+        showAgenda(date);
+        selectDateHandler.accept(date);
+    }
+
+    private void openCall(CalendarioCall call) {
+        openCallHandler.accept(call);
+    }
+
+    private void setDisplayMode(CalendarioDisplayMode mode) {
+        monthViewButton.getStyleClass().remove("calendar-toggle-selected");
+        weekViewButton.getStyleClass().remove("calendar-toggle-selected");
+        Button selectedButton = mode == CalendarioDisplayMode.WEEK ? weekViewButton : monthViewButton;
+        if (!selectedButton.getStyleClass().contains("calendar-toggle-selected")) {
+            selectedButton.getStyleClass().add("calendar-toggle-selected");
+        }
+    }
+
     public void setOperatorFilters(List<OperatoreFilter> filters) {
         operatorFilterChoiceBox.getItems().setAll(OperatoreFilter.empty());
         operatorFilterChoiceBox.getItems().addAll(filters);
@@ -247,6 +234,10 @@ public class CalendarioView extends BorderPane {
 
     public void setOpenCallHandler(Consumer<CalendarioCall> handler) {
         openCallHandler = handler == null ? call -> { } : handler;
+    }
+
+    public void setSelectDateHandler(Consumer<LocalDate> handler) {
+        selectDateHandler = handler == null ? date -> { } : handler;
     }
 
     private Button createPrimaryButton(String text) {
@@ -296,10 +287,6 @@ public class CalendarioView extends BorderPane {
 
     public Button getNextYearButton() {
         return nextYearButton;
-    }
-
-    public Button getDayViewButton() {
-        return dayViewButton;
     }
 
     public Button getWeekViewButton() {
