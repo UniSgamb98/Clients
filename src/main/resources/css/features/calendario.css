@@ -34,6 +34,10 @@
     -fx-text-fill: -app-text;
 }
 
+.calendar-operator-filter {
+    -fx-min-width: 160;
+}
+
 .calendar-primary-button,
 .calendar-secondary-button,
 .calendar-toggle-button {
@@ -104,6 +108,14 @@
     -fx-padding: 3 7;
     -fx-font-size: 10px;
     -fx-text-fill: -app-text-muted;
+    -fx-alignment: center-left;
+    -fx-cursor: hand;
+}
+
+.calendar-more-calls,
+.calendar-agenda-empty {
+    -fx-font-size: 11px;
+    -fx-text-fill: -app-text-subtle;
 }
 
 .calendar-agenda-title {
@@ -118,6 +130,7 @@
     -fx-border-color: -app-border;
     -fx-border-radius: 10;
     -fx-padding: 10;
+    -fx-cursor: hand;
 }
 
 .calendar-agenda-time {

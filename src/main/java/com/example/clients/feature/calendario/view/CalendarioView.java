@@ -1,10 +1,13 @@
 package com.example.clients.feature.calendario.view;
 
 import com.example.clients.core.ui.AppSidebar;
+import com.example.clients.feature.calendario.dto.CalendarioCall;
 import com.example.clients.feature.calendario.dto.CalendarioMonth;
+import com.example.clients.feature.clienti.clienti.dto.OperatoreFilter;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
@@ -13,9 +16,18 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
 public class CalendarioView extends BorderPane {
 
     private static final String[] WEEK_DAYS = {"Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"};
+    private static final int MAX_VISIBLE_CALLS = 2;
+    private static final DateTimeFormatter AGENDA_DATE_FORMATTER = DateTimeFormatter.ofPattern("EEEE d MMMM", java.util.Locale.ITALIAN);
 
     private final AppSidebar sidebar;
     private final Button todayButton;
@@ -27,9 +39,14 @@ public class CalendarioView extends BorderPane {
     private final Button weekViewButton;
     private final Button monthViewButton;
     private final Button newActivityButton;
+    private final ChoiceBox<OperatoreFilter> operatorFilterChoiceBox;
     private final VBox activityList;
+    private final Label agendaTitle;
+    private final Label agendaSubtitle;
     private final Label currentPeriodLabel;
     private final GridPane monthGrid;
+    private Map<LocalDate, List<CalendarioCall>> callsByDate = Map.of();
+    private Consumer<CalendarioCall> openCallHandler = call -> { };
 
     public CalendarioView() {
         sidebar = new AppSidebar();
@@ -42,8 +59,14 @@ public class CalendarioView extends BorderPane {
         weekViewButton = createToggleButton("Settimana");
         monthViewButton = createToggleButton("Mese");
         newActivityButton = createPrimaryButton("+ Nuova attività");
+        operatorFilterChoiceBox = new ChoiceBox<>();
+        operatorFilterChoiceBox.getStyleClass().add("calendar-operator-filter");
         activityList = new VBox(10);
         activityList.getStyleClass().add("calendar-activity-list");
+        agendaTitle = new Label("Agenda CRM");
+        agendaTitle.getStyleClass().add("calendar-agenda-title");
+        agendaSubtitle = new Label();
+        agendaSubtitle.getStyleClass().add("calendar-agenda-subtitle");
         currentPeriodLabel = new Label();
         currentPeriodLabel.getStyleClass().add("calendar-period-label");
         monthGrid = new GridPane();
@@ -103,6 +126,8 @@ public class CalendarioView extends BorderPane {
                 nextMonthButton,
                 nextYearButton,
                 spacer,
+                new Label("Operatore"),
+                operatorFilterChoiceBox,
                 dayViewButton,
                 weekViewButton,
                 monthViewButton
@@ -126,8 +151,9 @@ public class CalendarioView extends BorderPane {
         return panel;
     }
 
-    public void showMonth(CalendarioMonth month) {
+    public void showMonth(YearMonth displayedMonth, CalendarioMonth month) {
         currentPeriodLabel.setText(month.periodLabel());
+        callsByDate = month.callsByDate();
         monthGrid.getChildren().clear();
         for (int column = 0; column < WEEK_DAYS.length; column++) {
             Label dayHeader = new Label(WEEK_DAYS[column]);
@@ -138,7 +164,8 @@ public class CalendarioView extends BorderPane {
         int row = 1;
         int column = month.firstColumn();
         for (int day = 1; day <= month.dayCount(); day++) {
-            VBox cell = createDayCell(day, month.todayDay() != null && day == month.todayDay());
+            LocalDate date = displayedMonth.atDay(day);
+            VBox cell = createDayCell(date, month.todayDay() != null && day == month.todayDay());
             monthGrid.add(cell, column, row);
             column++;
             if (column == WEEK_DAYS.length) {
@@ -146,25 +173,31 @@ public class CalendarioView extends BorderPane {
                 row++;
             }
         }
+        LocalDate initialDate = month.todayDay() == null
+                ? displayedMonth.atDay(1)
+                : displayedMonth.atDay(month.todayDay());
+        showAgenda(initialDate);
     }
 
-    private VBox createDayCell(int day, boolean today) {
+    private VBox createDayCell(LocalDate date, boolean today) {
         VBox cell = new VBox(6);
         cell.getStyleClass().add("calendar-day-cell");
         if (today) {
             cell.getStyleClass().add("calendar-day-today");
         }
 
-        Label dayNumber = new Label(String.valueOf(day));
+        Label dayNumber = new Label(String.valueOf(date.getDayOfMonth()));
         dayNumber.getStyleClass().add("calendar-day-number");
         cell.getChildren().add(dayNumber);
 
-        if (day % 4 == 0) {
-            cell.getChildren().add(createActivityChip("Follow-up"));
+        List<CalendarioCall> calls = callsByDate.getOrDefault(date, List.of());
+        calls.stream().limit(MAX_VISIBLE_CALLS).map(this::createActivityChip).forEach(cell.getChildren()::add);
+        if (calls.size() > MAX_VISIBLE_CALLS) {
+            Label remaining = new Label("+" + (calls.size() - MAX_VISIBLE_CALLS) + " altre");
+            remaining.getStyleClass().add("calendar-more-calls");
+            cell.getChildren().add(remaining);
         }
-        if (day % 7 == 0) {
-            cell.getChildren().add(createActivityChip("Chiamata"));
-        }
+        cell.setOnMouseClicked(event -> showAgenda(date));
         return cell;
     }
 
@@ -173,37 +206,50 @@ public class CalendarioView extends BorderPane {
         panel.getStyleClass().add("calendar-agenda-panel");
         panel.setPrefWidth(280);
 
-        Label title = new Label("Agenda CRM");
-        title.getStyleClass().add("calendar-agenda-title");
-        Label subtitle = new Label("Priorità operative consigliate per il calendario.");
-        subtitle.getStyleClass().add("calendar-agenda-subtitle");
-
-        activityList.getChildren().setAll(
-                createAgendaItem("09:00", "Richiamare clienti con prossimo contatto oggi"),
-                createAgendaItem("11:30", "Verificare preventivi in attesa"),
-                createAgendaItem("15:00", "Follow-up campioni inviati"),
-                createAgendaItem("17:00", "Controllare attività scadute")
-        );
-
-        panel.getChildren().addAll(title, subtitle, activityList);
+        panel.getChildren().addAll(agendaTitle, agendaSubtitle, activityList);
         return panel;
     }
 
-    private Label createActivityChip(String text) {
-        Label chip = new Label(text);
+    private Button createActivityChip(CalendarioCall call) {
+        Button chip = new Button(call.cliente());
         chip.getStyleClass().add("calendar-activity-chip");
+        chip.setMaxWidth(Double.MAX_VALUE);
+        chip.setOnAction(event -> openCallHandler.accept(call));
         return chip;
     }
 
-    private HBox createAgendaItem(String time, String text) {
+    private HBox createAgendaItem(CalendarioCall call) {
         HBox item = new HBox(10);
         item.getStyleClass().add("calendar-agenda-item");
-        Label timeLabel = new Label(time);
-        timeLabel.getStyleClass().add("calendar-agenda-time");
-        Label textLabel = new Label(text);
+        Label operatorLabel = new Label(call.operatore());
+        operatorLabel.getStyleClass().add("calendar-agenda-time");
+        Label textLabel = new Label(call.cliente());
         textLabel.getStyleClass().add("calendar-agenda-text");
-        item.getChildren().addAll(timeLabel, textLabel);
+        item.getChildren().addAll(operatorLabel, textLabel);
+        item.setOnMouseClicked(event -> openCallHandler.accept(call));
         return item;
+    }
+
+    private void showAgenda(LocalDate date) {
+        List<CalendarioCall> calls = callsByDate.getOrDefault(date, List.of());
+        agendaSubtitle.setText(AGENDA_DATE_FORMATTER.format(date));
+        if (calls.isEmpty()) {
+            Label empty = new Label("Nessuna chiamata pianificata.");
+            empty.getStyleClass().add("calendar-agenda-empty");
+            activityList.getChildren().setAll(empty);
+            return;
+        }
+        activityList.getChildren().setAll(calls.stream().map(this::createAgendaItem).toList());
+    }
+
+    public void setOperatorFilters(List<OperatoreFilter> filters) {
+        operatorFilterChoiceBox.getItems().setAll(OperatoreFilter.empty());
+        operatorFilterChoiceBox.getItems().addAll(filters);
+        operatorFilterChoiceBox.getSelectionModel().selectFirst();
+    }
+
+    public void setOpenCallHandler(Consumer<CalendarioCall> handler) {
+        openCallHandler = handler == null ? call -> { } : handler;
     }
 
     private Button createPrimaryButton(String text) {
@@ -233,6 +279,10 @@ public class CalendarioView extends BorderPane {
 
     public AppSidebar getSidebar() {
         return sidebar;
+    }
+
+    public ChoiceBox<OperatoreFilter> getOperatorFilterChoiceBox() {
+        return operatorFilterChoiceBox;
     }
 
     public Button getTodayButton() {

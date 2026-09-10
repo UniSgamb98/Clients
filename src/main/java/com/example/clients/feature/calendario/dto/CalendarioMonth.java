@@ -1,9 +1,17 @@
 package com.example.clients.feature.calendario.dto;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
 public record CalendarioMonth(
         String periodLabel,
         int firstColumn,
         int dayCount,
-        Integer todayDay
+        Integer todayDay,
+        Map<LocalDate, List<CalendarioCall>> callsByDate
 ) {
+    public CalendarioMonth {
+        callsByDate = callsByDate == null ? Map.of() : Map.copyOf(callsByDate);
+    }
 }
