@@ -38,8 +38,7 @@ public final class CalendarioWeekView extends HBox {
         dayColumns.clear();
         LocalDate date = week.startDate();
         while (!date.isAfter(week.endDate())) {
-            VBox dayColumn = createDayColumn(date, date.equals(week.today()),
-                    week.callsByDate().getOrDefault(date, List.of()));
+            VBox dayColumn = createDayColumn(date, week.callsByDate().getOrDefault(date, List.of()));
             dayColumns.put(date, dayColumn);
             getChildren().add(dayColumn);
             date = date.plusDays(1);
@@ -47,12 +46,9 @@ public final class CalendarioWeekView extends HBox {
         selectDate(selectedDate);
     }
 
-    private VBox createDayColumn(LocalDate date, boolean today, List<CalendarioCall> calls) {
+    private VBox createDayColumn(LocalDate date, List<CalendarioCall> calls) {
         VBox column = new VBox(8);
         column.getStyleClass().add("calendar-week-day");
-        if (today) {
-            column.getStyleClass().add("calendar-day-today");
-        }
         HBox.setHgrow(column, Priority.ALWAYS);
         column.setMaxWidth(Double.MAX_VALUE);
         column.setOnMouseClicked(event -> {

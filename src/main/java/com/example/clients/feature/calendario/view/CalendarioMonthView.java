@@ -46,8 +46,7 @@ public final class CalendarioMonthView extends VBox {
         int column = month.firstColumn();
         for (int day = 1; day <= month.dayCount(); day++) {
             LocalDate date = displayedMonth.atDay(day);
-            VBox dayCell = createDayCell(date, month.todayDay() != null && day == month.todayDay(),
-                    month.callsByDate().getOrDefault(date, List.of()));
+            VBox dayCell = createDayCell(date, month.callsByDate().getOrDefault(date, List.of()));
             dayCells.put(date, dayCell);
             monthGrid.add(dayCell, column, row);
             column++;
@@ -59,12 +58,9 @@ public final class CalendarioMonthView extends VBox {
         selectDate(selectedDate);
     }
 
-    private VBox createDayCell(LocalDate date, boolean today, List<CalendarioCall> calls) {
+    private VBox createDayCell(LocalDate date, List<CalendarioCall> calls) {
         VBox cell = new VBox(6);
         cell.getStyleClass().add("calendar-day-cell");
-        if (today) {
-            cell.getStyleClass().add("calendar-day-today");
-        }
 
         Label dayNumber = new Label(String.valueOf(date.getDayOfMonth()));
         dayNumber.getStyleClass().add("calendar-day-number");
