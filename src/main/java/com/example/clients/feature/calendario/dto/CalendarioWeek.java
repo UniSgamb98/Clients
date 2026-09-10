@@ -4,14 +4,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-public record CalendarioMonth(
+public record CalendarioWeek(
         String periodLabel,
-        int firstColumn,
-        int dayCount,
-        Integer todayDay,
+        LocalDate startDate,
+        LocalDate endDate,
+        LocalDate today,
         Map<LocalDate, List<CalendarioCall>> callsByDate
 ) {
-    public CalendarioMonth {
+    public CalendarioWeek {
         callsByDate = callsByDate == null ? Map.of() : Map.copyOf(callsByDate);
     }
 }

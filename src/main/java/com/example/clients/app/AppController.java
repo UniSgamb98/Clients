@@ -159,7 +159,7 @@ public class AppController implements DashboardNav, ClientiNav, LoginNav {
     public void showCalendario() {
         CalendarioView view = new CalendarioView();
         configureSidebar(view.getSidebar());
-        new CalendarioController(view, new CalendarioService());
+        new CalendarioController(view, new CalendarioService(app.database), this::showSchedaCliente);
 
         showView(
                 view,
