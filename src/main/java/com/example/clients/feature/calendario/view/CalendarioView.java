@@ -154,7 +154,7 @@ public class CalendarioView extends BorderPane {
     public void showMonth(YearMonth displayedMonth, CalendarioMonth month, LocalDate selectedDate) {
         currentPeriodLabel.setText(month.periodLabel());
         callsByDate = month.callsByDate();
-        monthView.showMonth(displayedMonth, month);
+        monthView.showMonth(displayedMonth, month, selectedDate);
         calendarDisplay.getChildren().setAll(monthView);
         setDisplayMode(CalendarioDisplayMode.MONTH);
         LocalDate initialDate = YearMonth.from(selectedDate).equals(displayedMonth)
@@ -166,7 +166,7 @@ public class CalendarioView extends BorderPane {
     public void showWeek(CalendarioWeek week, LocalDate selectedDate) {
         currentPeriodLabel.setText(week.periodLabel());
         callsByDate = week.callsByDate();
-        weekView.showWeek(week);
+        weekView.showWeek(week, selectedDate);
         calendarDisplay.getChildren().setAll(weekView);
         setDisplayMode(CalendarioDisplayMode.WEEK);
         LocalDate agendaDate = selectedDate.isBefore(week.startDate()) || selectedDate.isAfter(week.endDate())

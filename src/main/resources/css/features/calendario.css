@@ -92,6 +92,15 @@
 }
 
 .calendar-day-today {
+    -fx-background-color: -app-control-alt-bg;
+}
+
+.calendar-day-today .calendar-day-number,
+.calendar-day-today .calendar-week-day-date {
+    -fx-text-fill: -app-primary-hover;
+}
+
+.calendar-day-selected {
     -fx-border-color: -app-primary;
     -fx-border-width: 2;
 }

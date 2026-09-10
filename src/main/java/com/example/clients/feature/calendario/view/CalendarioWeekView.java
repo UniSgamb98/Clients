@@ -13,8 +13,10 @@ import javafx.scene.layout.VBox;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public final class CalendarioWeekView extends HBox {
@@ -22,6 +24,7 @@ public final class CalendarioWeekView extends HBox {
     private static final Locale ITALIAN = Locale.ITALIAN;
     private static final DateTimeFormatter DAY_MONTH_FORMATTER = DateTimeFormatter.ofPattern("d MMM").withLocale(ITALIAN);
 
+    private final Map<LocalDate, VBox> dayColumns = new HashMap<>();
     private Consumer<LocalDate> selectDateHandler = date -> { };
     private Consumer<CalendarioCall> openCallHandler = call -> { };
 
@@ -30,14 +33,18 @@ public final class CalendarioWeekView extends HBox {
         getStyleClass().addAll("calendar-panel", "calendar-week");
     }
 
-    public void showWeek(CalendarioWeek week) {
+    public void showWeek(CalendarioWeek week, LocalDate selectedDate) {
         getChildren().clear();
+        dayColumns.clear();
         LocalDate date = week.startDate();
         while (!date.isAfter(week.endDate())) {
-            getChildren().add(createDayColumn(date, date.equals(week.today()),
-                    week.callsByDate().getOrDefault(date, List.of())));
+            VBox dayColumn = createDayColumn(date, date.equals(week.today()),
+                    week.callsByDate().getOrDefault(date, List.of()));
+            dayColumns.put(date, dayColumn);
+            getChildren().add(dayColumn);
             date = date.plusDays(1);
         }
+        selectDate(selectedDate);
     }
 
     private VBox createDayColumn(LocalDate date, boolean today, List<CalendarioCall> calls) {
@@ -48,7 +55,10 @@ public final class CalendarioWeekView extends HBox {
         }
         HBox.setHgrow(column, Priority.ALWAYS);
         column.setMaxWidth(Double.MAX_VALUE);
-        column.setOnMouseClicked(event -> selectDateHandler.accept(date));
+        column.setOnMouseClicked(event -> {
+            selectDate(date);
+            selectDateHandler.accept(date);
+        });
 
         Label dayName = new Label(date.getDayOfWeek().getDisplayName(TextStyle.FULL, ITALIAN));
         dayName.getStyleClass().add("calendar-week-day-name");
@@ -73,6 +83,14 @@ public final class CalendarioWeekView extends HBox {
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         column.getChildren().addAll(header, scrollPane);
         return column;
+    }
+
+    private void selectDate(LocalDate date) {
+        dayColumns.values().forEach(column -> column.getStyleClass().remove("calendar-day-selected"));
+        VBox selectedColumn = dayColumns.get(date);
+        if (selectedColumn != null) {
+            selectedColumn.getStyleClass().add("calendar-day-selected");
+        }
     }
 
     private Button createCallCard(CalendarioCall call) {
