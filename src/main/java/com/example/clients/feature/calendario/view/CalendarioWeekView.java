@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 
 public final class CalendarioWeekView extends HBox {
 
+    private static final double DAY_COLUMN_WIDTH = 105;
     private static final Locale ITALIAN = Locale.ITALIAN;
     private static final DateTimeFormatter DAY_MONTH_FORMATTER = DateTimeFormatter.ofPattern("d MMM").withLocale(ITALIAN);
 
@@ -54,6 +55,8 @@ public final class CalendarioWeekView extends HBox {
             column.getStyleClass().add("calendar-day-today");
         }
         HBox.setHgrow(column, Priority.ALWAYS);
+        column.setMinWidth(DAY_COLUMN_WIDTH);
+        column.setPrefWidth(DAY_COLUMN_WIDTH);
         column.setMaxWidth(Double.MAX_VALUE);
         column.setOnMouseClicked(event -> {
             selectDate(date);
@@ -77,6 +80,7 @@ public final class CalendarioWeekView extends HBox {
             calls.stream().map(this::createCallCard).forEach(callsBox.getChildren()::add);
         }
         ScrollPane scrollPane = new ScrollPane(callsBox);
+        scrollPane.setMinWidth(0);
         scrollPane.setFitToWidth(true);
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.getStyleClass().add("calendar-week-scroll");
@@ -96,6 +100,8 @@ public final class CalendarioWeekView extends HBox {
     private Button createCallCard(CalendarioCall call) {
         Button card = new Button(call.cliente());
         card.getStyleClass().add("calendar-week-call");
+        card.setMinWidth(0);
+        card.setPrefWidth(0);
         card.setMaxWidth(Double.MAX_VALUE);
         card.setWrapText(true);
         card.setOnAction(event -> openCallHandler.accept(call));

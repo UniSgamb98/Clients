@@ -133,6 +133,7 @@
 
 .calendar-week-day {
     -fx-min-width: 105;
+    -fx-pref-width: 105;
     -fx-background-color: -app-surface-alt;
     -fx-background-radius: 10;
     -fx-border-color: -app-border;
@@ -197,14 +198,16 @@
     -fx-cursor: hand;
 }
 
-.calendar-agenda-time {
+.calendar-agenda-operator {
     -fx-font-size: 12px;
     -fx-font-weight: 800;
     -fx-text-fill: -app-primary-hover;
+    -fx-text-alignment: center;
 }
 
 .calendar-agenda-text {
     -fx-font-size: 12px;
     -fx-text-fill: -app-text-muted;
     -fx-wrap-text: true;
+    -fx-text-alignment: center;
 }

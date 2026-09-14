@@ -178,18 +178,27 @@ public class CalendarioView extends BorderPane {
     private VBox createAgendaPanel() {
         VBox panel = new VBox(12);
         panel.getStyleClass().add("calendar-agenda-panel");
+        panel.setMinWidth(280);
         panel.setPrefWidth(280);
 
         panel.getChildren().addAll(agendaTitle, agendaSubtitle, activityList);
         return panel;
     }
 
-    private HBox createAgendaItem(CalendarioCall call) {
-        HBox item = new HBox(10);
+    private VBox createAgendaItem(CalendarioCall call) {
+        VBox item = new VBox(5);
+        item.setAlignment(Pos.CENTER);
+        item.setMaxWidth(Double.MAX_VALUE);
         item.getStyleClass().add("calendar-agenda-item");
         Label operatorLabel = new Label(call.operatore());
-        operatorLabel.getStyleClass().add("calendar-agenda-time");
+        operatorLabel.setWrapText(true);
+        operatorLabel.setMaxWidth(Double.MAX_VALUE);
+        operatorLabel.setAlignment(Pos.CENTER);
+        operatorLabel.getStyleClass().add("calendar-agenda-operator");
         Label textLabel = new Label(call.cliente());
+        textLabel.setWrapText(true);
+        textLabel.setMaxWidth(Double.MAX_VALUE);
+        textLabel.setAlignment(Pos.CENTER);
         textLabel.getStyleClass().add("calendar-agenda-text");
         item.getChildren().addAll(operatorLabel, textLabel);
         item.setOnMouseClicked(event -> openCallHandler.accept(call));
