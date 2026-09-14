@@ -6,8 +6,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
@@ -20,9 +19,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public final class CalendarioWeekView extends GridPane {
+public final class CalendarioWeekView extends HBox {
 
-    private static final int DAYS_PER_WEEK = 7;
+    private static final double DAY_COLUMN_WIDTH = 105;
     private static final Locale ITALIAN = Locale.ITALIAN;
     private static final DateTimeFormatter DAY_MONTH_FORMATTER = DateTimeFormatter.ofPattern("d MMM").withLocale(ITALIAN);
 
@@ -31,28 +30,19 @@ public final class CalendarioWeekView extends GridPane {
     private Consumer<CalendarioCall> openCallHandler = call -> { };
 
     public CalendarioWeekView() {
-        setHgap(8);
+        setSpacing(8);
         getStyleClass().addAll("calendar-panel", "calendar-week");
-        for (int day = 0; day < DAYS_PER_WEEK; day++) {
-            ColumnConstraints column = new ColumnConstraints();
-            column.setMinWidth(0);
-            column.setPercentWidth(100.0 / DAYS_PER_WEEK);
-            column.setHgrow(Priority.ALWAYS);
-            column.setFillWidth(true);
-            getColumnConstraints().add(column);
-        }
     }
 
     public void showWeek(CalendarioWeek week, LocalDate selectedDate) {
         getChildren().clear();
         dayColumns.clear();
         LocalDate date = week.startDate();
-        int columnIndex = 0;
         while (!date.isAfter(week.endDate())) {
             VBox dayColumn = createDayColumn(date, date.equals(week.today()),
                     week.callsByDate().getOrDefault(date, List.of()));
             dayColumns.put(date, dayColumn);
-            add(dayColumn, columnIndex++, 0);
+            getChildren().add(dayColumn);
             date = date.plusDays(1);
         }
         selectDate(selectedDate);
@@ -64,10 +54,10 @@ public final class CalendarioWeekView extends GridPane {
         if (today) {
             column.getStyleClass().add("calendar-day-today");
         }
-        column.setMinWidth(0);
-        column.setPrefWidth(0);
+        HBox.setHgrow(column, Priority.ALWAYS);
+        column.setMinWidth(DAY_COLUMN_WIDTH);
+        column.setPrefWidth(DAY_COLUMN_WIDTH);
         column.setMaxWidth(Double.MAX_VALUE);
-        GridPane.setVgrow(column, Priority.ALWAYS);
         column.setOnMouseClicked(event -> {
             selectDate(date);
             selectDateHandler.accept(date);
@@ -82,7 +72,6 @@ public final class CalendarioWeekView extends GridPane {
         header.getStyleClass().add("calendar-week-day-header");
 
         VBox callsBox = new VBox(8);
-        callsBox.setMinWidth(0);
         if (calls.isEmpty()) {
             Label empty = new Label("Nessuna chiamata");
             empty.getStyleClass().add("calendar-week-empty");
