@@ -132,8 +132,6 @@
 }
 
 .calendar-week-day {
-    -fx-min-width: 105;
-    -fx-pref-width: 105;
     -fx-background-color: -app-surface-alt;
     -fx-background-radius: 10;
     -fx-border-color: -app-border;
