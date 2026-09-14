@@ -73,16 +73,12 @@
 }
 
 .calendar-day-header {
-    -fx-min-width: 84;
-    -fx-pref-width: 84;
     -fx-font-size: 12px;
     -fx-font-weight: 800;
     -fx-text-fill: -app-text-muted;
 }
 
 .calendar-day-cell {
-    -fx-min-width: 84;
-    -fx-pref-width: 84;
     -fx-min-height: 82;
     -fx-background-color: -app-surface-alt;
     -fx-background-radius: 10;

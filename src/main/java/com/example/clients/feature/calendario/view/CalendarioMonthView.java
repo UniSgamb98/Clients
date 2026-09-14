@@ -4,7 +4,9 @@ import com.example.clients.feature.calendario.dto.CalendarioCall;
 import com.example.clients.feature.calendario.dto.CalendarioMonth;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
@@ -30,6 +32,14 @@ public final class CalendarioMonthView extends VBox {
         monthGrid.getStyleClass().add("calendar-month-grid");
         monthGrid.setHgap(8);
         monthGrid.setVgap(8);
+        for (int day = 0; day < WEEK_DAYS.length; day++) {
+            ColumnConstraints column = new ColumnConstraints();
+            column.setMinWidth(0);
+            column.setPercentWidth(100.0 / WEEK_DAYS.length);
+            column.setHgrow(Priority.ALWAYS);
+            column.setFillWidth(true);
+            monthGrid.getColumnConstraints().add(column);
+        }
         getChildren().add(monthGrid);
     }
 
@@ -38,6 +48,8 @@ public final class CalendarioMonthView extends VBox {
         dayCells.clear();
         for (int column = 0; column < WEEK_DAYS.length; column++) {
             Label dayHeader = new Label(WEEK_DAYS[column]);
+            dayHeader.setMinWidth(0);
+            dayHeader.setMaxWidth(Double.MAX_VALUE);
             dayHeader.getStyleClass().add("calendar-day-header");
             monthGrid.add(dayHeader, column, 0);
         }
@@ -61,6 +73,9 @@ public final class CalendarioMonthView extends VBox {
 
     private VBox createDayCell(LocalDate date, boolean today, List<CalendarioCall> calls) {
         VBox cell = new VBox(6);
+        cell.setMinWidth(0);
+        cell.setPrefWidth(0);
+        cell.setMaxWidth(Double.MAX_VALUE);
         cell.getStyleClass().add("calendar-day-cell");
         if (today) {
             cell.getStyleClass().add("calendar-day-today");
@@ -93,6 +108,8 @@ public final class CalendarioMonthView extends VBox {
     private Button createCallChip(CalendarioCall call) {
         Button chip = new Button(call.cliente());
         chip.getStyleClass().add("calendar-activity-chip");
+        chip.setMinWidth(0);
+        chip.setPrefWidth(0);
         chip.setMaxWidth(Double.MAX_VALUE);
         chip.setOnAction(event -> openCallHandler.accept(call));
         return chip;
