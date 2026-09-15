@@ -85,11 +85,9 @@ public class CalendarioView extends BorderPane {
         content.setPadding(new Insets(20));
         content.getStyleClass().add("calendar-content");
 
-        content.getChildren().addAll(
-                createTitleBar(),
-                createToolbar(),
-                createCalendarBody()
-        );
+        HBox calendarBody = createCalendarBody();
+        VBox.setVgrow(calendarBody, Priority.ALWAYS);
+        content.getChildren().addAll(createTitleBar(), createToolbar(), calendarBody);
         return content;
     }
 
@@ -137,6 +135,7 @@ public class CalendarioView extends BorderPane {
 
     private HBox createCalendarBody() {
         HBox body = new HBox(16);
+        body.setMaxHeight(Double.MAX_VALUE);
         body.getStyleClass().add("calendar-body");
         body.getChildren().addAll(createCalendarPanel(), createAgendaPanel());
         HBox.setHgrow(body.getChildren().get(0), Priority.ALWAYS);
@@ -145,6 +144,7 @@ public class CalendarioView extends BorderPane {
 
     private VBox createCalendarPanel() {
         VBox panel = new VBox(10);
+        panel.setMaxHeight(Double.MAX_VALUE);
         panel.getChildren().add(calendarDisplay);
         VBox.setVgrow(calendarDisplay, Priority.ALWAYS);
         HBox.setHgrow(panel, Priority.ALWAYS);

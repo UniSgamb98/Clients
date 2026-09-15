@@ -79,7 +79,6 @@
 }
 
 .calendar-day-cell {
-    -fx-min-height: 82;
     -fx-background-color: -app-surface-alt;
     -fx-background-radius: 10;
     -fx-border-color: -app-border;

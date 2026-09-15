@@ -7,6 +7,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import java.util.function.Consumer;
 
 public final class CalendarioMonthView extends VBox {
 
+    private static final double HEADER_ROW_HEIGHT = 24;
     private static final String[] WEEK_DAYS = {"Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"};
     private static final int MAX_VISIBLE_CALLS = 2;
 
@@ -32,6 +34,7 @@ public final class CalendarioMonthView extends VBox {
         monthGrid.getStyleClass().add("calendar-month-grid");
         monthGrid.setHgap(8);
         monthGrid.setVgap(8);
+        monthGrid.setMaxHeight(Double.MAX_VALUE);
         for (int day = 0; day < WEEK_DAYS.length; day++) {
             ColumnConstraints column = new ColumnConstraints();
             column.setMinWidth(0);
@@ -40,11 +43,13 @@ public final class CalendarioMonthView extends VBox {
             column.setFillWidth(true);
             monthGrid.getColumnConstraints().add(column);
         }
+        VBox.setVgrow(monthGrid, Priority.ALWAYS);
         getChildren().add(monthGrid);
     }
 
     public void showMonth(YearMonth displayedMonth, CalendarioMonth month, LocalDate selectedDate) {
         monthGrid.getChildren().clear();
+        configureRows(month);
         dayCells.clear();
         for (int column = 0; column < WEEK_DAYS.length; column++) {
             Label dayHeader = new Label(WEEK_DAYS[column]);
@@ -71,11 +76,31 @@ public final class CalendarioMonthView extends VBox {
         selectDate(selectedDate);
     }
 
+    private void configureRows(CalendarioMonth month) {
+        monthGrid.getRowConstraints().clear();
+        RowConstraints headerRow = new RowConstraints(HEADER_ROW_HEIGHT, HEADER_ROW_HEIGHT, HEADER_ROW_HEIGHT);
+        headerRow.setFillHeight(true);
+        monthGrid.getRowConstraints().add(headerRow);
+
+        int weekRows = (month.firstColumn() + month.dayCount() + WEEK_DAYS.length - 1) / WEEK_DAYS.length;
+        for (int week = 0; week < weekRows; week++) {
+            RowConstraints weekRow = new RowConstraints();
+            weekRow.setMinHeight(0);
+            weekRow.setPrefHeight(0);
+            weekRow.setVgrow(Priority.ALWAYS);
+            weekRow.setFillHeight(true);
+            monthGrid.getRowConstraints().add(weekRow);
+        }
+    }
+
     private VBox createDayCell(LocalDate date, boolean today, List<CalendarioCall> calls) {
         VBox cell = new VBox(6);
         cell.setMinWidth(0);
         cell.setPrefWidth(0);
         cell.setMaxWidth(Double.MAX_VALUE);
+        cell.setMinHeight(0);
+        cell.setPrefHeight(0);
+        cell.setMaxHeight(Double.MAX_VALUE);
         cell.getStyleClass().add("calendar-day-cell");
         if (today) {
             cell.getStyleClass().add("calendar-day-today");
